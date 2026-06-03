@@ -1,0 +1,204 @@
+  "estrutura_de_arquivos": {
+    "openclaw-main/": {
+      ".github/workflows/": ["deploy.yml", "security-scan.yml", "stale-prs.yml"],
+      ".vscode/": ["settings.json", "extensions.json"],
+      "apps/": {
+        "android/": ["package.json", "README.md"],
+        "ios/": ["Podfile", "OpenClaw.xcodeproj"],
+        "macos/": ["package.json", "entitlements.plist"]
+      },
+      "docs/": ["docusaurus.config.js", "getting-started.md", "architecture.md"],
+      "extensions/channels/": {
+        "whatsapp-twilio/src/": ["handlers/webhook.ts", "handlers/status.ts", "middleware/signature.ts", "mappers/twilio-to-core.ts", "index.ts"],
+        "telegram-bot/src/": ["handlers/update.ts", "index.ts"],
+        "slack-socket/src/": ["socket-mode.ts"]
+      },
+      "extensions/integrations/": {
+        "stripe-payments/src/": ["webhook.ts", "idempotency.ts", "index.ts"],
+        "anthropic-llm/src/": ["client.ts", "index.ts"],
+        "salesforce-crm/src/": ["sync.ts", "index.ts"]
+      },
+      "packages/": {
+        "acp-core/src/": ["protocol/message-schema.ts", "protocol/session-manager.ts", "tools/registry.ts", "tools/bank-balance.ts", "tools/transfer.ts", "tools/base-tool.ts"],
+        "agent-core/src/": ["runtime/agent-executor.ts", "runtime/context-builder.ts", "runtime/tool-caller.ts", "agents/billing-agent-v2/system-prompt.md", "agents/general-agent-v1/system-prompt.md"],
+        "orchestrator-core/src/": ["router/intent-classifier.ts", "router/rule-router.ts", "fallbacks/regex-router.ts", "dispatcher/sqs-dispatcher.ts"],
+        "conversation-manager/src/": ["persistence/dynamodb.ts", "limits/session-limits.ts", "archive/s3-archiver.ts", "compliance/data-retention.ts"],
+        "gateway-core/src/": ["middleware/rate-limiter.ts", "middleware/tracing.ts", "middleware/auth.ts", "scaling/auto-scaling-config.json", "server.ts"],
+        "cache-service/src/": ["invalidation.ts", "retry-logic.ts", "client.ts"],
+        "handoff-service/src/": ["service.ts", "timeouts.ts", "channels/telegram.ts"],
+        "llm-core/src/": ["providers/openai-provider.ts", "providers/anthropic-provider.ts", "providers/base-provider.ts", "token-counter.ts"],
+        "sdk/src/": ["client.ts", "types.ts"]
+      },
+      "scripts/": {
+        "analytics/": ["daily-report-generator.ts"],
+        "migration/": ["migrate-sessions-v1-to-v2.ts"],
+        "seed/": ["seed-dev-data.ts"],
+        "ops/": ["setup-alerts.sh", "health-check.sh"]
+      },
+      "terraform/modules/": ["ecs-service/", "dynamodb-table/", "cloudwatch-dashboard/", "redis-cluster/"],
+      "root_files": ["package.json", "pnpm-workspace.yaml", "tsconfig.base.json", "docker-compose.yml", ".env.example", "README.md"]
+    }
+  },
+  "arquivos_criticos": [
+    {
+      "caminho": "extensions/channels/whatsapp-twilio/src/handlers/webhook.ts",
+      "proposito": "Handler POST /webhooks/twilio/whatsapp - valida assinatura Twilio, parse payload, publica evento na SQS",
+      "funcoes_exportadas": ["handleTwilioWebhook", "validateSignature"],
+      "dependencias": ["crypto (signature validation)", "express", "@openclaw/acp-core", "sqs-client"],
+      "usado_por": ["Express Router", "tests/webhook.test.ts"]
+    },
+    {
+      "caminho": "packages/orchestrator-core/src/router/intent-classifier.ts",
+      "proposito": "Classificação de intenção via OpenAI GPT-4o-mini com fallback regex",
+      "funcoes_exportadas": ["classifyIntent", "getFallbackClassification"],
+      "dependencias": ["openai SDK", "Zod (validation)", "@openclaw/acp-core/types"],
+      "usado_por": ["OrchestratorService", "tests/classifier.test.ts"]
+    },
+    {
+      "caminho": "packages/acp-core/src/tools/registry.ts",
+      "proposito": "Registro dinâmico de tools com validação JSON Schema",
+      "funcoes_exportadas": ["registerTool", "executeTool", "listTools"],
+      "dependencias": ["Zod", "EventEmitter", "@openclaw/acp-core/types"],
+      "usado_por": ["AgentExecutor", "ToolCaller", "tests/tools/registry.test.ts"]
+    },
+    {
+      "caminho": "packages/conversation-manager/src/persistence/dynamodb.ts",
+      "proposito": "Persistência de conversas no DynamoDB com TTL automático",
+      "funcoes_exportadas": ["persistTurn", "getConversationHistory", "archiveSession"],
+      "dependencias": ["@aws-sdk/client-dynamodb", "@aws-sdk/lib-dynamodb", "@openclaw/acp-core/types"],
+      "usado_por": ["AgentExecutor", "HandoffService", "tests/persistence.test.ts"]
+    },
+    {
+      "caminho": "packages/gateway-core/src/middleware/rate-limiter.ts",
+      "proposito": "Rate limiting Redis-based com algoritmo Sliding Window Log",
+      "funcoes_exportadas": ["checkRateLimit", "resetRateLimit", "getRateLimitStatus"],
+      "dependencias": ["ioredis", "uuid"],
+      "usado_por": ["Express middleware chain", "tests/rate-limiter.test.ts"]
+    },
+    {
+      "caminho": "packages/handoff-service/src/service.ts",
+      "proposito": "Escalamento para humano via Telegram com gerenciamento de timers",
+      "funcoes_exportadas": ["requestHandoff", "startAbandonmentTimer", "markSessionResponded"],
+      "dependencias": ["node-telegram-bot-api", "@openclaw/conversation-manager", "Redis (timers)"],
+      "usado_por": ["GeneralAgent", "tests/handoff.test.ts"]
+    },
+    {
+      "caminho": "packages/llm-core/src/providers/openai-provider.ts",
+      "proposito": "Implementação concreta de LLMProvider para OpenAI com streaming e token counting",
+      "funcoes_exportadas": ["createChatCompletion", "countTokens", "streamResponse"],
+      "dependencias": ["openai SDK", "@openclaw/llm-core/base-provider"],
+      "usado_por": ["IntentClassifier", "AgentExecutor", "tests/openai-provider.test.ts"]
+    },
+    {
+      "caminho": "terraform/environments/production/main.tf",
+      "proposito": "Definição completa de infra produção: VPC, ECS, DynamoDB, Redis, ALB, CloudWatch",
+      "funcoes_exportadas": ["N/A (Terraform HCL)"],
+      "dependencias": ["terraform modules", "AWS provider"],
+      "usado_por": ["CI/CD pipeline deploy", "DevOps team"]
+    },
+    {
+      "caminho": ".github/workflows/deploy.yml",
+      "proposito": "Pipeline CI/CD: build, test, push ECR, deploy ECS com rolling update",
+      "funcoes_exportadas": ["N/A (GitHub Actions YAML)"],
+      "dependencias": ["aws-actions/configure-aws-credentials", "docker/build-push-action"],
+      "usado_por": ["push main branch", "manual trigger"]
+    }
+  ],
+  "infraestrutura": {
+    "ambientes": {
+      "dev": {
+        "tipo": "Docker Compose local",
+        "servicos": ["Redis (6379)", "DynamoDB Local (8000)"],
+        "variaveis": ".env.local"
+      },
+      "staging": {
+        "tipo": "AWS ECS Fargate",
+        "configuracoes": "via Terraform staging env",
+        "variaveis": "AWS Secrets Manager (openclaw/staging/*)"
+      },
+      "producao": {
+        "tipo": "AWS ECS Fargate multi-AZ",
+        "auto_scaling": true,
+        "backup": "DynamoDB PITR 35 dias, S3 versionamento"
+      }
+    },
+    "integracoes_externas": [
+      {
+        "nome": "Twilio WhatsApp API",
+        "finalidade": "Canal primário de entrada/saída de mensagens",
+        "variaveis": ["TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_WHATSAPP_NUMBER"],
+        "fallback": "Meta Cloud API direta (1-2 semanas migração)"
+      },
+      {
+        "nome": "OpenAI API",
+        "finalidade": "Classificação de intents e geração de respostas",
+        "variaveis": ["OPENAI_API_KEY", "OPENAI_MODEL"],
+        "fallback": "Anthropic Claude via feature flag"
+      },
+      {
+        "nome": "AWS DynamoDB",
+        "finalidade": "Persistência de histórico de conversas",
+        "variaveis": ["DYNAMODB_TABLE", "AWS_REGION"],
+        "fallback": "Export manual para PostgreSQL (processo de DR)"
+      },
+      {
+        "nome": "AWS SQS",
+        "finalidade": "Comunicação assíncrona entre componentes",
+        "variaveis": ["SQS_INGRESS_QUEUE_URL", "SQS_AGENTS_QUEUE_URL"],
+        "fallback": "Nenhum (crítico para arquitetura)"
+      },
+      {
+        "nome": "Telegram Bot API",
+        "finalidade": "Notificação de handoffs para grupo de suporte",
+        "variaveis": ["TELEGRAM_BOT_TOKEN", "TELEGRAM_SUPPORT_CHAT_ID"],
+        "fallback": "Email/SMS (implementação futura)"
+      },
+      {
+        "nome": "Stripe Webhooks",
+        "finalidade": "Processamento de pagamentos",
+        "variaveis": ["STRIPE_WEBHOOK_SECRET", "STRIPE_API_KEY"],
+        "fallback": "nenhum (armazenamento crítico)"
+      }
+    ]
+  },
+  "seguranca": {
+    "autenticacao": "JWT API keys para endpoints internos, webhook signatures (Twilio/Stripe)",
+    "autorizacao": "RBAC implícito por role de agente (billing, general, admin)",
+    "protecoes": [
+      "Rate limiting 20 req/min por phone number",
+      "Helmet headers em todas respostas HTTP",
+      "CORS restrito a domínios whitelist",
+      "Sanitização de inputs com Zod schema validation",
+      "PII masking em logs (telefone, email, tokens)"
+    ],
+    "tratamento_sensiveis": "Campos PII mascarados em logs. Secrets apenas via AWS Secrets Manager com rotação 90 dias. Zero secrets em código ou .env versionado."
+  },
+  "resiliencia": {
+    "classificacao_erros": [
+      {
+        "nivel": "L1",
+        "tipo": "Erro transitório (timeout 5xx)",
+        "acao": "Retry exponencial máx 3 tentativas",
+        "fallback": "Cache stale se disponível"
+      },
+      {
+        "nivel": "L2",
+        "tipo": "Erro de negócio (4xx)",
+        "acao": "Não retry, retorna erro formatado",
+        "fallback": "Sugere ação alternativa ao usuário"
+      },
+      {
+        "nivel": "L3",
+        "tipo": "Falha crítica (DB down, circuit breaker open)",
+        "acao": "Alerta P1 PagerDuty, fallback mode degradado",
+        "fallback": "Modo somente-leitura ou fila de espera"
+      }
+    ],
+    "circuit_breaker": "Implementado com Opossum library para todas integrações HTTP (OpenAI, APIs bancárias, Telegram). Threshold: 5 erros consecutivos → open. Half-open após 30s.",
+    "self_healing": "ECS auto-healing: tasks falhas substituídas em <2min. Auto-scaling baseado em CPU (70% target) e SQS depth (1 task por 100 msgs).",
+    "disaster_recovery": {
+      "rpo": "5 minutos (DynamoDB stream + backup contínuo)",
+      "rto": "1 hora (failover multi-region manual)",
+      "estrategia": "Backup diário S3 + DynamoDB PITR. Runbook de failover us-east-1 → us-west-2 documentado."
+    }
+  },
