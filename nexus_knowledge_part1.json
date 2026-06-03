@@ -1,0 +1,191 @@
+{
+  "meta": {
+    "id": "PROJ-NEXUS-2025-01",
+    "created_at": "2025-01-03T00:00:00Z",
+    "source_type": "prd",
+    "project_name": "NEXUS Protocol",
+    "version": "1.2",
+    "summary": "Meta-comando consolidado para geração de documentação arquitetural de excelência com replicabilidade, determinismo e auditabilidade."
+  },
+  "visao_geral": {
+    "problema": "Documentação técnica inconsistente, incompleta ou ambígua causa retrabalho, erros de implementação e perda de conhecimento em projetos de software.",
+    "solucao": "Protocolo padronizado que gera PRD + Arquitetura + Plano de Implementação com critérios verificáveis, diagramas Mermaid, schemas JSON completos e guia de replicação autocontido.",
+    "publico_alvo": [
+      "Engenheiros de software pleno/sênior que precisam implementar sistemas complexos",
+      "Arquitetos de software que documentam decisões técnicas",
+      "Equipes de produto que definem requisitos funcionais e não-funcionais",
+      "IAs executoras que implementam código baseado em documentação"
+    ],
+    "diferenciais": [
+      "Tríade NEXUS de qualidade (Replicabilidade, Determinismo, Auditabilidade) com testes de validação concretos",
+      "Regra de parada por informação faltante previne conteúdo inventado",
+      "Templates completos para Mermaid, JSON Schema, configs comentadas",
+      "Matriz de rastreabilidade RF/RNF → Componente → Arquivo → Método → Teste",
+      "Divisão em arquivos menores para evitar limites de tokens"
+    ]
+  },
+  "requisitos_funcionais": [
+    {
+      "id": "RF-01",
+      "nome": "Geração de Visão do Produto",
+      "descricao": "Gerar seção completa com identidade, problema, solução, público-alvo, princípios arquiteturais e diferenciais competitivos.",
+      "criterio_aceite": "Quando executado, deve produzir tabelas com mínimo 4 problemas, 3 segmentos de público, 5 princípios e comparação competitiva.",
+      "prioridade": "Must",
+      "componente_responsavel": "COMP-01"
+    },
+    {
+      "id": "RF-02",
+      "nome": "Geração de Arquitetura de Componentes",
+      "descricao": "Para cada componente principal, gerar ficha técnica com ID, classe base, dependências, modo de operação, permissões, inputs, outputs e exemplo JSON.",
+      "criterio_aceite": "Cada componente deve ter todos os campos da ficha técnica preenchidos sem placeholders 'A DEFINIR'.",
+      "prioridade": "Must",
+      "componente_responsavel": "COMP-01"
+    },
+    {
+      "id": "RF-03",
+      "nome": "Geração de Diagramas Mermaid",
+      "descricao": "Criar diagramas de sequência, estado e fluxo em sintaxe Mermaid renderizável.",
+      "criterio_aceite": "Todos os diagramas devem ser válidos na sintaxe Mermaid e conter todos os participantes/estados/transições identificados.",
+      "prioridade": "Must",
+      "componente_responsavel": "COMP-02"
+    },
+    {
+      "id": "RF-04",
+      "nome": "Geração de Requisitos Funcionais e Não-Funcionais",
+      "descricao": "Listar todos os RFs e RNFs com IDs únicos, descrições completas, critérios de aceite binários e prioridade MoSCoW.",
+      "criterio_aceite": "Cada RF/RNF deve ter ID no formato RF-XX/RNF-XX, critério verificável programaticamente e referência ao componente responsável.",
+      "prioridade": "Must",
+      "componente_responsavel": "COMP-01"
+    },
+    {
+      "id": "RF-05",
+      "nome": "Geração de Matriz de Rastreabilidade",
+      "descricao": "Criar tabela conectando RF/RNF → Componente → Arquivo → Método → Teste → Critério Binário.",
+      "criterio_aceite": "Nenhuma célula da matriz pode estar vazia; todo requisito deve ter teste correspondente.",
+      "prioridade": "Must",
+      "componente_responsavel": "COMP-01"
+    },
+    {
+      "id": "RF-06",
+      "nome": "Geração de Decisões Arquiteturais (ADRs)",
+      "descricao": "Documentar mínimo 6 decisões arquiteturais com status, contexto, alternativas rejeitadas, consequências e mitigação.",
+      "criterio_aceite": "Cada ADR deve ter ID único, alternativa rejeitada com motivo explícito e impacto em outras decisões.",
+      "prioridade": "Must",
+      "componente_responsavel": "COMP-03"
+    },
+    {
+      "id": "RF-07",
+      "nome": "Geração de Estrutura de Arquivos",
+      "descricao": "Listar árvore completa de diretórios e descrever arquivos críticos com propósito, dependências e interfaces públicas.",
+      "criterio_aceite": "Todo arquivo crítico deve ter descrição com propósito (2-3 linhas), deps listadas e interfaces com assinaturas.",
+      "prioridade": "Must",
+      "componente_responsavel": "COMP-01"
+    },
+    {
+      "id": "RF-08",
+      "nome": "Geração de Plano de Implementação",
+      "descricao": "Definir MVP (inclui/exclui), fases sequenciais com duração, entregas, dependências e critérios de conclusão.",
+      "criterio_aceite": "Mínimo 4 fases; cada fase deve listar arquivos criados/modificados e testes obrigatórios.",
+      "prioridade": "Must",
+      "componente_responsavel": "COMP-04"
+    },
+    {
+      "id": "RF-09",
+      "nome": "Geração de Guia de Replicação",
+      "descricao": "Criar passo-a-passo autocontido com pré-requisitos, comandos exatos de clone, build, execução e testes.",
+      "criterio_aceite": "Engenheiro pleno deve conseguir rodar o sistema em < 2 horas seguindo apenas este guia.",
+      "prioridade": "Must",
+      "componente_responsavel": "COMP-05"
+    },
+    {
+      "id": "RF-10",
+      "nome": "Parada por Informação Faltante",
+      "descricao": "Antes de gerar cada seção, verificar se há informação suficiente; se não houver, parar e perguntar ao usuário.",
+      "criterio_aceite": "Seção bloqueada deve exibir protocolo de parada com perguntas objetivas e impacto da ausência.",
+      "prioridade": "Must",
+      "componente_responsavel": "COMP-01"
+    }
+  ],
+  "requisitos_nao_funcionais": [
+    {
+      "id": "RNF-01",
+      "categoria": "Qualidade de Documentação",
+      "descricao": "Proibido parágrafos narrativos com mais de 3 linhas.",
+      "metrica": "Contagem de linhas por parágrafo",
+      "alvo": "≤ 3 linhas",
+      "componentes_afetados": ["COMP-01"]
+    },
+    {
+      "id": "RNF-02",
+      "categoria": "Qualidade de Documentação",
+      "descricao": "Proibido generalidades não verificáveis como 'robusto' ou 'boa performance'.",
+      "metrica": "Detecção de termos vagos",
+      "alvo": "0 ocorrências",
+      "componentes_afetados": ["COMP-01"]
+    },
+    {
+      "id": "RNF-03",
+      "categoria": "Completude",
+      "descricao": "Todo schema JSON deve ser completo com valores realistas, não esqueletos.",
+      "metrica": "Validação de schemas",
+      "alvo": "100% schemas completos",
+      "componentes_afetados": ["COMP-01", "COMP-02"]
+    },
+    {
+      "id": "RNF-04",
+      "categoria": "Completude",
+      "descricao": "Todo diagrama deve estar presente em Mermaid renderizável, não apenas mencionado.",
+      "metrica": "Presença de blocos mermaid",
+      "alvo": "100% diagramas em Mermaid",
+      "componentes_afetados": ["COMP-02"]
+    },
+    {
+      "id": "RNF-05",
+      "categoria": "Rastreabilidade",
+      "descricao": "Cada decisão deve ter justificativa com alternativa rejeitada e motivo.",
+      "metrica": "Contagem de decisões sem justificativa",
+      "alvo": "0 decisões sem justificativa",
+      "componentes_afetados": ["COMP-03"]
+    },
+    {
+      "id": "RNF-06",
+      "categoria": "Integridade",
+      "descricao": "Proibido seções vazias ou com 'A DEFINIR'. Se informação não existe, parar e perguntar.",
+      "metrica": "Detecção de placeholders vazios",
+      "alvo": "0 ocorrências",
+      "componentes_afetados": ["COMP-01"]
+    },
+    {
+      "id": "RNF-07",
+      "categoria": "Performance",
+      "descricao": "Documento deve ser gerado em partes menores para evitar limites de tokens.",
+      "metrica": "Tamanho de cada arquivo",
+      "alvo": "≤ 50KB por arquivo",
+      "componentes_afetados": ["COMP-01", "COMP-05"]
+    },
+    {
+      "id": "RNF-08",
+      "categoria": "Idioma",
+      "descricao": "Resposta obrigatória em Português (pt-BR).",
+      "metrica": "Detecção de idioma",
+      "alvo": "100% pt-BR",
+      "componentes_afetados": ["COMP-01"]
+    },
+    {
+      "id": "RNF-09",
+      "categoria": "Auditabilidade",
+      "descricao": "Cada requisito deve ter ID único no formato RF-XX ou RNF-XX.",
+      "metrica": "Regex de validação de ID",
+      "alvo": "100% IDs válidos",
+      "componentes_afetados": ["COMP-01"]
+    },
+    {
+      "id": "RNF-10",
+      "categoria": "Auditabilidade",
+      "descricao": "Cada requisito deve ter teste correspondente na matriz de rastreabilidade.",
+      "metrica": "Cobertura da matriz",
+      "alvo": "100% requisitos com teste",
+      "componentes_afetados": ["COMP-01"]
+    }
+  ]
+}
