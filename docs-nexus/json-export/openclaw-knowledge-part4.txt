@@ -1,0 +1,261 @@
+  "metricas_sucesso": [
+    {
+      "nome": "Latência API p95",
+      "target": "< 500ms",
+      "medicao": "CloudWatch Metrics histogram"
+    },
+    {
+      "nome": "Disponibilidade",
+      "target": "99.9% mensal",
+      "medicao": "Pingdom uptime monitoring externo"
+    },
+    {
+      "nome": "Precisão de classificação",
+      "target": "> 85%",
+      "medicao": "Amostragem manual semanal de 100 conversas"
+    },
+    {
+      "nome": "Taxa de handoffs bem-sucedidos",
+      "target": "> 90%",
+      "medicao": "(handoffs_respondidos / handoffs_total) * 100"
+    },
+    {
+      "nome": "Custo por mensagem",
+      "target": "< $0.50/1k msgs",
+      "medicao": "AWS Cost Explorer / total_msgs_processadas"
+    },
+    {
+      "nome": "Tempo médio resposta agente IA",
+      "target": "< 3s simples, < 8s complexas",
+      "medicao": "Timestamp diferença receive → first_reply"
+    },
+    {
+      "nome": "Taxa de perda de mensagens",
+      "target": "< 0.01%",
+      "medicao": "(msgs_webhook - msgs_persistidas) / msgs_webhook"
+    },
+    {
+      "nome": "Cobertura de testes",
+      "target": "> 85%",
+      "medicao": "Jest coverage report em cada PR"
+    },
+    {
+      "nome": "Tempo de deploy",
+      "target": "< 10min",
+      "medicao": "GitHub Actions workflow duration"
+    }
+  ],
+  "plano_implementacao": {
+    "mvp": {
+      "inclui": ["Canal WhatsApp Twilio", "Orchestrator com LLM classification", "Agente Billing v1", "Agente Geral v1", "Persistência DynamoDB", "Handoff Telegram", "Rate limiting Redis", "Deploy ECS Fargate"],
+      "exclui": ["Canal Telegram entrada", "Pagamentos Stripe produção", "Agentes especializados adicionais", "Analytics avançado", "App mobile", "OAuth2 bancário", "Multi-região ativo-ativo", "SDK público"]
+    },
+    "fases": [
+      {
+        "fase": 1,
+        "nome": "Fundação e Infraestrutura",
+        "duracao_semanas": 2,
+        "entregas": ["Terraform modules ECS/DynamoDB/Redis", "VPC 3 subnets privadas", "GitHub Actions pipeline", "Secrets Manager configurado"],
+        "dependencia": "nenhuma"
+      },
+      {
+        "fase": 2,
+        "nome": "Gateway WhatsApp e Ingestão",
+        "duracao_semanas": 1.5,
+        "entregas": ["Webhook Twilio com validação assinatura", "Mapper Twilio→ACP schema", "Publicação SQS FIFO", "Rate limiting middleware"],
+        "dependencia": "Fase 1 concluída"
+      },
+      {
+        "fase": 3,
+        "nome": "Orchestrator e Agentes",
+        "duracao_semanas": 2,
+        "entregas": ["Intent classifier OpenAI GPT-4o-mini", "Fallback regex", "Dispatcher SQS", "Agent billing-v2 tools", "Agent general-v1 tools"],
+        "dependencia": "Fase 2 concluída"
+      },
+      {
+        "fase": 4,
+        "nome": "Persistência, Handoff e Observabilidade",
+        "duracao_semanas": 1.5,
+        "entregas": ["Conversation Manager DynamoDB", "Archive S3 >100 turns", "Handoff service Telegram", "CloudWatch Dashboards", "Alertas Slack/PagerDuty"],
+        "dependencia": "Fase 3 concluída"
+      },
+      {
+        "fase": 5,
+        "nome": "Hardening e Go-Live",
+        "duracao_semanas": 1,
+        "entregas": ["Load test 1k RPS 30min", "Chaos engineering simulações", "Runbooks operação", "Treinamento suporte", "Go-live oficial"],
+        "dependencia": "Fase 4 concluída"
+      }
+    ],
+    "riscos_tecnicos": [
+      {
+        "id": "RISK-01",
+        "descricao": "OpenAI downtime prolongado (>1h)",
+        "probabilidade": "baixa (10%)",
+        "impacto": "alto",
+        "mitigacao": "Fallback regex automático + contrato SLA enterprise"
+      },
+      {
+        "id": "RISK-02",
+        "descricao": "DynamoDB throttling sob pico inesperado",
+        "probabilidade": "média (25%)",
+        "impacto": "médio",
+        "mitigacao": "Auto-scaling 20%-80% + Reserved Capacity picos previsíveis"
+      },
+      {
+        "id": "RISK-03",
+        "descricao": "Twilio muda política de preços ou API",
+        "probabilidade": "baixa (15%)",
+        "impacto": "alto",
+        "mitigacao": "Abstração ChannelProvider + contrato anual preço fixo"
+      },
+      {
+        "id": "RISK-04",
+        "descricao": "Vazamento de dados sensíveis em logs",
+        "probabilidade": "média (30%)",
+        "impacto": "crítico",
+        "mitigacao": "Log masking PII + GitLeaks scan + treinamento segurança"
+      },
+      {
+        "id": "RISK-05",
+        "descricao": "Bug agent-core causa loop infinito",
+        "probabilidade": "média (35%)",
+        "impacto": "médio",
+        "mitigacao": "Max 10 iterations/conversa + DLQ alerta CloudWatch"
+      },
+      {
+        "id": "RISK-06",
+        "descricao": "Redis cluster falha (rate limit bypass)",
+        "probabilidade": "baixa (20%)",
+        "impacto": "médio",
+        "mitigacao": "Redis cluster mode 2 shards + fallback in-memory"
+      }
+    ]
+  },
+  "open_items": [
+    {
+      "id": "OPEN-01",
+      "descricao": "Autenticação social (Google, Github) postergada para v2",
+      "blocking": false,
+      "sugestao": "Usar Passport.js quando implementar"
+    },
+    {
+      "id": "OPEN-02",
+      "descricao": "Canal Telegram como entrada (atualmente apenas handoff saída)",
+      "blocking": false,
+      "sugestao": "Implementar adapter TelegramBot similar ao TwilioAdapter"
+    },
+    {
+      "id": "OPEN-03",
+      "descricao": "Pagamentos via Stripe integração pronta mas não habilitada produção",
+      "blocking": false,
+      "sugestao": "Habilitar feature flag após revisão compliance financeiro"
+    },
+    {
+      "id": "OPEN-04",
+      "descricao": "Analytics avançado (relatórios diários S3 no backlog)",
+      "blocking": false,
+      "sugestao": "Lambda daily-report-generator já implementado, falta dashboard BI"
+    },
+    {
+      "id": "OPEN-05",
+      "descricao": "Multi-região ativo-ativo (apenas multi-AZ us-east-1 atualmente)",
+      "blocking": false,
+      "sugestao": "ADR executivo necessário, estimativa 4-6 semanas implementação"
+    }
+  ],
+  "limitations": [
+    "Upload máximo de 10MB por arquivo de mídia",
+    "20 requisições por minuto por número de telefone",
+    "Timeout de tool call em 30 segundos",
+    "Máximo 100 turns por sessão antes de arquivamento S3",
+    "TTL de conversas: 30 dias (requisito LGPD)",
+    "Throughput máximo OpenAI: 10k RPM por organização",
+    "Mensagens SQS máx 256KB (comprimidas se necessário)",
+    "Região AWS única: us-east-1 (failover manual us-west-2)"
+  ],
+  "glossary": [
+    {
+      "term": "ACP",
+      "meaning": "Agent Communication Protocol - protocolo unificado para comunicação entre agentes heterogêneos"
+    },
+    {
+      "term": "ADR",
+      "meaning": "Architecture Decision Record – registro formal de decisão arquitetural"
+    },
+    {
+      "term": "Turn",
+      "meaning": "Unidade de interação: par mensagem-usuário + resposta-agente"
+    },
+    {
+      "term": "SessionId",
+      "meaning": "Identificador único de conversa: wa_<phoneNumber>_<timestamp>"
+    },
+    {
+      "term": "Handoff",
+      "meaning": "Transferência de conversa de agente IA para atendente humano"
+    },
+    {
+      "term": "Tool",
+      "meaning": "Função executável pelo agente com JSON Schema definido (ex: get_invoice, bank_balance)"
+    },
+    {
+      "term": "DLQ",
+      "meaning": "Dead Letter Queue - fila SQS para mensagens que falharam processamento múltiplas vezes"
+    },
+    {
+      "term": "PITR",
+      "meaning": "Point-in-Time Recovery - recurso DynamoDB para restore de backup contínuo"
+    },
+    {
+      "term": "RPO",
+      "meaning": "Recovery Point Objective - máxima perda de dados aceitável em disaster recovery (5 min)"
+    },
+    {
+      "term": "RTO",
+      "meaning": "Recovery Time Objective - máximo tempo de indisponibilidade aceitável (1 hora)"
+    }
+  ],
+  "people_and_teams": [
+    {
+      "name": "Tech Lead",
+      "role": "Liderança técnica e decisões arquiteturais",
+      "decisions_influenced": ["ADR-001", "ADR-002", "ADR-003", "ADR-004", "ADR-005"]
+    },
+    {
+      "name": "Arquiteto de IA",
+      "role": "Especialista em LLMs e classificação de intents",
+      "decisions_influenced": ["ADR-001"]
+    },
+    {
+      "name": "Arquiteto de Dados",
+      "role": "Responsável por escolhas de banco de dados e persistência",
+      "decisions_influenced": ["ADR-002"]
+    },
+    {
+      "name": "Arquiteto de Sistemas Distribuídos",
+      "role": "Especialista em mensageria assíncrona e filas",
+      "decisions_influenced": ["ADR-003"]
+    },
+    {
+      "name": "Engenheiro de Plataforma",
+      "role": "Responsável por rate limiting e middleware",
+      "decisions_influenced": ["ADR-004"]
+    },
+    {
+      "name": "Arquiteto de Cloud",
+      "role": "Decisões de deploy e infraestrutura AWS",
+      "decisions_influenced": ["ADR-005"]
+    },
+    {
+      "name": "DevOps Lead",
+      "role": "CI/CD, monitoramento e operações",
+      "decisions_influenced": ["ADR-005", "ADR-009"]
+    },
+    {
+      "name": "DPO (Data Protection Officer)",
+      "role": "Compliance LGPD e retenção de dados",
+      "decisions_influenced": ["RNF-15", "data-retention.ts"]
+    }
+  ]
+}
