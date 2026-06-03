@@ -1,0 +1,787 @@
+{
+  "estrutura_de_arquivos": {
+    "NEXUS_Protocol_v1.1.md": "Documento principal com Partes 1-5 (Visão, Arquitetura, Fluxos, Infraestrutura, Resiliência)",
+    "NEXUS_Partes_6-8.md": "Partes 6-8 (Requisitos, Estrutura de Arquivos, ADRs)",
+    "NEXUS_Partes_9-11.md": "Partes 9-11 (Plano de Implementação, Padrões, Guia de Replicação)",
+    "NEXUS_Partes_12-14.md": "Partes 12-14 (Extensibilidade, Limitações, Roadmap, Cláusula de Integridade)",
+    "nexus_knowledge_part1.json": "JSON de conhecimento Parte 1 (metadados, RFs, RNFs)",
+    "nexus_knowledge_part2.json": "JSON de conhecimento Parte 2 (componentes, ADRs, fluxos)",
+    "nexus_knowledge_part3.json": "JSON de conhecimento Parte 3 (infra, segurança, métricas, riscos)",
+    "nexus_knowledge_v2_part1.json": "JSON v2 Parte 1 (RFs/RNFs detalhados com testes)",
+    "nexus_knowledge_v2_part2.json": "JSON v2 Parte 2 (componentes, ADRs, fluxos detalhados)",
+    "src/": {
+      "core/": {
+        "index.ts": "Exporta todos módulos principais do NEXUS",
+        "context_analyzer.ts": "Implementação do COMP-001 ContextAnalyzer",
+        "vision_generator.ts": "Implementação do COMP-002 ProductVisionGenerator",
+        "component_architect.ts": "Implementação do COMP-003 ComponentArchitect",
+        "mermaid_generator.ts": "Implementação do COMP-004 MermaidDiagramGenerator",
+        "implementation_planner.ts": "Implementação do COMP-005 ImplementationPlanner"
+      },
+      "models/": {
+        "project_context.model.ts": "Data models: ProjectContext, AnalysisResult, SectionStatus",
+        "requirements.model.ts": "Data models: Requirement, FunctionalRequirement, NonFunctionalRequirement",
+        "component.model.ts": "Data models: ComponentBlueprint, Interface, Event",
+        "adr.model.ts": "Data models: ADR, RejectedAlternative, Consequence",
+        "flow.model.ts": "Data models: FlowDefinition, Transition, Exception"
+      },
+      "validators/": {
+        "section_validator.ts": "Valida completude de seções antes de geração",
+        "json_schema_validator.ts": "Valida JSON Schemas gerados contra especificação",
+        "mermaid_syntax_validator.ts": "Valida sintaxe Mermaid antes de renderização",
+        "traceability_matrix_validator.ts": "Valida matriz de rastreabilidade completa"
+      },
+      "generators/": {
+        "table_formatter.ts": "Formata tabelas Markdown com alinhamento correto",
+        "json_schema_generator.ts": "Gera JSON Schemas completos com examples",
+        "env_file_generator.ts": "Gera .env.example com comentários por variável",
+        "test_case_generator.ts": "Gera casos de teste Gherkin a partir de critérios"
+      },
+      "utils/": {
+        "checkpoint_manager.ts": "Gerencia checkpoints para retomada após parada",
+        "logger.ts": "Logging estruturado JSON para observabilidade",
+        "id_generator.ts": "Gera IDs únicos (RF-XXX, RNF-XXX, COMP-XXX, ADR-XXX)",
+        "markdown_compiler.ts": "Compila partes em documento Markdown único"
+      }
+    },
+    "tests/": {
+      "unit/": {
+        "context_analyzer.spec.ts": "Testes unitários do ContextAnalyzer",
+        "vision_generator.spec.ts": "Testes unitários do ProductVisionGenerator",
+        "component_architect.spec.ts": "Testes unitários do ComponentArchitect",
+        "mermaid_generator.spec.ts": "Testes unitários do MermaidDiagramGenerator",
+        "implementation_planner.spec.ts": "Testes unitários do ImplementationPlanner"
+      },
+      "integration/": {
+        "full_generation_flow.spec.ts": "Teste de integração do fluxo completo",
+        "checkpoint_resume.spec.ts": "Teste de retomada após parada por informação faltante",
+        "json_extraction.spec.ts": "Teste de extração COMANDO A para JSON"
+      },
+      "fixtures/": {
+        "sample_project_context.json": "Contexto de exemplo para testes",
+        "expected_output_part1.md": "Output esperado Parte 1 para validação",
+        "expected_output_part2.md": "Output esperado Parte 2 para validação"
+      }
+    },
+    "config/": {
+      "default_config.json": "Configurações padrão do NEXUS",
+      "templates/": {
+        "adr_template.md": "Template para ADRs",
+        "component_ficha_template.md": "Template para ficha técnica de componentes",
+        "blocking_question_template.txt": "Template para perguntas de bloqueio"
+      }
+    },
+    ".env.example": "Variáveis de ambiente necessárias (API keys, configs)",
+    "package.json": "Dependências Node.js e scripts de build/test",
+    "tsconfig.json": "Configuração TypeScript",
+    "README.md": "Documentação inicial do projeto",
+    "Dockerfile": "Containerização para deploy",
+    "docker-compose.yml": "Orquestração de serviços locais"
+  },
+  "arquivos_criticos": [
+    {
+      "caminho": "src/core/context_analyzer.ts",
+      "proposito": "Coração do NEXUS - analisa contexto, detecta informações faltantes e decide se prossegue ou para para perguntar",
+      "funcoes_exportadas": [
+        "analyzeContext(rawContext: ProjectContext): AnalysisResult",
+        "checkSectionReadiness(sectionName: string, context: ProjectContext): SectionStatus",
+        "generateBlockingQuestions(sectionName: string, missingFields: string[]): BlockingQuestion[]"
+      ],
+      "dependencias": [
+        "ProjectSchema (models/project_context.model.ts)",
+        "SectionValidator (validators/section_validator.ts)",
+        "IDGenerator (utils/id_generator.ts)"
+      ],
+      "usado_por": [
+        "ProductVisionGenerator",
+        "ComponentArchitect",
+        "ImplementationPlanner"
+      ]
+    },
+    {
+      "caminho": "src/core/component_architect.ts",
+      "proposito": "Projeta componentes com fichas técnicas completas, gera JSON Schemas válidos e extrai variáveis de ambiente",
+      "funcoes_exportadas": [
+        "designComponent(componentSpec: ComponentSpec): ComponentBlueprint",
+        "generateJSONSchema(outputType: string, fields: FieldDef[]): JSONSchema",
+        "extractEnvVariables(components: ComponentBlueprint[]): EnvVariable[]",
+        "calculateResourceBudget(components: ComponentBlueprint[]): ResourceAllocation[]"
+      ],
+      "dependencias": [
+        "ComponentModel (models/component.model.ts)",
+        "JSONSchemaGenerator (generators/json_schema_generator.ts)",
+        "DependencyMapper (utils/dependency_mapper.ts)"
+      ],
+      "usado_por": [
+        "MermaidDiagramGenerator",
+        "ImplementationPlanner",
+        "EnvFileGenerator"
+      ]
+    },
+    {
+      "caminho": "src/core/mermaid_generator.ts",
+      "proposito": "Gera diagramas Mermaid renderizáveis (sequence, state, flowchart, infrastructure) baseados em fluxos e arquitetura",
+      "funcoes_exportadas": [
+        "generateSequenceDiagram(flow: FlowDefinition): string",
+        "generateStateDiagram(entity: EntityDef, transitions: Transition[]): string",
+        "generateInfrastructureDiagram(infra: InfrastructureDef): string",
+        "generateFailureMap(failures: FailureMode[], recoveries: RecoveryStrategy[]): string"
+      ],
+      "dependencias": [
+        "FlowModel (models/flow.model.ts)",
+        "MermaidTemplateEngine (generators/mermaid_template_engine.ts)",
+        "MermaidValidator (validators/mermaid_syntax_validator.ts)"
+      ],
+      "usado_por": [
+        "ImplementationPlanner (para incluir diagramas no documento final)"
+      ]
+    },
+    {
+      "caminho": "src/core/implementation_planner.ts",
+      "proposito": "Gera plano de implementação completo: MVP, fases, riscos, métricas, guia de replicação e matriz de rastreabilidade",
+      "funcoes_exportadas": [
+        "defineMVP(requirements: Requirement[]): MVPDefinition",
+        "planPhases(mvp: MVPDefinition, components: ComponentBlueprint[]): ImplementationPhase[]",
+        "assessRisks(plan: ImplementationPhase[]): TechnicalRisk[]",
+        "generateReplicationGuide(project: ProjectContext, infra: InfrastructureDef): ReplicationStep[]",
+        "generateTraceabilityMatrix(requirements: Requirement[], components: ComponentBlueprint[]): TraceabilityEntry[]"
+      ],
+      "dependencias": [
+        "RequirementsModel (models/requirements.model.ts)",
+        "RiskAssessor (utils/risk_assessor.ts)",
+        "MilestoneTracker (utils/milestone_tracker.ts)"
+      ],
+      "usado_por": [
+        "MarkdownCompiler (para compilar documento final)"
+      ]
+    },
+    {
+      "caminho": "src/models/project_context.model.ts",
+      "proposito": "Define todos data models usados pelo sistema: ProjectContext, AnalysisResult, SectionStatus, BlockingQuestion",
+      "funcoes_exportadas": [
+        "interface ProjectContext",
+        "interface AnalysisResult",
+        "interface SectionStatus",
+        "interface BlockingQuestion",
+        "type ProjectState"
+      ],
+      "dependencias": [],
+      "usado_por": [
+        "ContextAnalyzer",
+        "ProductVisionGenerator",
+        "ComponentArchitect",
+        "MermaidDiagramGenerator",
+        "ImplementationPlanner"
+      ]
+    },
+    {
+      "caminho": "src/validators/section_validator.ts",
+      "proposito": "Valida se uma seção tem informação suficiente para ser gerada sem inventar dados",
+      "funcoes_exportadas": [
+        "validateSection(sectionName: string, context: ProjectContext): ValidationResult",
+        "getRequiredFields(sectionName: string): string[]",
+        "checkFieldCompleteness(field: string, value: any): boolean"
+      ],
+      "dependencias": [
+        "ProjectContext (models/project_context.model.ts)",
+        "DefaultConfig (config/default_config.json)"
+      ],
+      "usado_por": [
+        "ContextAnalyzer"
+      ]
+    },
+    {
+      "caminho": "src/generators/json_schema_generator.ts",
+      "proposito": "Gera JSON Schemas completos com types, required, patterns e exemplos realistas preenchidos",
+      "funcoes_exportadas": [
+        "generateSchema(fields: FieldDef[], options: SchemaOptions): JSONSchema",
+        "generateExample(schema: JSONSchema): object",
+        "validateAgainstSchema(data: object, schema: JSONSchema): ValidationResult"
+      ],
+      "dependencias": [
+        "JSONSchema standard (npm: ajv ou similar)"
+      ],
+      "usado_por": [
+        "ComponentArchitect",
+        "TestCaseGenerator"
+      ]
+    },
+    {
+      "caminho": "src/utils/checkpoint_manager.ts",
+      "proposito": "Gerencia checkpoints para permitir retomada instantânea após parada por informação faltante",
+      "funcoes_exportadas": [
+        "saveCheckpoint(state: GenerationState): string",
+        "loadCheckpoint(checkpointId: string): GenerationState",
+        "listCheckpoints(): CheckpointSummary[]",
+        "deleteCheckpoint(checkpointId: string): boolean"
+      ],
+      "dependencias": [
+        "fs (Node.js file system)",
+        "GenerationState (models/project_context.model.ts)"
+      ],
+      "usado_por": [
+        "ContextAnalyzer (ao parar)",
+        "MarkdownCompiler (ao retomar)"
+      ]
+    },
+    {
+      "caminho": "src/generators/env_file_generator.ts",
+      "proposito": "Extrai todas variáveis de ambiente dos componentes e gera .env.example comentado linha a linha",
+      "funcoes_exportadas": [
+        "extractAllEnvVars(components: ComponentBlueprint[], integrations: Integration[]): EnvVariable[]",
+        "generateEnvExample(vars: EnvVariable[]): string",
+        "validateEnvFile(envPath: string, requiredVars: EnvVariable[]): ValidationError[]"
+      ],
+      "dependencias": [
+        "ComponentModel (models/component.model.ts)",
+        "IntegrationModel (models/infrastructure.model.ts)"
+      ],
+      "usado_por": [
+        "ComponentArchitect",
+        "ImplementationPlanner"
+      ]
+    },
+    {
+      "caminho": "src/utils/markdown_compiler.ts",
+      "proposito": "Compila todas partes geradas em documento Markdown único com formatação consistente e índices",
+      "funcoes_exportadas": [
+        "compileDocument(parts: DocumentPart[]): string",
+        "generateTableOfContents(document: string): string",
+        "addChecklistAndDeclaration(document: string): string"
+      ],
+      "dependencias": [
+        "TableFormatter (generators/table_formatter.ts)",
+        "MermaidValidator (validators/mermaid_syntax_validator.ts)"
+      ],
+      "usado_por": [
+        "ImplementationPlanner (fase final)"
+      ]
+    },
+    {
+      "caminho": "tests/integration/full_generation_flow.spec.ts",
+      "proposito": "Teste de integração end-to-end que valida fluxo completo desde contexto até documento final",
+      "funcoes_exportadas": [
+        "describe('Full Generation Flow')",
+        "it('should generate complete document without A DEFINIR')",
+        "it('should stop and ask questions when context is incomplete')",
+        "it('should resume from checkpoint after user answers')"
+      ],
+      "dependencias": [
+        "Jest testing framework",
+        "ContextAnalyzer",
+        "All generators"
+      ],
+      "usado_por": [
+        "CI/CD pipeline (validação de qualidade)"
+      ]
+    },
+    {
+      "caminho": "config/default_config.json",
+      "proposito": "Configurações padrão do NEXUS: limites, templates, regras de validação",
+      "funcoes_exportadas": [],
+      "dependencias": [],
+      "usado_por": [
+        "ContextAnalyzer",
+        "SectionValidator",
+        "All generators"
+      ]
+    },
+    {
+      "caminho": ".env.example",
+      "proposito": "Lista todas variáveis de ambiente necessárias com exemplos e descrições",
+      "funcoes_exportadas": [],
+      "dependencias": [],
+      "usado_por": [
+        "Desenvolvedores (setup inicial)",
+        "CI/CD pipeline (configuração de ambiente)"
+      ]
+    },
+    {
+      "caminho": "package.json",
+      "proposito": "Define dependências Node.js, scripts de build, test, lint e start",
+      "funcoes_exportadas": [],
+      "dependencias": [],
+      "usado_por": [
+        "npm/yarn (gerenciamento de pacotes)",
+        "Desenvolvedores (instalação e execução)"
+      ]
+    }
+  ],
+  "data_models": [
+    {
+      "nome": "ProjectContext",
+      "descricao": "Contexto completo do projeto fornecido pelo usuário",
+      "schema": {
+        "type": "object",
+        "required": ["project_description", "current_state"],
+        "properties": {
+          "project_description": {
+            "type": "string",
+            "minLength": 50,
+            "description": "Descrição do projeto em linguagem natural (mínimo 50 palavras)"
+          },
+          "current_state": {
+            "type": "object",
+            "required": ["has_prior_prd", "implemented_phases"],
+            "properties": {
+              "has_prior_prd": {
+                "type": "boolean",
+                "description": "Se já existe PRD anterior"
+              },
+              "implemented_phases": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Fases já implementadas (lista ou 'nenhuma')"
+              },
+              "architectural_decisions": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Decisões arquiteturais já tomadas"
+              },
+              "constraints": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Restrições conhecidas (tecnologia, prazo, equipe)"
+              }
+            }
+          },
+          "target_audience": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Segmentos de público-alvo identificados"
+          },
+          "integrations": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Integrações externas necessárias"
+          }
+        }
+      },
+      "example": {
+        "project_description": "Sistema de automação de documentação técnica que transforma descrições vagas de projetos em PRDs completos, arquitetura detalhada e planos de implementação seguindo padrões rigorosos de qualidade.",
+        "current_state": {
+          "has_prior_prd": false,
+          "implemented_phases": [],
+          "architectural_decisions": [],
+          "constraints": ["Deve ser implementado em TypeScript", "Prazo de 4 semanas"]
+        },
+        "target_audience": ["Engenheiros de software", "Product Managers técnicos"],
+        "integrations": ["API Anthropic Claude", "API OpenAI GPT"]
+      }
+    },
+    {
+      "nome": "AnalysisResult",
+      "descricao": "Resultado da análise de contexto pelo ContextAnalyzer",
+      "schema": {
+        "type": "object",
+        "required": ["status", "sections"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["complete", "incomplete", "blocked"]
+          },
+          "sections": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "required": ["ready", "missing_fields"],
+              "properties": {
+                "ready": {"type": "boolean"},
+                "missing_fields": {
+                  "type": "array",
+                  "items": {"type": "string"}
+                },
+                "blocking_questions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["question", "field"],
+                    "properties": {
+                      "question": {"type": "string"},
+                      "field": {"type": "string"}
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "inherited_decisions": {
+            "type": "array",
+            "items": {"type": "string"}
+          }
+        }
+      },
+      "example": {
+        "status": "blocked",
+        "sections": {
+          "visao_produto": {
+            "ready": true,
+            "missing_fields": [],
+            "blocking_questions": []
+          },
+          "decisoes_arquiteturais": {
+            "ready": false,
+            "missing_fields": ["prior_decisions"],
+            "blocking_questions": [
+              {
+                "question": "Quais decisões arquiteturais já foram tomadas para este projeto?",
+                "field": "prior_decisions"
+              }
+            ]
+          }
+        },
+        "inherited_decisions": []
+      }
+    },
+    {
+      "nome": "ComponentBlueprint",
+      "descricao": "Especificação completa de um componente arquitetural",
+      "schema": {
+        "type": "object",
+        "required": ["id", "name", "responsibility", "interfaces"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^COMP-\\d{3}$"},
+          "name": {"type": "string"},
+          "responsibility": {"type": "string"},
+          "dependencies": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "public_interfaces": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["name", "signature", "description"],
+              "properties": {
+                "name": {"type": "string"},
+                "signature": {"type": "string"},
+                "description": {"type": "string"}
+              }
+            }
+          },
+          "events_emits": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "events_listens": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "configurations": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "required": ["default", "type"],
+              "properties": {
+                "default": {},
+                "type": {"type": "string", "enum": ["string", "number", "boolean", "object"]},
+                "constraints": {"type": "object"},
+                "description": {"type": "string"}
+              }
+            }
+          }
+        }
+      },
+      "example": {
+        "id": "COMP-001",
+        "name": "ContextAnalyzer",
+        "responsibility": "Analisar contexto e identificar informações faltantes",
+        "dependencies": ["ProjectSchema", "SectionValidator"],
+        "public_interfaces": [
+          {
+            "name": "analyzeContext",
+            "signature": "analyzeContext(rawContext: ProjectContext): AnalysisResult",
+            "description": "Recebe contexto bruto e retorna resultado da análise"
+          }
+        ],
+        "events_emits": ["context.analyzed", "section.blocked"],
+        "events_listens": ["user.context_submitted"],
+        "configurations": {
+          "MIN_CONTEXT_WORDS": {
+            "default": 50,
+            "type": "number",
+            "constraints": {"min": 10, "max": 500},
+            "description": "Número mínimo de palavras na descrição"
+          }
+        }
+      }
+    },
+    {
+      "nome": "ADR",
+      "descricao": "Architecture Decision Record - registro formal de decisão arquitetural",
+      "schema": {
+        "type": "object",
+        "required": ["id", "status", "decision", "alternatives_rejected"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^ADR-\\d{3}$"},
+          "status": {"type": "string", "enum": ["Aceita", "Rejeitada", "Proposta"]},
+          "date": {"type": "string", "format": "date"},
+          "context": {"type": "string"},
+          "decision": {"type": "string"},
+          "alternatives_rejected": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["alternative", "reason"],
+              "properties": {
+                "alternative": {"type": "string"},
+                "reason": {"type": "string"}
+              }
+            }
+          },
+          "positive_consequences": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "negative_consequences": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "mitigation": {"type": "string"},
+          "impact": {"type": "string"},
+          "related_requirements": {
+            "type": "array",
+            "items": {"type": "string", "pattern": "^(RF|RNF)-\\d{3}$"}
+          }
+        }
+      },
+      "example": {
+        "id": "ADR-001",
+        "status": "Aceita",
+        "date": "2024-01-10",
+        "context": "Precisávamos garantir integridade da documentação gerada",
+        "decision": "Implementar regra de parada por informação faltante",
+        "alternatives_rejected": [
+          {
+            "alternative": "Preencher com placeholders 'A DEFINIR'",
+            "reason": "Viola princípio de determinismo e auditabilidade"
+          }
+        ],
+        "positive_consequences": ["Garante 100% de integridade", "Força contexto completo"],
+        "negative_consequences": ["Requer múltiplas interações"],
+        "mitigation": "Sistema de checkpointing para retomada instantânea",
+        "impact": "AFETA COMP-001, COMP-005",
+        "related_requirements": ["RF-001", "RNF-002"]
+      }
+    },
+    {
+      "nome": "FlowDefinition",
+      "descricao": "Definição estruturada de um fluxo principal do sistema",
+      "schema": {
+        "type": "object",
+        "required": ["name", "actors", "steps"],
+        "properties": {
+          "name": {"type": "string"},
+          "actors": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "preconditions": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "steps": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "postconditions": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "exceptions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["condition", "result"],
+              "properties": {
+                "condition": {"type": "string"},
+                "result": {"type": "string"},
+                "failure_counter": {"type": "string"}
+              }
+            }
+          }
+        }
+      },
+      "example": {
+        "name": "Geração Completa de Documentação NEXUS",
+        "actors": ["Usuário", "ContextAnalyzer", "ProductVisionGenerator", "ComponentArchitect"],
+        "preconditions": ["Usuário tem descrição do projeto", "Sistema NEXUS está configurado"],
+        "steps": [
+          "1. Usuário submete contexto via formulário",
+          "2. ContextAnalyzer valida completude",
+          "3. ContextAnalyzer verifica readiness da seção Visão do Produto",
+          "4. ProductVisionGenerator cria Parte 1"
+        ],
+        "postconditions": ["Documento NEXUS completo salvo", "JSON de conhecimento extraído"],
+        "exceptions": [
+          {
+            "condition": "Contexto insuficiente para seção X",
+            "result": "Sistema para e lista perguntas objetivas",
+            "failure_counter": "N/A"
+          }
+        ]
+      }
+    },
+    {
+      "nome": "Requirement",
+      "descricao": "Requisito funcional ou não-funcional com critério de aceite",
+      "schema": {
+        "type": "object",
+        "required": ["id", "description", "acceptance_criteria", "priority"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^(RF|RNF)-\\d{3}$"},
+          "name": {"type": "string"},
+          "description": {"type": "string"},
+          "acceptance_criteria": {"type": "string"},
+          "priority": {"type": "string", "enum": ["Must", "Should", "Could", "Wont"]},
+          "category": {"type": "string"},
+          "metric": {"type": "string"},
+          "target": {"type": "string"},
+          "responsible_component": {"type": "string", "pattern": "^COMP-\\d{3}$"},
+          "tests": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["name", "scenario", "criterion"],
+              "properties": {
+                "name": {"type": "string"},
+                "scenario": {"type": "string"},
+                "criterion": {"type": "string"}
+              }
+            }
+          }
+        }
+      },
+      "example": {
+        "id": "RF-001",
+        "name": "Análise de Contexto do Projeto",
+        "description": "O sistema deve analisar o contexto fornecido e identificar informações faltantes",
+        "acceptance_criteria": "Quando contexto incompleto, então parar e listar perguntas objetivas",
+        "priority": "Must",
+        "responsible_component": "COMP-001",
+        "tests": [
+          {
+            "name": "context_analyzer.spec.ts",
+            "scenario": "DADO contexto sem decisões QUANDO analisar ENTÃO deve perguntar",
+            "criterion": "Retorna blocked_section e questions array não vazio"
+          }
+        ]
+      }
+    }
+  ],
+  "examples": [
+    {
+      "tipo": "entrada_tipica",
+      "descricao": "Contexto de projeto fornecido por usuário (pode ser vago)",
+      "conteudo": {
+        "projeto": "Sistema de gestão de tarefas para equipes remotas com integração a Slack e GitHub",
+        "estado_atual": {
+          "ja_existe_prd_anterior": "Não",
+          "fases_ja_implementadas": "nenhuma",
+          "decisoes_arquiteturais": "nenhuma",
+          "restricoes": "Deve usar React no frontend, Node.js no backend, prazo de 6 semanas"
+        }
+      }
+    },
+    {
+      "tipo": "saida_parcial_visao",
+      "descricao": "Trecho de documento gerado - Seção 1.2 Problema e Solução",
+      "conteudo": "| Problema | Impacto | Como o Sistema Resolve |\n|---|---|---|\n| Equipes remotas perdem visibilidade do progresso das tarefas | 40% das reuniões são para status updates desnecessários | Dashboard em tempo real integrado ao Slack notifica mudanças automaticamente |\n| Integração manual entre GitHub e ferramenta de tarefas gera erros | 15% das tasks ficam desatualizadas | Sync bidirecional automático via webhooks mantém consistência |\n| Onboarding de novos membros é lento devido à documentação dispersa | 2 semanas de produtividade perdida por novo hire | Centralização de docs + bot de onboarding no Slack reduz para 3 dias |"
+    },
+    {
+      "tipo": "saida_componente_json",
+      "descricao": "Exemplo de output JSON de componente - TaskService.createTask",
+      "conteudo": {
+        "taskId": "TASK-2024-0042",
+        "title": "Implementar autenticação JWT",
+        "description": "Criar módulo de auth com login, logout e refresh token",
+        "status": "pending",
+        "assignee": {
+          "userId": "USR-123",
+          "name": "Ana Silva",
+          "email": "ana@company.com"
+        },
+        "labels": ["backend", "security", "priority-high"],
+        "dueDate": "2024-02-15T23:59:59Z",
+        "estimatedHours": 8,
+        "actualHours": null,
+        "createdAt": "2024-01-15T10:30:00Z",
+        "updatedAt": "2024-01-15T10:30:00Z",
+        "metadata": {
+          "source": "slack_import",
+          "channelId": "C1234567890",
+          "messageTs": "1705312200.123456"
+        }
+      }
+    },
+    {
+      "tipo": "saida_diagrama_mermaid",
+      "descricao": "Diagrama de sequência - Fluxo de criação de tarefa",
+      "conteudo": "sequenceDiagram\n    participant U as Usuário\n    participant API as TaskController\n    participant S as TaskService\n    participant DB as PostgreSQL\n    participant SL as SlackNotifier\n    \n    U->>API: POST /tasks {title, description}\n    API->>S: createTask(taskData)\n    S->>DB: INSERT INTO tasks\n    DB-->>S: task_id = TASK-2024-0042\n    S->>SL: notifyTaskCreated(task)\n    SL-->>S: notification_sent\n    S-->>API: TaskDTO with id\n    API-->>U: 201 Created {task}\n    \n    Note over S,SL: Evento domain.task.created emitido"
+    },
+    {
+      "tipo": "saida_adr_completo",
+      "descricao": "ADR gerado - Decisão de banco de dados",
+      "conteudo": "| Campo | Valor |\n|---|---|\n| ID | ADR-003 |\n| Status | ACEITA |\n| Data | 2024-01-11 |\n| Contexto | Precisávamos de consistência forte para transações de tarefas e relacionamentos complexos |\n| Decisão | Usar PostgreSQL como banco primário |\n| Alternativas Rejeitadas | MongoDB (não oferece joins eficientes), SQLite (escala vertical limitada) |\n| Consequências Positivas | Consultas complexas SQL, transações ACID, ecosystem maduro |\n| Consequências Negativas | Escala horizontal de escrita mais complexa |\n| Mitigação | Read replicas e particionamento por workspace quando necessário |\n| Impacto | Define ORM (TypeORM), migrations, estratégia de cache |"
+    }
+  ],
+  "glossary": [
+    {
+      "term": "ADR",
+      "meaning": "Architecture Decision Record – registro formal de decisão arquitetural com contexto, alternativas e consequências"
+    },
+    {
+      "term": "RF",
+      "meaning": "Requisito Funcional – descreve uma funcionalidade que o sistema deve oferecer"
+    },
+    {
+      "term": "RNF",
+      "meaning": "Requisito Não-Funcional – descreve uma propriedade de qualidade (performance, segurança, etc.)"
+    },
+    {
+      "term": "MoSCoW",
+      "meaning": "Método de priorização: Must have, Should have, Could have, Won't have"
+    },
+    {
+      "term": "Mermaid",
+      "meaning": "Linguagem de marcação para diagramas renderizáveis em Markdown"
+    },
+    {
+      "term": "Checkpoint",
+      "meaning": "Estado salvo da geração para permitir retomada após parada por informação faltante"
+    },
+    {
+      "term": "Matriz de Rastreabilidade",
+      "meaning": "Tabela que conecta requisitos a componentes, arquivos, métodos e testes"
+    },
+    {
+      "term": "Determinismo",
+      "meaning": "Propriedade de produzir saída idêntica dada mesma entrada, sem ambiguidades"
+    },
+    {
+      "term": "Auditabilidade",
+      "meaning": "Capacidade de rastrear cada decisão até sua origem e justificativa"
+    },
+    {
+      "term": "Replicabilidade",
+      "meaning": "Capacidade de engenheiro pleno implementar sistema apenas com documentação"
+    }
+  ],
+  "people_and_teams": [
+    {
+      "name": "Equipe de Engenharia de Prompt",
+      "role": "Desenvolvimento do meta-comando NEXUS e validação de padrões",
+      "decisions_influenced": ["ADR-001", "ADR-002", "ADR-003", "ADR-004", "ADR-005", "ADR-006"]
+    },
+    {
+      "name": "Tech Lead (usuário final)",
+      "role": "Fornecer contexto do projeto, responder perguntas de bloqueio, validar documentação gerada",
+      "decisions_influenced": ["Todas ADRs via validação"]
+    },
+    {
+      "name": "IA Executora (Claude Opus / GPT-4o / Gemini Ultra)",
+      "role": "Gerar documentação seguindo protocolo NEXUS",
+      "decisions_influenced": ["Nenhuma (executa protocolo sem inferir decisões)"]
+    }
+  ]
+}

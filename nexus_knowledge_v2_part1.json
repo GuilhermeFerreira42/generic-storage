@@ -1,0 +1,265 @@
+{
+  "meta": {
+    "id": "PROJ-NEXUS-2024-01",
+    "created_at": "2024-01-15T10:00:00Z",
+    "source_type": "hibrido",
+    "project_name": "NEXUS Protocol",
+    "version": "1.2",
+    "summary": "Sistema de geração de documentação arquitetural de excelência que transforma descrições vagas de projetos em PRDs completos, arquitetura detalhada e planos de implementação com determinismo e auditabilidade."
+  },
+  "visao_geral": {
+    "problema": "Engenheiros e PMs perdem horas criando documentação técnica inconsistente, incompleta ou ambígua, levando a retrabalho, mal-entendidos arquiteturais e implementações divergentes do esperado.",
+    "solucao": "NEXUS é um meta-comando consolidado que, ao receber uma descrição natural de projeto, gera automaticamente documentação completa (PRD + Arquitetura + Plano) seguindo padrões rigorosos de replicabilidade, determinismo e auditabilidade.",
+    "publico_alvo": [
+      "Engenheiros de software pleno/sênior que precisam documentar sistemas complexos",
+      "Product Managers técnicos que desejam especificações precisas para equipes de desenvolvimento",
+      "Arquitetos de software que buscam padronização de decisões e rastreabilidade"
+    ],
+    "diferenciais": [
+      "Regra de parada por informação faltante - nunca inventa dados",
+      "Matriz de rastreabilidade obrigatória entre requisitos e testes",
+      "ADRs com alternativas rejeitadas e justificativas documentadas",
+      "Diagramas Mermaid renderizáveis embutidos na documentação",
+      "JSON Schemas completos para todas as mensagens e contratos"
+    ]
+  },
+  "requisitos_funcionais": [
+    {
+      "id": "RF-001",
+      "nome": "Análise de Contexto do Projeto",
+      "descricao": "O sistema deve analisar o contexto fornecido pelo usuário (descrição do projeto, estado atual, decisões existentes) e identificar informações suficientes para cada seção da documentação.",
+      "criterio_aceite": "Quando o usuário fornece contexto incompleto, então o sistema deve parar antes de gerar a seção bloqueada e listar perguntas objetivas no formato especificado.",
+      "prioridade": "Must",
+      "componente_responsavel": "COMP-001",
+      "testes": [
+        {
+          "nome": "context_analyzer.spec.ts",
+          "cenario": "Gherkin: DADO contexto sem decisões arquiteturais QUANDO analisar seção de ADRs ENTÃO deve parar e perguntar sobre decisões existentes",
+          "criterio": "Retorna objeto com 'blocked_section': 'decisoes_arquiteturais' e array 'questions' com 2+ perguntas objetivas"
+        },
+        {
+          "nome": "context_analyzer.spec.ts",
+          "cenario": "Gherkin: DADO contexto completo com PRD anterior QUANDO analisar estado atual ENTÃO deve incorporar decisões prévias sem questionar",
+          "criterio": "Retorna objeto com 'status': 'complete' e 'inherited_decisions' array não vazio"
+        }
+      ]
+    },
+    {
+      "id": "RF-002",
+      "nome": "Geração de Visão do Produto",
+      "descricao": "Gerar Parte 1 completa com identidade, problema/solução, público-alvo, princípios arquiteturais e diferenciais em tabelas estruturadas.",
+      "criterio_aceite": "Quando contexto suficiente existir, então gerar tabelas com mínimo 4 linhas (problema), 3 segmentos (público), 5 princípios, todos com campos preenchidos sem generalidades.",
+      "prioridade": "Must",
+      "componente_responsavel": "COMP-002",
+      "testes": [
+        {
+          "nome": "product_vision_generator.spec.ts",
+          "cenario": "Gherkin: DADO projeto de API REST QUANDO gerar visão ENTÃO tabela de problemas deve ter 4+ linhas com impacto mensurável",
+          "criterio": "Cada linha da tabela problema tem campo 'impacto' contendo métrica ou consequência verificável (ex: '30% de retrabalho')"
+        }
+      ]
+    },
+    {
+      "id": "RF-003",
+      "nome": "Geração de Arquitetura de Componentes",
+      "descricao": "Para cada componente identificado, gerar ficha técnica completa com ID, classe base, dependências, modo de operação, permissões, responsabilidade, inputs, outputs e budget de recursos.",
+      "criterio_aceite": "Quando componente for identificado, então gerar ficha com todos os 8 campos obrigatórios preenchidos, incluindo exemplo JSON funcional de output.",
+      "prioridade": "Must",
+      "componente_responsavel": "COMP-003",
+      "testes": [
+        {
+          "nome": "component_architect.spec.ts",
+          "cenario": "Gherkin: DADO componente AuthModule QUANDO gerar ficha ENTÃO output deve incluir JSON Schema válido com exemplo preenchido",
+          "criterio": "JSON de output passa validação contra schema gerado e contém 3+ campos com valores realistas não-placeholder"
+        }
+      ]
+    },
+    {
+      "id": "RF-004",
+      "nome": "Geração de Diagramas Mermaid",
+      "descricao": "Gerar diagramas de sequência, estado e infraestrutura em sintaxe Mermaid renderizável, cobrindo todos os fluxos principais e transições de estado.",
+      "criterio_aceite": "Quando fluxo for identificado, então gerar diagrama Mermaid completo com todos os atores, mensagens, estados e transições etiquetados.",
+      "prioridade": "Must",
+      "componente_responsavel": "COMP-004",
+      "testes": [
+        {
+          "nome": "mermaid_generator.spec.ts",
+          "cenario": "Gherkin: DADO fluxo de autenticação QUANDO gerar sequenceDiagram ENTÃO deve incluir todos os 5 passos do happy path",
+          "criterio": "Diagrama contém linhas '->>' entre todos os componentes envolvidos e retorna código Mermaid sintaticamente válido (parseável)"
+        }
+      ]
+    },
+    {
+      "id": "RF-005",
+      "nome": "Geração de ADRs (Decisões Arquiteturais)",
+      "descricao": "Para cada decisão significativa, gerar ADR completo com status, contexto, decisão, alternativas rejeitadas com motivo, consequências e mitigação.",
+      "criterio_aceite": "Quando decisão for identificada, então gerar ADR com mínimo 6 campos obrigatórios e pelo menos 1 alternativa rejeitada documentada.",
+      "prioridade": "Must",
+      "componente_responsavel": "COMP-005",
+      "testes": [
+        {
+          "nome": "adr_generator.spec.ts",
+          "cenario": "Gherkin: DADO decisão de banco de dados QUANDO gerar ADR ENTÃO deve listar 2+ alternativas rejeitadas com motivo específico",
+          "criterio": "Campo 'alternativas_rejeitadas' é array com 2+ objetos, cada um com 'alternativa' e 'motivo' não-vazios"
+        }
+      ]
+    },
+    {
+      "id": "RF-006",
+      "nome": "Geração de Plano de Implementação",
+      "descricao": "Gerar plano com definição clara de MVP (inclui/exclui), fases sequenciais com dependências, critérios de conclusão e riscos técnicos com mitigação.",
+      "criterio_aceite": "Quando projeto for analisado, então gerar plano com mínimo 4 fases, 8 riscos, e listas explícitas de inclui/exclui do MVP.",
+      "prioridade": "Must",
+      "componente_responsavel": "COMP-005",
+      "testes": [
+        {
+          "nome": "implementation_planner.spec.ts",
+          "cenario": "Gherkin: DADO projeto complexo QUANDO gerar fases ENTÃO cada fase deve ter dependência declarada exceto primeira",
+          "criterio": "Array 'fases' tem 4+ objetos, cada um com 'dependencia' campo (primeira pode ser 'nenhuma', demais referenciam fase anterior)"
+        }
+      ]
+    },
+    {
+      "id": "RF-007",
+      "nome": "Matriz de Rastreabilidade",
+      "descricao": "Gerar matriz que conecta cada requisito (RF/RNF) ao componente responsável, arquivo, método/função e teste que valida.",
+      "criterio_aceite": "Quando todos requisitos forem gerados, então criar matriz onde cada RF/RNF tem entrada com 6 colunas preenchidas sem 'A DEFINIR'.",
+      "prioridade": "Must",
+      "componente_responsavel": "COMP-001",
+      "testes": [
+        {
+          "nome": "traceability_matrix.spec.ts",
+          "cenario": "Gherkin: DADO 10 requisitos gerados QUANDO gerar matriz ENTÃO cada requisito deve ter teste correspondente",
+          "criterio": "Matriz tem N linhas onde N = número total de RFs + RNFs, nenhuma célula contém 'A DEFINIR' ou string vazia"
+        }
+      ]
+    },
+    {
+      "id": "RF-008",
+      "nome": "Geração de Configuração .env.example",
+      "descricao": "Gerar arquivo .env.example com todas variáveis de ambiente necessárias, documentadas e explicadas linha a linha.",
+      "criterio_aceite": "Quando infraestrutura for analisada, então gerar .env.example com 50+ variáveis (se aplicável), cada uma com comentário explicativo.",
+      "prioridade": "Should",
+      "componente_responsavel": "COMP-003",
+      "testes": [
+        {
+          "nome": "env_generator.spec.ts",
+          "cenario": "Gherkin: DADO projeto com integrações externas QUANDO gerar .env.example ENTÃO cada integração deve ter suas variáveis listadas",
+          "criterio": "Arquivo contém linhas comentadas '# Variável: descrição' seguidas de 'VAR_NAME=value_exemplo' para cada integração"
+        }
+      ]
+    },
+    {
+      "id": "RF-009",
+      "nome": "Classificação e Tratamento de Erros",
+      "descricao": "Gerar tabela de classificação de erros com 5 níveis, exemplos concretos, ações automáticas, timeouts e máximas tentativas.",
+      "criterio_aceite": "Quando resiliência for analisada, então gerar tabela com 5 níveis de erro, cada um com exemplo concreto e ação específica.",
+      "prioridade": "Must",
+      "componente_responsavel": "COMP-003",
+      "testes": [
+        {
+          "nome": "error_classifier.spec.ts",
+          "cenario": "Gherkin: DADO sistema com integrações HTTP QUANDO classificar erros ENTÃO deve incluir timeout externo com retry exponential",
+          "criterio": "Tabela contém entrada com 'tipo': 'Timeout externo', 'acao': 'Retry exponential', 'max_tentativas': 3"
+        }
+      ]
+    },
+    {
+      "id": "RF-010",
+      "nome": "Guia de Replicação Autocontido",
+      "descricao": "Gerar guia passo-a-passo com pré-requisitos exatos (versões), comandos de clone, build, execução e testes que funcione sem acesso ao código original.",
+      "criterio_aceite": "Quando projeto for completamente documentado, então gerar guia com 10 passos numerados, cada um com comando exato copiável.",
+      "prioridade": "Must",
+      "componente_responsavel": "COMP-005",
+      "testes": [
+        {
+          "nome": "replication_guide.spec.ts",
+          "cenario": "Gherkin: DADO projeto Node.js QUANDO gerar guia ENTÃO passo de instalação deve ter comando npm/yarn exato",
+          "criterio": "Passo 4 contém string copiável como 'npm install' ou 'yarn install' com flags se necessário"
+        }
+      ]
+    }
+  ],
+  "requisitos_nao_funcionais": [
+    {
+      "id": "RNF-001",
+      "categoria": "Performance",
+      "descricao": "Tempo de geração de documentação completa não deve exceder 5 minutos para projetos de complexidade média (até 10 componentes).",
+      "metrica": "Timer desde recebimento do contexto até entrega da última seção",
+      "alvo": "300 segundos",
+      "componentes_afetados": ["COMP-001", "COMP-002", "COMP-003", "COMP-004", "COMP-005"]
+    },
+    {
+      "id": "RNF-002",
+      "categoria": "Qualidade",
+      "descricao": "Zero seções com 'A DEFINIR' ou placeholders não preenchidos no documento final.",
+      "metrica": "Scan regex no documento gerado buscando padrões '/A DEFINIR|TODO|FIXME|___/'",
+      "alvo": "0 ocorrências",
+      "componentes_afetados": ["COMP-001", "COMP-002", "COMP-003", "COMP-004", "COMP-005"]
+    },
+    {
+      "id": "RNF-003",
+      "categoria": "Completude",
+      "descricao": "Todo requisito funcional ou não-funcional deve ter entrada correspondente na matriz de rastreabilidade.",
+      "metrica": "Contagem de RFs/RNFs vs linhas na matriz de rastreabilidade",
+      "alvo": "100% de cobertura (N requisitos = N linhas na matriz)",
+      "componentes_afetados": ["COMP-001", "COMP-005"]
+    },
+    {
+      "id": "RNF-004",
+      "categoria": "Determinismo",
+      "descricao": "Mesmo contexto de entrada deve produzir documentação estruturalmente idêntica (mesmas seções, mesma ordem, mesmos IDs) em execuções diferentes.",
+      "metrica": "Hash SHA-256 da estrutura do documento (ignorando timestamps e valores dinâmicos)",
+      "alvo": "Hash idêntico em 3 execuções consecutivas",
+      "componentes_afetados": ["COMP-001", "COMP-002", "COMP-003", "COMP-004", "COMP-005"]
+    },
+    {
+      "id": "RNF-005",
+      "categoria": "Auditabilidade",
+      "descricao": "Cada decisão arquitetural deve ser rastreável até o requisito ou restrição que a motivou.",
+      "metrica": "Porcentagem de ADRs com campo 'related_requirements' preenchido",
+      "alvo": "100% de ADRs vinculadas a pelo menos 1 RF/RNF",
+      "componentes_afetados": ["COMP-005"]
+    },
+    {
+      "id": "RNF-006",
+      "categoria": "Segurança",
+      "descricao": "Documentação gerada não deve expor secrets, chaves de API ou credenciais reais em exemplos ou configurações.",
+      "metrica": "Scan por padrões de secrets (chaves AWS, tokens JWT, senhas) nos exemplos JSON e .env",
+      "alvo": "0 segredos reais detectados (apenas placeholders como 'YOUR_API_KEY')",
+      "componentes_afetados": ["COMP-003", "COMP-005"]
+    },
+    {
+      "id": "RNF-007",
+      "categoria": "Escalabilidade",
+      "descricao": "Sistema deve suportar geração de documentação para projetos com até 50 componentes sem degradação de qualidade.",
+      "metrica": "Número máximo de componentes processados mantendo tempo < 10 minutos",
+      "alvo": "50 componentes",
+      "componentes_afetados": ["COMP-001", "COMP-003", "COMP-005"]
+    },
+    {
+      "id": "RNF-008",
+      "categoria": "Compatibilidade",
+      "descricao": "Documentação deve ser exportável em formatos Markdown, PDF e JSON sem perda de formatação ou conteúdo.",
+      "metrica": "Teste de exportação para os 3 formatos com validação de integridade",
+      "alvo": "100% de conteúdo preservado em todas exportações",
+      "componentes_afetados": ["COMP-002", "COMP-005"]
+    },
+    {
+      "id": "RNF-009",
+      "categoria": "Observabilidade",
+      "descricao": "Todo processo de geração deve logar eventos de início, conclusão de seção, erros e parada por informação faltante.",
+      "metrica": "Logs estruturados JSON com campos 'timestamp', 'event', 'section', 'status'",
+      "alvo": "100% de eventos críticos logados",
+      "componentes_afetados": ["COMP-001", "COMP-002", "COMP-003", "COMP-004", "COMP-005"]
+    },
+    {
+      "id": "RNF-010",
+      "categoria": "Manutenibilidade",
+      "descricao": "Documento NEXUS deve ser atualizável em versões futuras sem quebrar compatibilidade com documentos gerados em versões anteriores.",
+      "metrica": "Versionamento semântico do protocolo com changelog de breaking changes",
+      "alvo": "Versão major apenas quando houver breaking change na estrutura de saída",
+      "componentes_afetados": ["COMP-001", "COMP-002"]
+    }
+  ]
+}
