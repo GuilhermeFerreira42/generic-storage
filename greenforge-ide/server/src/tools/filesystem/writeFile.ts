@@ -1,18 +1,14 @@
 // server/src/tools/filesystem/writeFile.ts
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'fs';
 import path from 'path';
-import { createPatch } from 'diff';
+import { createPatch } from 'diff'; // npm install diff @types/diff
 import type { Tool } from '../types.js';
 import type { TrustedFolders } from '../../security/trustedFolders.js';
 
-/**
- * Ferramenta write_file - Escreve ou sobrescreve um arquivo no workspace
- */
 export class WriteFileTool implements Tool {
   name = 'write_file';
   description = 'Escreve ou sobrescreve um arquivo no workspace. Sempre será solicitada aprovação do usuário antes da execução.';
   isDestructive = true;
-  
   inputSchema = {
     type: 'object',
     properties: {
@@ -28,11 +24,7 @@ export class WriteFileTool implements Tool {
     required: ['path', 'content'],
   };
 
-  private trustedFolders: TrustedFolders;
-
-  constructor(trustedFolders: TrustedFolders) {
-    this.trustedFolders = trustedFolders;
-  }
+  constructor(private trustedFolders: TrustedFolders) {}
 
   async execute(input: Record<string, unknown>): Promise<string> {
     const relativePath = input.path as string;

@@ -3,12 +3,16 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { useIDEStore } from '@/lib/store'
 import { Loader2 } from 'lucide-react'
+import { useAgentSocket } from '@/hooks/useAgentSocket'
 
 export function Terminal() {
   const terminalHistory = useIDEStore(s => s.terminalHistory)
   const addTerminalLine = useIDEStore(s => s.addTerminalLine)
   const executeTerminalCommand = useIDEStore(s => s.executeTerminalCommand)
   const clearTerminal = useIDEStore(s => s.clearTerminal)
+  const currentDir = useIDEStore(s => s.currentDir)
+  
+  const { sendMessage, isConnected, sessionId } = useAgentSocket()
   
   const containerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -16,6 +20,18 @@ export function Terminal() {
   const [commandHistory, setCommandHistory] = useState<string[]>([])
   const [historyIndex, setHistoryIndex] = useState(-1)
   const [isLoading, setIsLoading] = useState(false)
+
+  useEffect(() => {
+    const listener = (event: Event) => {
+      const { data, isError, sessionId: msgSessionId } = (event as CustomEvent).detail;
+      if (sessionId && msgSessionId !== sessionId) return;
+      
+      addTerminalLine(isError ? `\x1b[31m${data}\x1b[0m` : data);
+    };
+
+    window.addEventListener('terminal-output', listener);
+    return () => window.removeEventListener('terminal-output', listener);
+  }, [addTerminalLine, sessionId]);
 
   const handleExecute = useCallback(async (input: string) => {
     const trimmed = input.trim()
@@ -26,13 +42,23 @@ export function Terminal() {
     setHistoryIndex(-1)
 
     try {
-      await executeTerminalCommand(trimmed)
+      if (isConnected) {
+        addTerminalLine(`\x1b[32m$\x1b[0m ${trimmed}`)
+        sendMessage({
+          type: 'terminal_command',
+          sessionId: sessionId || 'default-session',
+          command: trimmed,
+          workspacePath: currentDir || '.'
+        })
+      } else {
+        await executeTerminalCommand(trimmed)
+      }
     } catch (e: any) {
       addTerminalLine(`\x1b[31m[ERRO EXECUÇÃO]: ${e.message}\x1b[0m`)
     } finally {
       setIsLoading(false)
     }
-  }, [executeTerminalCommand, addTerminalLine])
+  }, [executeTerminalCommand, addTerminalLine, isConnected, sendMessage, sessionId, currentDir])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (isLoading) {

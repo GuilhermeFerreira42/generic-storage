@@ -1,10 +1,5 @@
 // server/src/tools/types.ts
-import { z } from 'zod';
 
-/**
- * Interface que toda ferramenta deve implementar
- * para ser registrada no Tool Registry
- */
 export interface Tool {
   // Nome que o LLM vai usar para chamar a ferramenta
   name: string;
@@ -12,7 +7,7 @@ export interface Tool {
   // Descrição em linguagem natural para o LLM entender quando usar
   description: string;
 
-  // JSON Schema compatível com a API da Anthropic/OpenAI
+  // JSON Schema compatível com a API da Anthropic
   inputSchema: Record<string, unknown>;
 
   // true se a ferramenta modifica ou deleta dados
@@ -26,18 +21,4 @@ export interface Tool {
 
   // Opcional: gera um diff antes da execução para mostrar no modal
   previewDiff?(input: Record<string, unknown>): string | undefined;
-}
-
-/**
- * Helper para criar schemas JSON válidos
- */
-export function createJsonSchema(
-  properties: Record<string, unknown>,
-  required?: string[]
-): Record<string, unknown> {
-  return {
-    type: 'object',
-    properties,
-    required: required ?? [],
-  };
 }
