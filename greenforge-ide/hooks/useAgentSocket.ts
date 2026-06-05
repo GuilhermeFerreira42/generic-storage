@@ -2,7 +2,9 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useAgentStore } from '../store/agentStore'; // adjusted path based on project structure
 
-const WS_URL = import.meta.env.VITE_WS_URL ?? 'ws://localhost:3001';
+const WS_URL = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_WS_URL)
+  ? process.env.NEXT_PUBLIC_WS_URL
+  : 'ws://localhost:3001';
 const RECONNECT_DELAY_MS = 3000;
 
 export function useAgentSocket() {
