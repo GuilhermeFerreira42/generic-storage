@@ -9,18 +9,30 @@ import { handleWSConnection } from './ws/handler.js';
 import { loadMCPConfig } from './mcp/loader.js';
 import { connectMCPServer } from './mcp/client.js';
 import { buildToolRegistry } from './tools/registry.js';
+import { SessionStore } from './db/sessions.js';
 
 const app = express();
 
+const ALLOWED_ORIGINS = [
+  process.env.FRONTEND_ORIGIN ?? 'http://localhost:3000',
+  'http://localhost:3000',
+  'http://localhost:5173',
+];
+
 app.use(cors({
-  origin: process.env.FRONTEND_ORIGIN ?? 'http://localhost:5173',
+  origin: (origin, callback) => {
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
 }));
 
 app.use(express.json());
 
 // Endpoint REST para listar sessões
 app.get('/api/sessions', (req, res) => {
-  const { SessionStore } = require('./db/sessions.js');
   const workspace = req.query.workspace as string;
   const sessions = SessionStore.listByWorkspace(workspace);
   res.json(sessions);
@@ -28,7 +40,6 @@ app.get('/api/sessions', (req, res) => {
 
 // Endpoint REST para deletar sessão
 app.delete('/api/sessions/:id', (req, res) => {
-  const { SessionStore } = require('./db/sessions.js');
   SessionStore.delete(req.params.id);
   res.json({ ok: true });
 });
@@ -52,9 +63,8 @@ Promise.all(
 
 wss.on('connection', (ws: WebSocket, req) => {
   const origin = req.headers.origin;
-  const allowed = process.env.FRONTEND_ORIGIN ?? 'http://localhost:5173';
 
-  if (origin !== allowed) {
+  if (origin && !ALLOWED_ORIGINS.includes(origin)) {
     ws.terminate();
     return;
   }
