@@ -4,7 +4,17 @@ import path from 'path'
 
 export default defineConfig({
   plugins: [react()],
+  build: {
+    rollupOptions: {
+      external: [/^node:.*/, 'better-sqlite3'],
+    },
+  },
   test: {
+    server: {
+      deps: {
+        external: ['node:sqlite']
+      }
+    },
     environment: 'jsdom',
     setupFiles: ['./vitest.setup.ts'],
     globals: true,

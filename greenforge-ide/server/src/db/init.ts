@@ -1,22 +1,22 @@
 // server/src/db/init.ts
-import Database from 'better-sqlite3';
+import { DatabaseSync } from 'node:sqlite';
 import { readFileSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-let db: Database.Database;
+let db: DatabaseSync;
 
-export function initDB(): Database.Database {
+export function initDB(): DatabaseSync {
   if (db) return db;
 
   const dbPath = process.env.DB_PATH ?? path.join(process.cwd(), 'greenforge.db');
-  db = new Database(dbPath);
+  db = new DatabaseSync(dbPath);
 
   // Habilita WAL mode para melhor performance
-  db.pragma('journal_mode = WAL');
-  db.pragma('foreign_keys = ON');
+  db.exec('PRAGMA journal_mode = WAL');
+  db.exec('PRAGMA foreign_keys = ON');
 
   // Lê e executa o schema
   const schema = readFileSync(path.join(__dirname, 'schema.sql'), 'utf-8');
@@ -26,7 +26,7 @@ export function initDB(): Database.Database {
   return db;
 }
 
-export function getDB(): Database.Database {
+export function getDB(): DatabaseSync {
   if (!db) throw new Error('DB não inicializado. Chame initDB() primeiro.');
   return db;
 }

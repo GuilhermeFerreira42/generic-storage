@@ -20,11 +20,11 @@ export class ToolRegistry {
   }
 
   // Formato que a API da Anthropic espera para tool_use
-  getAnthropicToolDefinitions(): Array<any> {
+  getGeminiToolDefinitions(): Array<any> {
     return Array.from(this.tools.values()).map((tool) => ({
       name: tool.name,
       description: tool.description,
-      input_schema: tool.inputSchema,
+      parameters: tool.inputSchema,
     }));
   }
 

@@ -1,6 +1,5 @@
 // server/src/db/sessions.ts
 import { randomUUID } from 'crypto';
-import type { MessageParam } from '@anthropic-ai/sdk/resources/index.js';
 import { getDB } from './init.js';
 
 export interface Session {
@@ -8,7 +7,7 @@ export interface Session {
   workspace: string;
   mode: 'plan' | 'auto_edit' | 'yolo';
   title: string | null;
-  messages: MessageParam[];
+  messages: any[];
   createdAt: number;
   updatedAt: number;
 }
@@ -78,8 +77,9 @@ export const SessionStore = {
       VALUES (?, ?, ?, ?, ?)
     `);
 
-    const insertMany = db.transaction((messages: MessageParam[]) => {
-      messages.forEach((msg, i) => {
+    db.exec('BEGIN');
+    try {
+      session.messages.forEach((msg, i) => {
         insertMsg.run(
           randomUUID(),
           session.id,
@@ -88,9 +88,11 @@ export const SessionStore = {
           now + i, // garante ordem
         );
       });
-    });
-
-    insertMany(session.messages);
+      db.exec('COMMIT');
+    } catch(e) {
+      db.exec('ROLLBACK');
+      throw e;
+    }
   },
 
   listByWorkspace(workspacePath: string): Array<{
