@@ -4,6 +4,8 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { createServer } from 'http';
 import cors from 'cors';
 import 'dotenv/config';
+import fs from 'fs';
+import path from 'path';
 import { initDB } from './db/init.js';
 import { handleWSConnection } from './ws/handler.js';
 import { loadMCPConfig } from './mcp/loader.js';
@@ -50,7 +52,15 @@ const wss = new WebSocketServer({ server: httpServer });
 // Inicializa o banco antes de aceitar conexões
 initDB();
 
-const workspacePath = process.env.WORKSPACE_ROOT ?? process.cwd();
+let defaultWorkspace = path.join(process.cwd(), 'workspaces', 'default');
+if (!fs.existsSync(defaultWorkspace)) {
+  fs.mkdirSync(defaultWorkspace, { recursive: true });
+}
+
+let envWorkspace = process.env.WORKSPACE_ROOT;
+const workspacePath = (!envWorkspace || envWorkspace === '.' || envWorkspace === './')
+  ? defaultWorkspace
+  : envWorkspace;
 const mcpConfigs = loadMCPConfig(workspacePath);
 const globalRegistry = buildToolRegistry(workspacePath);
 
