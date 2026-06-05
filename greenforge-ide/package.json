@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "dev:frontend": "next dev",
+    "dev:backend": "cd server && tsx watch src/index.ts",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
@@ -48,6 +50,7 @@
     "zustand": "^5.0.13"
   },
   "devDependencies": {
+    "concurrently": "^8.2.2",
     "@tailwindcss/postcss": "4.1.11",
     "@tailwindcss/typography": "^0.5.19",
     "@testing-library/jest-dom": "^6.9.1",

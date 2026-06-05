@@ -1,56 +1,39 @@
--- Schema do banco de dados SQLite para GreenForge
--- Versão: 1.0.0
-
--- Tabela de sessões
+-- db/schema.sql
 CREATE TABLE IF NOT EXISTS sessions (
-    id TEXT PRIMARY KEY,
-    created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
-    updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
-    status TEXT NOT NULL DEFAULT 'active', -- active, paused, completed, error
-    project_path TEXT,
-    metadata TEXT -- JSON string com metadados adicionais
+  id          TEXT    PRIMARY KEY,
+  workspace   TEXT    NOT NULL,
+  mode        TEXT    NOT NULL DEFAULT 'auto_edit',
+  title       TEXT,
+  created_at  INTEGER NOT NULL,
+  updated_at  INTEGER NOT NULL
 );
 
--- Tabela de mensagens (histórico de conversas)
 CREATE TABLE IF NOT EXISTS messages (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    session_id TEXT NOT NULL,
-    role TEXT NOT NULL, -- user, assistant, system
-    content TEXT NOT NULL,
-    timestamp INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
-    tool_calls TEXT, -- JSON string com chamadas de ferramentas
-    tool_results TEXT, -- JSON string com resultados de ferramentas
-    FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
+  id          TEXT    PRIMARY KEY,
+  session_id  TEXT    NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+  role        TEXT    NOT NULL CHECK(role IN ('user', 'assistant')),
+  content     TEXT    NOT NULL,  -- JSON serializado do array de content blocks
+  created_at  INTEGER NOT NULL
 );
 
--- Tabela de execuções de ferramentas
-CREATE TABLE IF NOT EXISTS tool_executions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    session_id TEXT NOT NULL,
-    tool_name TEXT NOT NULL,
-    input_args TEXT NOT NULL, -- JSON string
-    output_result TEXT, -- JSON string ou null se falhou
-    status TEXT NOT NULL DEFAULT 'pending', -- pending, success, error
-    started_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
-    completed_at INTEGER,
-    error_message TEXT,
-    FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
+CREATE TABLE IF NOT EXISTS tool_calls (
+  id          TEXT    PRIMARY KEY,
+  session_id  TEXT    NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+  tool_name   TEXT    NOT NULL,
+  input       TEXT    NOT NULL,  -- JSON
+  result      TEXT,
+  approved    INTEGER,           -- NULL=auto, 0=rejeitado, 1=aprovado
+  executed_at INTEGER NOT NULL
 );
 
--- Tabela de arquivos modificados (para tracking de mudanças)
-CREATE TABLE IF NOT EXISTS file_changes (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    session_id TEXT NOT NULL,
-    file_path TEXT NOT NULL,
-    operation TEXT NOT NULL, -- create, update, delete
-    previous_content TEXT,
-    new_content TEXT,
-    timestamp INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
-    FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
+CREATE TABLE IF NOT EXISTS checkpoints (
+  id          TEXT    PRIMARY KEY,
+  session_id  TEXT    NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+  description TEXT    NOT NULL,
+  snapshot    TEXT    NOT NULL,  -- JSON do array messages no momento do checkpoint
+  created_at  INTEGER NOT NULL
 );
 
--- Índices para performance
-CREATE INDEX IF NOT EXISTS idx_messages_session_id ON messages(session_id);
-CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp);
-CREATE INDEX IF NOT EXISTS idx_tool_executions_session_id ON tool_executions(session_id);
-CREATE INDEX IF NOT EXISTS idx_file_changes_session_id ON file_changes(session_id);
+CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_tool_calls_session ON tool_calls(session_id, executed_at);
+CREATE INDEX IF NOT EXISTS idx_sessions_workspace ON sessions(workspace, updated_at);

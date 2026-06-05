@@ -4,105 +4,65 @@ import path from 'path';
 import type { Tool } from '../types.js';
 import type { TrustedFolders } from '../../security/trustedFolders.js';
 
-/**
- * Ferramenta list_directory - Lista conteúdo de um diretório
- */
 export class ListDirectoryTool implements Tool {
   name = 'list_directory';
-  description = 'Lista o conteúdo de um diretório no workspace. Use para explorar a estrutura de arquivos.';
+  description = 'Lista o conteúdo de um diretório no workspace.';
   isDestructive = false;
-  
   inputSchema = {
     type: 'object',
     properties: {
       path: {
         type: 'string',
-        description: 'Caminho do diretório a listar',
+        description: 'Caminho relativo do diretório a partir da raiz do workspace',
       },
       recursive: {
         type: 'boolean',
-        description: 'Se true, lista recursivamente (padrão: false)',
+        description: 'Se deve listar recursivamente',
+        default: false,
       },
     },
     required: ['path'],
   };
 
-  private trustedFolders: TrustedFolders;
-
-  constructor(trustedFolders: TrustedFolders) {
-    this.trustedFolders = trustedFolders;
-  }
+  constructor(private trustedFolders: TrustedFolders) {}
 
   async execute(input: Record<string, unknown>): Promise<string> {
-    const relativePath = input.path as string;
-    const recursive = (input.recursive as boolean) ?? false;
-    
-    try {
-      const absolutePath = this.trustedFolders.resolve(relativePath);
-      
-      // Verifica se é diretório
-      const stats = statSync(absolutePath);
-      if (!stats.isDirectory()) {
-        return `Erro: "${relativePath}" não é um diretório.`;
-      }
+    const relativePath = (input.path as string) || '.';
+    const recursive = (input.recursive as boolean) || false;
+    const absolutePath = this.trustedFolders.resolve(relativePath);
 
-      const entries = readdirSync(absolutePath, { withFileTypes: true });
-      
-      // Filtra entradas ignoradas
-      const ignored = ['node_modules', '.git', '.greenforge-workers'];
-      const filtered = entries.filter(e => !ignored.includes(e.name));
-
-      if (recursive) {
-        return this.buildRecursiveTree(absolutePath, filtered, 0, 3);
-      }
-
-      const lines = filtered.map(e => {
-        const type = e.isDirectory() ? '[DIR] ' : '[FILE]';
-        return `${type}${e.name}`;
-      });
-
-      return lines.join('\n') || '(diretório vazio)';
-    } catch (err) {
-      return `Erro ao listar diretório: ${(err as Error).message}`;
-    }
+    const entries = this.listEntries(absolutePath, relativePath, recursive, 0);
+    return entries.join('\n');
   }
 
-  private buildRecursiveTree(
-    basePath: string,
-    entries: typeof Array.prototype,
-    depth: number,
-    maxDepth: number
-  ): string {
-    if (depth >= maxDepth) {
-      return '... (limite de profundidade atingido)';
-    }
+  private listEntries(absPath: string, relPath: string, recursive: boolean, depth: number): string[] {
+    if (depth > 3) return []; // Limite de profundidade para evitar loops ou excesso de dados
 
-    const lines: string[] = [];
-    const indent = '  '.repeat(depth);
-    const ignored = ['node_modules', '.git', '.greenforge-workers'];
+    try {
+      const files = readdirSync(absPath);
+      let results: string[] = [];
 
-    for (const entry of entries) {
-      if (ignored.includes(entry.name)) continue;
-      
-      const fullPath = path.join(basePath, entry.name);
-      const prefix = entry.isDirectory() ? '[DIR] ' : '[FILE] ';
-      lines.push(`${indent}${prefix}${entry.name}`);
+      for (const file of files) {
+        if (file === 'node_modules' || file === '.git') continue;
 
-      if (entry.isDirectory()) {
-        try {
-          const subEntries = readdirSync(fullPath, { withFileTypes: true });
-          lines.push(this.buildRecursiveTree(fullPath, subEntries, depth + 1, maxDepth));
-        } catch {
-          // Ignora erros de permissão
+        const fullAbsPath = path.join(absPath, file);
+        const fullRelPath = path.join(relPath, file);
+        const isDirectory = statSync(fullAbsPath).isDirectory();
+
+        results.push(`${fullRelPath}${isDirectory ? '/' : ''}`);
+
+        if (isDirectory && recursive) {
+          results = results.concat(this.listEntries(fullAbsPath, fullRelPath, recursive, depth + 1));
         }
       }
-    }
 
-    return lines.join('\n');
+      return results;
+    } catch (err) {
+      return [`Erro ao ler diretório ${relPath}: ${(err as Error).message}`];
+    }
   }
 
   describeAction(input: Record<string, unknown>): string {
-    const recursive = (input.recursive as boolean) ?? false;
-    return `Listar diretório${recursive ? ' (recursivo)' : ''}: ${input.path}`;
+    return `Listar diretório: ${input.path}`;
   }
 }

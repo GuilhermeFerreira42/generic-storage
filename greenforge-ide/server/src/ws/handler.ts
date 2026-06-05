@@ -7,26 +7,19 @@ import { buildToolRegistry } from '../tools/registry.js';
 import { executeTerminalCommand } from '../tools/shell/executeCommand.js';
 import { SessionStore } from '../db/sessions.js';
 
-/**
- * Map global de approvals pendentes
- * chave: actionId, valor: { resolve: (approved: boolean) => void }
- */
+// Map global de approvals pendentes
+// chave: actionId, valor: { resolve: (approved: boolean) => void }
 export const pendingApprovals = new Map<string, {
   resolve: (approved: boolean) => void;
 }>();
 
-/**
- * Map de AbortControllers para permitir cancelar loops ativos
- * chave: sessionId
- */
+// Map de abortControllers para permitir cancelar loops ativos
 const activeLoops = new Map<string, AbortController>();
 
 export function handleWSConnection(ws: WebSocket): void {
   console.error('[WS] Nova conexão estabelecida');
 
-  /**
-   * Função helper para enviar mensagem tipada ao cliente
-   */
+  // Função helper para enviar mensagem tipada ao cliente
   function send(msg: OutgoingMessageType): void {
     if (ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify(msg));
@@ -36,7 +29,6 @@ export function handleWSConnection(ws: WebSocket): void {
   ws.on('message', async (raw) => {
     let parsed: unknown;
 
-    // Parse do JSON
     try {
       parsed = JSON.parse(raw.toString());
     } catch {
@@ -44,7 +36,6 @@ export function handleWSConnection(ws: WebSocket): void {
       return;
     }
 
-    // Validação com Zod
     const result = IncomingMessage.safeParse(parsed);
 
     if (!result.success) {
@@ -58,6 +49,7 @@ export function handleWSConnection(ws: WebSocket): void {
     const msg = result.data;
 
     switch (msg.type) {
+
       case 'chat_message': {
         // Cancela qualquer loop ativo da mesma sessão
         activeLoops.get(msg.sessionId)?.abort();

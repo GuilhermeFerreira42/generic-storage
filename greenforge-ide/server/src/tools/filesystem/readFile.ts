@@ -5,59 +5,55 @@ import type { Tool } from '../types.js';
 import type { TrustedFolders } from '../../security/trustedFolders.js';
 import { SecretRedactor } from '../../security/secretRedactor.js';
 
-/**
- * Ferramenta read_file - Lê o conteúdo de um arquivo do workspace
- */
+// Arquivos que nunca podem ser lidos, independente do modo
+const BLOCKED_PATTERNS = [
+  /\.env$/,
+  /\.env\..+$/,
+  /\.key$/,
+  /\.pem$/,
+  /\.cert$/,
+  /id_rsa$/,
+  /id_ed25519$/,
+  /\.secret$/,
+];
+
 export class ReadFileTool implements Tool {
   name = 'read_file';
   description = 'Lê o conteúdo de um arquivo do workspace. Use para inspecionar código existente antes de fazer modificações.';
   isDestructive = false;
-  
   inputSchema = {
     type: 'object',
     properties: {
       path: {
         type: 'string',
-        description: 'Caminho relativo ou absoluto do arquivo a ser lido',
+        description: 'Caminho relativo do arquivo a partir da raiz do workspace',
       },
     },
     required: ['path'],
   };
 
-  private trustedFolders: TrustedFolders;
   private redactor = new SecretRedactor();
 
-  constructor(trustedFolders: TrustedFolders) {
-    this.trustedFolders = trustedFolders;
-  }
+  constructor(private trustedFolders: TrustedFolders) {}
 
-  execute(input: Record<string, unknown>): Promise<string> {
-    const filePath = input.path as string;
+  async execute(input: Record<string, unknown>): Promise<string> {
+    const relativePath = input.path as string;
+    const absolutePath = this.trustedFolders.resolve(relativePath);
 
-    try {
-      // Resolve e valida o path
-      const resolvedPath = this.trustedFolders.resolve(filePath);
-
-      // Verifica se é arquivo sensível
-      if (TrustedFolders.isSensitiveFile(resolvedPath)) {
-        return Promise.resolve(`Erro: Acesso negado. Arquivos sensíveis como .env, chaves privadas e certificados não podem ser lidos.`);
+    // Verifica blocked patterns
+    const filename = path.basename(absolutePath);
+    for (const pattern of BLOCKED_PATTERNS) {
+      if (pattern.test(filename)) {
+        throw new Error(`SecurityViolation: acesso negado ao arquivo "${filename}". Este arquivo pode conter segredos.`);
       }
-
-      // Verifica existência
-      if (!existsSync(resolvedPath)) {
-        return Promise.resolve(`Erro: Arquivo não encontrado: ${filePath}`);
-      }
-
-      // Lê o conteúdo
-      const content = readFileSync(resolvedPath, 'utf-8');
-
-      // Redacta segredos antes de retornar
-      const safeContent = this.redactor.redact(content);
-
-      return Promise.resolve(safeContent);
-    } catch (err) {
-      return Promise.resolve(`Erro ao ler arquivo: ${(err as Error).message}`);
     }
+
+    if (!existsSync(absolutePath)) {
+      return `Arquivo não encontrado: ${relativePath}`;
+    }
+
+    const content = readFileSync(absolutePath, 'utf-8');
+    return this.redactor.redact(content);
   }
 
   describeAction(input: Record<string, unknown>): string {

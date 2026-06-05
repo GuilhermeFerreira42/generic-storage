@@ -23,7 +23,7 @@ import {
 import { useIDEStore, Message, ApprovalCard } from '@/lib/store'
 import { cn } from '@/lib/utils'
 import { useDebateStore } from '@/store/debateStore'
-import { useAgentWebSocket } from '@/hooks/useAgentWebSocket'
+import { useAgentSocket } from '@/hooks/useAgentSocket'
 import { StatusBadge } from '@/components/chat/StatusBadge'
 import { AgentDebateMessage } from '@/components/chat/AgentDebateMessage'
 
@@ -284,7 +284,7 @@ export function ChatPanel() {
   const setGlobalExpanded = useDebateStore(s => s.setGlobalExpanded)
   const resetDebateStore = useDebateStore(s => s.resetDebate)
 
-  const { isConnected, sendUserMessage, stopDebate: wsStopDebate } = useAgentWebSocket()
+  const { isConnected, sendUserMessage, stopDebate: wsStopDebate } = useAgentSocket()
   const isDebating = debateStatus === 'IN_PROGRESS'
 
   const [input, setInput] = useState('')

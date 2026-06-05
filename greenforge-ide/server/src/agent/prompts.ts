@@ -2,16 +2,12 @@
 import { readFileSync, existsSync } from 'fs';
 import path from 'path';
 
-/**
- * Constrói o system prompt baseado no modo de execução atual
- * e no contexto do projeto
- */
 export function buildSystemPrompt(
   mode: 'plan' | 'auto_edit' | 'yolo',
   workspacePath: string,
 ): string {
   const modeInstructions = {
-    plan: `Você está no MODO PLANO (plan).
+    plan: `Você está no MODO PLANO (plan). 
 Antes de qualquer modificação de arquivo ou execução de comando, você DEVE:
 1. Descrever completamente o que vai fazer em linguagem natural
 2. Listar cada passo da implementação

@@ -31,19 +31,19 @@ Segue um checklist completo, pronto para você copiar e usar como guia de execu�
 
 ### Estrutura inicial
 
-- [ ] Criar pasta `server/` na raiz do projeto.
-- [ ] Criar `server/package.json`.
-- [ ] Criar `server/tsconfig.json`.
-- [ ] Criar pasta `server/src/`.
-- [ ] Criar `server/src/index.ts`.
-- [ ] Criar pasta `server/src/ws/`.
-- [ ] Criar `server/src/ws/handler.ts`.
-- [ ] Criar `server/src/ws/schemas.ts`.
-- [ ] Criar pasta `server/src/agent/`.
-- [ ] Criar pasta `server/src/tools/`.
-- [ ] Criar pasta `server/src/db/`.
-- [ ] Criar pasta `server/src/security/`.
-- [ ] Criar pasta `server/src/mcp/`.
+- [x] Criar pasta `server/` na raiz do projeto.
+- [x] Criar `server/package.json`.
+- [x] Criar `server/tsconfig.json`.
+- [x] Criar pasta `server/src/`.
+- [x] Criar `server/src/index.ts`.
+- [x] Criar pasta `server/src/ws/`.
+- [x] Criar `server/src/ws/handler.ts`.
+- [x] Criar `server/src/ws/schemas.ts`.
+- [x] Criar pasta `server/src/agent/`.
+- [x] Criar pasta `server/src/tools/`.
+- [x] Criar pasta `server/src/db/`.
+- [x] Criar pasta `server/src/security/`.
+- [x] Criar pasta `server/src/mcp/`.
 
 ### Dependências do backend
 
@@ -62,80 +62,80 @@ Segue um checklist completo, pronto para você copiar e usar como guia de execu�
 
 ### Configuração do servidor
 
-- [ ] Configurar Express.
-- [ ] Configurar CORS usando `FRONTEND_ORIGIN`.
-- [ ] Criar HTTP server com `createServer`.
-- [ ] Criar WebSocket server com `WebSocketServer`.
-- [ ] Bloquear conexões WebSocket de origem não autorizada.
-- [ ] Inicializar banco SQLite no startup.
-- [ ] Criar endpoint `GET /api/sessions`.
-- [ ] Criar endpoint `DELETE /api/sessions/:id`.
-- [ ] Garantir que o backend rode na porta `3001`.
-- [ ] Usar `console.error` para logs do servidor.
-- [ ] Evitar `console.log` no backend, especialmente por compatibilidade futura com MCP stdio.
+- [x] Configurar Express.
+- [x] Configurar CORS usando `FRONTEND_ORIGIN`.
+- [x] Criar HTTP server com `createServer`.
+- [x] Criar WebSocket server with `WebSocketServer`.
+- [x] Bloquear conexões WebSocket de origem não autorizada.
+- [x] Inicializar banco SQLite no startup.
+- [x] Criar endpoint `GET /api/sessions`.
+- [x] Criar endpoint `DELETE /api/sessions/:id`.
+- [x] Garantir que o backend rode na porta `3001`.
+- [x] Usar `console.error` para logs do servidor.
+- [x] Evitar `console.log` no backend, especialmente por compatibilidade futura com MCP stdio.
 
 ### Schemas WebSocket
 
-- [ ] Criar schema `chat_message`.
-- [ ] Criar schema `approve_action`.
-- [ ] Criar schema `cancel_agent`.
-- [ ] Criar schema `switch_mode`.
-- [ ] Criar schema `terminal_command`.
-- [ ] Criar schema `create_checkpoint`.
-- [ ] Criar mensagem de saída `agent_token`.
-- [ ] Criar mensagem de saída `agent_thinking_done`.
-- [ ] Criar mensagem de saída `tool_call`.
-- [ ] Criar mensagem de saída `approval_required`.
-- [ ] Criar mensagem de saída `tool_result`.
-- [ ] Criar mensagem de saída `agent_done`.
-- [ ] Criar mensagem de saída `terminal_output`.
-- [ ] Criar mensagem de saída `error`.
-- [ ] Validar toda mensagem recebida com Zod.
-- [ ] Rejeitar mensagens inválidas sem derrubar o servidor.
+- [x] Criar schema `chat_message`.
+- [x] Criar schema `approve_action`.
+- [x] Criar schema `cancel_agent`.
+- [x] Criar schema `switch_mode`.
+- [x] Criar schema `terminal_command`.
+- [x] Criar schema `create_checkpoint`.
+- [x] Criar mensagem de saída `agent_token`.
+- [x] Criar mensagem de saída `agent_thinking_done`.
+- [x] Criar mensagem de saída `tool_call`.
+- [x] Criar mensagem de saída `approval_required`.
+- [x] Criar mensagem de saída `tool_result`.
+- [x] Criar mensagem de saída `agent_done`.
+- [x] Criar mensagem de saída `terminal_output`.
+- [x] Criar mensagem de saída `error`.
+- [x] Validar toda mensagem recebida com Zod.
+- [x] Rejeitar mensagens inválidas sem derrubar o servidor.
 
 ### Handler WebSocket
 
-- [ ] Implementar função `handleWSConnection`.
-- [ ] Criar helper `send(msg)`.
-- [ ] Criar `pendingApprovals` como `Map`.
-- [ ] Criar `activeLoops` como `Map`.
-- [ ] Ao receber `chat_message`, iniciar loop do agente.
-- [ ] Ao receber novo `chat_message` da mesma sessão, cancelar loop anterior.
-- [ ] Ao receber `approve_action`, resolver Promise pendente.
-- [ ] Ao receber `cancel_agent`, abortar loop ativo.
-- [ ] Ao receber `switch_mode`, atualizar modo da sessão.
-- [ ] Ao receber `terminal_command`, executar comando pelo backend.
-- [ ] Ao receber `create_checkpoint`, criar checkpoint no SQLite.
-- [ ] Garantir que erro interno seja enviado ao frontend como mensagem `error`.
-- [ ] Garantir que erro interno não derrube o processo Node.js.
+- [x] Implementar função `handleWSConnection`.
+- [x] Criar helper `send(msg)`.
+- [x] Criar `pendingApprovals` como `Map`.
+- [x] Criar `activeLoops` como `Map`.
+- [x] Ao receber `chat_message`, iniciar loop do agente.
+- [x] Ao receber novo `chat_message` da mesma sessão, cancelar loop anterior.
+- [x] Ao receber `approve_action`, resolver Promise pendente.
+- [x] Ao receber `cancel_agent`, abortar loop ativo.
+- [x] Ao receber `switch_mode`, atualizar modo da sessão.
+- [x] Ao receber `terminal_command`, executar comando pelo backend.
+- [x] Ao receber `create_checkpoint`, criar checkpoint no SQLite.
+- [x] Garantir que erro interno seja enviado ao frontend como mensagem `error`.
+- [x] Garantir que erro interno não derrube o processo Node.js.
 
 ### Frontend WebSocket
 
-- [ ] Criar hook `src/hooks/useAgentSocket.ts`.
-- [ ] Conectar em `ws://localhost:3001`.
-- [ ] Criar reconexão automática.
-- [ ] Atualizar store Zustand quando conectar.
-- [ ] Atualizar store Zustand quando desconectar.
-- [ ] Receber `agent_token` e anexar ao chat.
-- [ ] Receber `agent_thinking_done` e finalizar mensagem.
-- [ ] Receber `approval_required` e abrir modal.
-- [ ] Receber `tool_call` e mostrar evento no chat.
-- [ ] Receber `tool_result` e mostrar resultado no chat.
-- [ ] Receber `agent_done` e encerrar estado de loading.
-- [ ] Receber `terminal_output` e enviar ao terminal.
-- [ ] Substituir agente mock pelo WebSocket real.
-- [ ] Manter compatibilidade visual com o chat atual.
+- [x] Criar hook `src/hooks/useAgentSocket.ts`.
+- [x] Conectar em `ws://localhost:3001`.
+- [x] Criar reconexão automática.
+- [x] Atualizar store Zustand quando conectar.
+- [x] Atualizar store Zustand quando desconectar.
+- [x] Receber `agent_token` e anexar ao chat.
+- [x] Receber `agent_thinking_done` e finalizar mensagem.
+- [x] Receber `approval_required` e abrir modal.
+- [x] Receber `tool_call` e mostrar evento no chat.
+- [x] Receber `tool_result` e mostrar resultado no chat.
+- [x] Receber `agent_done` e encerrar estado de loading.
+- [x] Receber `terminal_output` e enviar ao terminal.
+- [x] Substituir agente mock pelo WebSocket real.
+- [x] Manter compatibilidade visual com o chat atual.
 
 ### Aceite da Fase 1
 
-- [ ] Backend inicia sem erro.
-- [ ] Frontend conecta ao backend.
-- [ ] Frontend mostra estado conectado.
-- [ ] Mensagem inválida no WebSocket não derruba servidor.
-- [ ] Desligar backend mostra estado desconectado no frontend.
-- [ ] Religar backend reconecta automaticamente.
-- [ ] Nenhuma chave de API aparece no console.
-- [ ] Nenhum erro TypeScript bloqueante.
+- [x] Backend inicia sem erro.
+- [x] Frontend conecta ao backend (Websocket configurado).
+- [x] Frontend mostra estado conectado.
+- [x] Mensagem inválida no WebSocket não derruba servidor.
+- [x] Desligar backend mostra estado desconectado no frontend.
+- [x] Religar backend reconecta automaticamente.
+- [x] Nenhuma chave de API aparece no console.
+- [x] Nenhum erro TypeScript bloqueante.
 
 ---
 
@@ -143,78 +143,78 @@ Segue um checklist completo, pronto para você copiar e usar como guia de execu�
 
 ### Dependências LLM
 
-- [ ] Escolher provider inicial.
-- [ ] Se Anthropic, instalar `@anthropic-ai/sdk`.
+- [x] Escolher provider inicial.
+- [x] Se Anthropic, instalar `@anthropic-ai/sdk`.
 - [ ] Se OpenAI, instalar `openai`.
 - [ ] Se Gemini, instalar SDK oficial correspondente.
-- [ ] Criar `LLM_PROVIDER` no `.env`.
-- [ ] Criar variável de chave de API no `.env`.
-- [ ] Garantir que `.env` não esteja versionado.
+- [x] Criar `LLM_PROVIDER` no `.env`.
+- [x] Criar variável de chave de API no `.env`.
+- [x] Garantir que `.env` não esteja versionado.
 
 ### Loop do agente
 
-- [ ] Criar `server/src/agent/loop.ts`.
-- [ ] Criar função `runAgentLoop`.
-- [ ] Receber `userMessage`.
-- [ ] Receber `sessionId`.
-- [ ] Receber `workspacePath`.
-- [ ] Receber `toolRegistry`.
-- [ ] Receber `mode`.
-- [ ] Receber `AbortSignal`.
-- [ ] Receber `pendingApprovals`.
-- [ ] Receber callback `onEvent`.
-- [ ] Criar limite máximo de iterações.
-- [ ] Usar `MAX_ITERATIONS = 20`.
-- [ ] Adicionar mensagem do usuário ao histórico.
-- [ ] Chamar LLM com system prompt.
-- [ ] Enviar ferramentas disponíveis ao LLM.
-- [ ] Processar resposta textual.
-- [ ] Processar tool calls.
-- [ ] Executar ferramentas chamadas.
-- [ ] Adicionar tool results ao histórico.
-- [ ] Repetir loop até resposta final.
-- [ ] Interromper loop se atingir limite de iterações.
-- [ ] Interromper loop se `AbortSignal` for acionado.
-- [ ] Persistir sessão ao final.
+- [x] Criar `server/src/agent/loop.ts`.
+- [x] Criar função `runAgentLoop`.
+- [x] Receber `userMessage`.
+- [x] Receber `sessionId`.
+- [x] Receber `workspacePath`.
+- [x] Receber `toolRegistry`.
+- [x] Receber `mode`.
+- [x] Receber `AbortSignal`.
+- [x] Receber `pendingApprovals`.
+- [x] Receber callback `onEvent`.
+- [x] Criar limite máximo de iterações.
+- [x] Usar `MAX_ITERATIONS = 20`.
+- [x] Adicionar mensagem do usuário ao histórico.
+- [x] Chamar LLM com system prompt.
+- [x] Enviar ferramentas disponíveis ao LLM.
+- [x] Processar resposta textual.
+- [x] Processar tool calls.
+- [x] Executar ferramentas chamadas.
+- [x] Adicionar tool results ao histórico.
+- [x] Repetir loop até resposta final.
+- [x] Interromper loop se atingir limite de iterações.
+- [x] Interromper loop se `AbortSignal` for acionado.
+- [x] Persistir sessão ao final.
 
 ### Streaming
 
-- [ ] Usar streaming do SDK escolhido.
-- [ ] Enviar cada chunk/token como `agent_token`.
-- [ ] Acumular texto completo.
-- [ ] Enviar `agent_thinking_done` ao final do streaming.
-- [ ] Garantir que o chat mostre resposta em tempo real.
-- [ ] Garantir que streaming pare ao cancelar agente.
+- [x] Usar streaming do SDK escolhido.
+- [x] Enviar cada chunk/token as `agent_token`.
+- [x] Acumular texto completo.
+- [x] Enviar `agent_thinking_done` ao final do streaming.
+- [x] Garantir que o chat mostre resposta em tempo real.
+- [x] Garantir que streaming pare ao cancelar agente.
 
 ### Prompts
 
-- [ ] Criar `server/src/agent/prompts.ts`.
-- [ ] Criar `buildSystemPrompt`.
-- [ ] Incluir descrição do GreenForge Agent.
-- [ ] Incluir path do workspace atual.
-- [ ] Incluir regras de segurança.
-- [ ] Incluir instruções do modo `plan`.
-- [ ] Incluir instruções do modo `auto_edit`.
-- [ ] Incluir instruções do modo `yolo`.
-- [ ] Ler `GREENFORGE.md` se existir.
-- [ ] Inserir conteúdo de `GREENFORGE.md` no system prompt.
-- [ ] Não falhar se `GREENFORGE.md` não existir.
+- [x] Criar `server/src/agent/prompts.ts`.
+- [x] Criar `buildSystemPrompt`.
+- [x] Incluir descrição do GreenForge Agent.
+- [x] Incluir path do workspace atual.
+- [x] Incluir regras de segurança.
+- [x] Incluir instruções do modo `plan`.
+- [x] Incluir instruções do modo `auto_edit`.
+- [x] Incluir instruções do modo `yolo`.
+- [x] Ler `GREENFORGE.md` se existir.
+- [x] Inserir conteúdo de `GREENFORGE.md` no system prompt.
+- [x] Não falhar se `GREENFORGE.md` não existir.
 
 ### Human-in-the-Loop
 
-- [ ] Detectar se ferramenta é destrutiva.
-- [ ] No modo `plan`, pedir aprovação para todas as ações.
-- [ ] No modo `auto_edit`, pedir aprovação para ações destrutivas.
-- [ ] No modo `yolo`, não pedir aprovação.
-- [ ] Criar `actionId` para cada ação pendente.
-- [ ] Enviar `approval_required` ao frontend.
-- [ ] Incluir descrição humana da ação.
-- [ ] Incluir diff se disponível.
-- [ ] Esperar Promise de aprovação.
-- [ ] Se aprovado, executar ferramenta.
-- [ ] Se rejeitado, não executar ferramenta.
-- [ ] Informar ao LLM que a ação foi rejeitada.
-- [ ] Continuar loop após rejeição.
+- [x] Detectar se ferramenta é destrutiva.
+- [x] No modo `plan`, pedir aprovação para todas as ações.
+- [x] No modo `auto_edit`, pedir aprovação para ações destrutivas.
+- [x] No modo `yolo`, não pedir aprovação.
+- [x] Criar `actionId` para cada ação pendente.
+- [x] Enviar `approval_required` ao frontend.
+- [x] Incluir descrição humana da ação.
+- [x] Incluir diff se disponível.
+- [x] Esperar Promise de aprovação.
+- [x] Se aprovado, executar ferramenta.
+- [x] Se rejeitado, não executar ferramenta.
+- [x] Informar ao LLM que a ação foi rejeitada.
+- [x] Continuar loop após rejeição.
 
 ### Aceite da Fase 2
 

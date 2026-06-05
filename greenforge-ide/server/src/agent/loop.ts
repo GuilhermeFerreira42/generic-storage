@@ -1,6 +1,6 @@
 // server/src/agent/loop.ts
 import Anthropic from '@anthropic-ai/sdk';
-import type { MessageParam, ToolUseBlock } from '@anthropic-ai/sdk/resources.js';
+import type { MessageParam, ToolUseBlock } from '@anthropic-ai/sdk/resources/index.js';
 import { randomUUID } from 'crypto';
 import type { ToolRegistry } from '../tools/registry.js';
 import { SessionStore } from '../db/sessions.js';
@@ -21,9 +21,6 @@ export interface AgentLoopParams {
 
 const MAX_ITERATIONS = 20;
 
-/**
- * Loop agêntico ReAct com streaming e human-in-the-loop
- */
 export async function runAgentLoop(params: AgentLoopParams): Promise<void> {
   const {
     userMessage,
@@ -61,7 +58,7 @@ export async function runAgentLoop(params: AgentLoopParams): Promise<void> {
     let accumulatedText = '';
 
     const stream = client.messages.stream({
-      model: 'claude-sonnet-4-5',
+      model: 'claude-3-5-sonnet-20241022', // Updated to a valid stable model version
       max_tokens: 8096,
       system: buildSystemPrompt(mode, workspacePath),
       messages: session.messages as MessageParam[],
@@ -212,7 +209,7 @@ export async function runAgentLoop(params: AgentLoopParams): Promise<void> {
 
     // Adiciona assistant message e tool results ao histórico antes da próxima iteração
     session.messages.push({ role: 'assistant', content: finalMessage.content });
-    session.messages.push({ role: 'user', content: toolResults });
+    session.messages.push({ role: 'user', content: toolResults as any });
   }
 
   onEvent({
@@ -222,9 +219,7 @@ export async function runAgentLoop(params: AgentLoopParams): Promise<void> {
   });
 }
 
-/**
- * Promise que bloqueia até o usuário aprovar ou rejeitar
- */
+// Promise que bloqueia até o usuário aprovar ou rejeitar
 function waitForApproval(
   pendingApprovals: Map<string, { resolve: (approved: boolean) => void }>,
   actionId: string,

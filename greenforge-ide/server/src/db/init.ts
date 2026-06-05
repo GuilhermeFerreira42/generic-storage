@@ -6,57 +6,27 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-let dbInstance: Database.Database | null = null;
+let db: Database.Database;
 
-/**
- * Inicializa o banco de dados SQLite
- * Usa WAL mode para melhor concorrência
- */
-export function initDB(dbPath?: string): Database.Database {
-  if (dbInstance) {
-    return dbInstance;
-  }
+export function initDB(): Database.Database {
+  if (db) return db;
 
-  const finalPath = dbPath ?? process.env.DB_PATH ?? path.join(process.cwd(), 'greenforge.db');
+  const dbPath = process.env.DB_PATH ?? path.join(process.cwd(), 'greenforge.db');
+  db = new Database(dbPath);
 
-  console.error(`[DB] Inicializando banco em: ${finalPath}`);
+  // Habilita WAL mode para melhor performance
+  db.pragma('journal_mode = WAL');
+  db.pragma('foreign_keys = ON');
 
-  dbInstance = new Database(finalPath);
+  // Lê e executa o schema
+  const schema = readFileSync(path.join(__dirname, 'schema.sql'), 'utf-8');
+  db.exec(schema);
 
-  // Ativa WAL mode para melhor concorrência
-  dbInstance.pragma('journal_mode = WAL');
-
-  // Ativa foreign keys
-  dbInstance.pragma('foreign_keys = ON');
-
-  // Lê e executa o schema SQL
-  const schemaPath = path.join(__dirname, 'schema.sql');
-  const schemaSQL = readFileSync(schemaPath, 'utf-8');
-
-  dbInstance.exec(schemaSQL);
-
-  console.error('[DB] Banco inicializado com sucesso');
-
-  return dbInstance;
+  console.error(`[DB] Banco inicializado em: ${dbPath}`);
+  return db;
 }
 
-/**
- * Obtém a instância do banco de dados
- */
 export function getDB(): Database.Database {
-  if (!dbInstance) {
-    throw new Error('Banco de dados não inicializado. Chame initDB() primeiro.');
-  }
-  return dbInstance;
-}
-
-/**
- * Fecha a conexão com o banco
- */
-export function closeDB(): void {
-  if (dbInstance) {
-    dbInstance.close();
-    dbInstance = null;
-    console.error('[DB] Conexão encerrada');
-  }
+  if (!db) throw new Error('DB não inicializado. Chame initDB() primeiro.');
+  return db;
 }
