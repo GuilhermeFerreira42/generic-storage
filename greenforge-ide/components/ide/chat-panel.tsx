@@ -23,7 +23,7 @@ import {
 import { useIDEStore, Message, ApprovalCard } from '@/lib/store'
 import { cn } from '@/lib/utils'
 import { useDebateStore } from '@/store/debateStore'
-import { useAgentSSE } from '@/hooks/useAgentSSE'
+import { useAgentWebSocket } from '@/hooks/useAgentWebSocket'
 import { StatusBadge } from '@/components/chat/StatusBadge'
 import { AgentDebateMessage } from '@/components/chat/AgentDebateMessage'
 
@@ -284,8 +284,8 @@ export function ChatPanel() {
   const setGlobalExpanded = useDebateStore(s => s.setGlobalExpanded)
   const resetDebateStore = useDebateStore(s => s.resetDebate)
 
-  const { runDebate, stopDebate, isLoading: isSseLoading } = useAgentSSE()
-  const isDebating = isSseLoading || debateStatus === 'IN_PROGRESS'
+  const { isConnected, sendUserMessage, stopDebate: wsStopDebate } = useAgentWebSocket()
+  const isDebating = debateStatus === 'IN_PROGRESS'
 
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -326,7 +326,7 @@ export function ChatPanel() {
     setIsLoading(true)
 
     try {
-      await runDebate(userMessage)
+      sendUserMessage(userMessage)
     } catch (err) {
       console.error('Debate crash:', err)
       addMessage({
@@ -367,7 +367,7 @@ export function ChatPanel() {
           {debateSession && isDebating && (
             <button
               id="btn-stop-debate"
-              onClick={stopDebate}
+              onClick={wsStopDebate}
               className="p-1.5 hover:bg-muted text-muted-foreground hover:text-red-500 rounded-md transition-colors"
               title="Parar Processamento (STOP)"
             >
