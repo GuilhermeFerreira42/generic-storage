@@ -8,6 +8,7 @@ export const IncomingMessage = z.discriminatedUnion('type', [
     content: z.string().min(1).max(32000),
     mode: z.enum(['plan', 'auto_edit', 'yolo']).default('auto_edit'),
     workspacePath: z.string(),
+    auth_token: z.string().optional(),
   }),
   z.object({
     type: z.literal('approve_action'),

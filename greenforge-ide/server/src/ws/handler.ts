@@ -21,7 +21,8 @@ export function handleWSConnection(ws: WebSocket): void {
 
   // Função helper para enviar mensagem tipada ao cliente
   function send(msg: OutgoingMessageType): void {
-    if (ws.readyState === WebSocket.OPEN) {
+    const OPEN = 1; // WebSocket.OPEN = 1
+    if (ws.readyState === OPEN) {
       ws.send(JSON.stringify(msg));
     }
   }
@@ -51,6 +52,36 @@ export function handleWSConnection(ws: WebSocket): void {
     switch (msg.type) {
 
       case 'chat_message': {
+        if (!msg.auth_token) {
+          send({
+            type: 'error',
+            message: 'Não autenticado',
+            sessionId: msg.sessionId
+          });
+          return;
+        }
+
+        if (msg.content.trim() === '/help') {
+          send({
+            type: 'agent_event',
+            event: 'message',
+            data: 'Comandos disponíveis: /help, /reset',
+            sessionId: msg.sessionId
+          });
+          return;
+        }
+
+        if (msg.content.trim() === '/reset') {
+          SessionStore.clearSession(msg.sessionId);
+          send({
+            type: 'agent_event',
+            event: 'message',
+            data: 'Sessão resetada com sucesso.',
+            sessionId: msg.sessionId
+          });
+          return;
+        }
+
         // Cancela qualquer loop ativo da mesma sessão
         activeLoops.get(msg.sessionId)?.abort();
 

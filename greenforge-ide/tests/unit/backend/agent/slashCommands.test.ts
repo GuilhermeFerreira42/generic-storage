@@ -5,6 +5,22 @@ import { EventEmitter } from 'events';
 // Este teste serve como especificação para a funcionalidade de Comandos Slash (/)
 // Atualmente deve FALHAR pois não há implementação no backend.
 
+vi.mock('@/server/src/agent/loop', () => ({
+  runAgentLoop: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock('@/server/src/tools/registry', () => ({
+  buildToolRegistry: vi.fn().mockReturnValue({}),
+}));
+vi.mock('@/server/src/db/sessions', () => ({
+  SessionStore: {
+    getOrCreate: vi.fn(),
+    save: vi.fn(),
+    updateMode: vi.fn(),
+    createCheckpoint: vi.fn(),
+    clearSession: vi.fn(),
+  },
+}));
+
 class MockWebSocket extends EventEmitter {
   readyState = 1;
   send = vi.fn();
@@ -24,7 +40,8 @@ describe('Slash Commands (TDD)', () => {
       type: 'chat_message',
       sessionId: '550e8400-e29b-41d4-a716-446655440000',
       content: '/help',
-      workspacePath: '/workspace'
+      workspacePath: '/workspace',
+      auth_token: 'valid-token'
     };
 
     ws.emit('message', Buffer.from(JSON.stringify(msg)));
@@ -43,7 +60,8 @@ describe('Slash Commands (TDD)', () => {
       type: 'chat_message',
       sessionId: '550e8400-e29b-41d4-a716-446655440000',
       content: '/reset',
-      workspacePath: '/workspace'
+      workspacePath: '/workspace',
+      auth_token: 'valid-token'
     };
 
     ws.emit('message', Buffer.from(JSON.stringify(msg)));

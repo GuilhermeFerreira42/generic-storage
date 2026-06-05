@@ -1,3 +1,4 @@
+/* @vitest-environment jsdom */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ChatPanel } from '@/components/ide/chat-panel';
@@ -5,6 +6,11 @@ import { useIDEStore } from '@/lib/store';
 import { useAgentStore } from '@/store/agentStore';
 import { useAgentSocket } from '@/hooks/useAgentSocket';
 import React from 'react';
+
+// Polyfill para scrollIntoView no JSDOM
+if (typeof window !== 'undefined' && window.HTMLElement) {
+  window.HTMLElement.prototype.scrollIntoView = vi.fn();
+}
 
 // Mock dependencies
 vi.mock('@/lib/store');

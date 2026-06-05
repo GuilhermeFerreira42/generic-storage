@@ -50,6 +50,9 @@ export function CodeEditor({ content, language, onChange, readOnly = false }: Co
   const editorRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
   const theme = useIDEStore(s => s.theme)
+  const activeTabId = useIDEStore(s => s.activeTabId)
+
+  if (!activeTabId) return null
 
   const extensions = useMemo(() => [
     lineNumbers(),

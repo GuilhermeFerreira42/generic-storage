@@ -1,6 +1,24 @@
 import '@testing-library/jest-dom'
 import { vi } from 'vitest'
 
-// 2. Mocks: Global mocks can be placed here, 
-// BUT the rules say: "Use `vi.mock` estritamente local dentro do escopo do arquivo."
-// So this file stays minimal and does not include any global vi.mock.
+// Setup global
+beforeAll(async () => {
+  // Configs globais se necessário
+  process.env.GOOGLE_API_KEY = 'mock-api-key-for-testing';
+  if (typeof window === 'undefined') {
+    const { initDB } = await import('@/server/src/db/init');
+    process.env.DB_PATH = ':memory:';
+    try {
+      initDB();
+    } catch (err) {
+      console.error('[Vitest Setup] Erro ao inicializar DB:', err);
+    }
+  }
+})
+
+// Mock global para módulos nativos que podem causar problemas
+vi.stubGlobal('crypto', {
+  randomUUID: () => '550e8400-e29b-41d4-a716-446655440000',
+  randomBytes: (size: number) => Buffer.alloc(size),
+  getRandomValues: (arr: any) => arr
+})

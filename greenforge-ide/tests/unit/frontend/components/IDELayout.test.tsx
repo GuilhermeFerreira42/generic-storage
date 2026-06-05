@@ -1,3 +1,4 @@
+/* @vitest-environment jsdom */
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { IDELayout } from '@/components/ide/ide-layout';
@@ -8,6 +9,8 @@ vi.mock('@/components/ide/panels', () => ({
   PanelContainer: ({ children }: any) => <div>{children}</div>,
   PanelGroup: ({ children }: any) => <div>{children}</div>,
   Panel: ({ children }: any) => <div>{children}</div>,
+  Toolbar: () => <div>Toolbar</div>,
+  PanelResizeHandle: () => <div></div>,
 }));
 
 vi.mock('@/components/ide/file-explorer', () => ({
@@ -35,3 +38,4 @@ describe('IDELayout', () => {
     expect(screen.getByText('Code Editor')).toBeDefined();
   });
 });
+
