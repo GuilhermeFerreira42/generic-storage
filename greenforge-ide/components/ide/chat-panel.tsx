@@ -401,7 +401,7 @@ export function ChatPanel() {
         ) : (
           <div className="py-2 space-y-4">
             {/* User messages & logs */}
-            {messages.filter(m => m.role === 'user' || m.role === 'system').map((message) => (
+            {messages.filter(m => m.role === 'user' || m.role === 'system' || m.role === 'assistant').map((message) => (
               <ChatMessage key={message.id} message={message} />
             ))}
 

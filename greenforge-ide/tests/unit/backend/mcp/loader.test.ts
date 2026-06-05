@@ -5,8 +5,11 @@ import * as fs from 'fs';
 vi.mock('fs');
 
 describe('loadMCPConfig', () => {
+  let mockedFS = vi.mocked(fs);
+
   beforeEach(() => {
     vi.clearAllMocks();
+    mockedFS = vi.mocked(fs);
   });
 
   it('should load servers from config file', () => {
@@ -20,8 +23,8 @@ describe('loadMCPConfig', () => {
       }
     };
 
-    (fs.existsSync as any).mockReturnValue(true);
-    (fs.readFileSync as any).mockReturnValue(JSON.stringify(config));
+    mockedFS.existsSync.mockReturnValue(true as any);
+    mockedFS.readFileSync.mockReturnValue(JSON.stringify(config) as any);
 
     const result = loadMCPConfig('/workspace');
 
@@ -41,8 +44,8 @@ describe('loadMCPConfig', () => {
       }
     };
 
-    (fs.existsSync as any).mockReturnValue(true);
-    (fs.readFileSync as any).mockReturnValue(JSON.stringify(config));
+    mockedFS.existsSync.mockReturnValue(true as any);
+    mockedFS.readFileSync.mockReturnValue(JSON.stringify(config) as any);
 
     const result = loadMCPConfig('/workspace');
 
@@ -61,8 +64,8 @@ describe('loadMCPConfig', () => {
       }
     };
 
-    (fs.existsSync as any).mockReturnValue(true);
-    (fs.readFileSync as any).mockReturnValue(JSON.stringify(config));
+    mockedFS.existsSync.mockReturnValue(true as any);
+    mockedFS.readFileSync.mockReturnValue(JSON.stringify(config) as any);
 
     const result = loadMCPConfig('/workspace');
 

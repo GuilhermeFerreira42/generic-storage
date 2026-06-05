@@ -20,7 +20,12 @@ export class SecretRedactor {
     let result = text;
 
     for (const { pattern } of PATTERNS) {
-      result = result.replace(pattern, (match, captured) => {
+      result = result.replace(pattern, (...args) => {
+        const match = args[0];
+        // Se args tem mais de 3 elementos, temos grupos de captura
+        const hasCaptureGroups = args.length > 3;
+        const captured = hasCaptureGroups ? args[1] : undefined;
+
         if (captured) {
           // Substitui apenas o valor capturado, mantendo a chave
           return match.replace(captured, '[REDACTED]');

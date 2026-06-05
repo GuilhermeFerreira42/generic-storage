@@ -3,10 +3,22 @@ import { handleWSConnection } from '@/server/src/ws/handler';
 import { EventEmitter } from 'events';
 import { runAgentLoop } from '@/server/src/agent/loop';
 
-vi.mock('@/server/src/agent/loop');
-vi.mock('@/server/src/tools/registry');
+vi.mock('@/server/src/agent/loop', () => ({
+  runAgentLoop: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock('@/server/src/tools/registry', () => ({
+  buildToolRegistry: vi.fn().mockReturnValue({}),
+}));
 vi.mock('@/server/src/tools/shell/executeCommand');
-vi.mock('@/server/src/db/sessions');
+vi.mock('@/server/src/db/sessions', () => ({
+  SessionStore: {
+    getOrCreate: vi.fn(),
+    save: vi.fn(),
+    updateMode: vi.fn(),
+    createCheckpoint: vi.fn(),
+    clearSession: vi.fn(),
+  },
+}));
 
 class MockWebSocket extends EventEmitter {
   readyState = 1; // OPEN
@@ -30,7 +42,8 @@ describe('WebSocket Handler', () => {
       sessionId: '550e8400-e29b-41d4-a716-446655440000',
       content: 'Hello',
       mode: 'auto_edit',
-      workspacePath: '/workspace'
+      workspacePath: '/workspace',
+      auth_token: 'valid-token'
     };
 
     ws.emit('message', Buffer.from(JSON.stringify(msg)));

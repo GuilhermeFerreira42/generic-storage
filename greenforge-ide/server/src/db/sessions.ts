@@ -124,6 +124,10 @@ export const SessionStore = {
     getDB().prepare(`DELETE FROM sessions WHERE id = ?`).run(id);
   },
 
+  clearSession(id: string): void {
+    getDB().prepare(`DELETE FROM messages WHERE session_id = ?`).run(id);
+  },
+
   saveToolCall(
     sessionId: string,
     call: {

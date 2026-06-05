@@ -1,10 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { connectMCPServer } from '@/server/src/mcp/client';
-import { ToolRegistry } from '@/server/src/tools/registry';
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-
-vi.mock('@modelcontextprotocol/sdk/client/index.js');
-vi.mock('@modelcontextprotocol/sdk/client/stdio.js');
 
 describe('connectMCPServer', () => {
   let mockRegistry: any;
@@ -23,10 +18,16 @@ describe('connectMCPServer', () => {
         tools: [
           { name: 'read_db', description: 'Read database', inputSchema: {} }
         ]
-      })
+      }),
+      callTool: vi.fn()
     };
 
-    (Client as any).mockImplementation(() => mockClientInstance);
+    const mockClientConstructor = vi.fn().mockImplementation(function() {
+      return mockClientInstance;
+    });
+    const mockTransportConstructor = vi.fn().mockImplementation(function() {
+      return {};
+    });
 
     const config: any = {
       name: 'sqlite',
@@ -35,8 +36,13 @@ describe('connectMCPServer', () => {
       args: []
     };
 
-    await connectMCPServer(config, mockRegistry as any);
+    await connectMCPServer(config, mockRegistry as any, {
+      Client: mockClientConstructor as any,
+      StdioClientTransport: mockTransportConstructor as any
+    });
 
+    expect(mockClientConstructor).toHaveBeenCalled();
+    expect(mockTransportConstructor).toHaveBeenCalled();
     expect(mockClientInstance.connect).toHaveBeenCalled();
     expect(mockClientInstance.listTools).toHaveBeenCalled();
     expect(mockRegistry.register).toHaveBeenCalledWith(expect.objectContaining({

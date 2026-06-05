@@ -1,3 +1,4 @@
+/* @vitest-environment jsdom */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { FileExplorer } from '@/components/ide/file-explorer';
@@ -17,7 +18,10 @@ vi.mock('lucide-react', () => ({
   Search: () => <span>Search</span>,
   FileCode: () => <span>FileCode</span>,
   Trash2: () => <span>Trash2</span>,
-  Edit2: () => <span>Edit2</span>
+  Edit2: () => <span>Edit2</span>,
+  Download: () => <span>Download</span>,
+  Upload: () => <span>Upload</span>,
+  RefreshCw: () => <span>RefreshCw</span>,
 }));
 
 describe('FileExplorer', () => {
@@ -37,7 +41,8 @@ describe('FileExplorer', () => {
       deleteFile: vi.fn(),
       renameFile: vi.fn(),
       setActiveTab: vi.fn(),
-      addTab: vi.fn()
+      addTab: vi.fn(),
+      syncWorkspace: vi.fn()
     }));
   });
 
@@ -52,7 +57,8 @@ describe('FileExplorer', () => {
     (useIDEStore as any).mockImplementation((selector: any) => selector({
       files: mockFiles,
       getFilesTree: () => [{ ...mockFiles[0], children: [mockFiles[1]] }],
-      addTab
+      addTab,
+      syncWorkspace: vi.fn()
     }));
 
     render(<FileExplorer />);
@@ -60,3 +66,4 @@ describe('FileExplorer', () => {
     expect(addTab).toHaveBeenCalled();
   });
 });
+

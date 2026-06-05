@@ -1,3 +1,4 @@
+/* @vitest-environment jsdom */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { Terminal } from '@/components/ide/terminal';
@@ -9,7 +10,9 @@ vi.mock('lucide-react', () => ({
   Terminal: () => <span>TerminalIcon</span>,
   Trash2: () => <span>TrashIcon</span>,
   XCircle: () => <span>XIcon</span>,
-  CheckCircle2: () => <span>CheckIcon</span>
+  CheckCircle2: () => <span>CheckIcon</span>,
+  Copy: () => <span>Copy</span>,
+  Check: () => <span>Check</span>,
 }));
 
 // Mock XTerm.js since it's hard to test in JSDOM
@@ -36,7 +39,7 @@ describe('Terminal', () => {
 
   it('renders the terminal container', () => {
     render(<Terminal />);
-    expect(screen.getByText('TERMINAL')).toBeDefined();
+    expect(screen.getByText('Terminal')).toBeDefined();
   });
 
   it('calls clearTerminal when clear button is clicked', () => {
@@ -47,8 +50,9 @@ describe('Terminal', () => {
     }));
 
     render(<Terminal />);
-    const clearButton = screen.getByTitle('Limpar Terminal');
+    const clearButton = screen.getByTitle('Limpar terminal (Ctrl+L)');
     fireEvent.click(clearButton);
     expect(clearTerminal).toHaveBeenCalled();
   });
 });
+

@@ -7,10 +7,12 @@ vi.mock('child_process');
 
 describe('ExecuteCommandTool', () => {
   let tool: ExecuteCommandTool;
+  let mockedChildProcess = vi.mocked(child_process);
 
   beforeEach(() => {
     vi.clearAllMocks();
     tool = new ExecuteCommandTool('/workspace');
+    mockedChildProcess = vi.mocked(child_process);
   });
 
   it('should execute a command successfully', async () => {
@@ -19,7 +21,7 @@ describe('ExecuteCommandTool', () => {
     mockChild.stderr = new EventEmitter();
     mockChild.kill = vi.fn();
 
-    (child_process.spawn as any).mockReturnValue(mockChild);
+    mockedChildProcess.spawn.mockReturnValue(mockChild);
 
     const promise = tool.execute({ command: 'echo hello' });
 
@@ -38,7 +40,7 @@ describe('ExecuteCommandTool', () => {
     mockChild.stderr = new EventEmitter();
     mockChild.kill = vi.fn();
 
-    (child_process.spawn as any).mockReturnValue(mockChild);
+    mockedChildProcess.spawn.mockReturnValue(mockChild);
 
     const promise = tool.execute({ command: 'invalid' });
 
@@ -58,7 +60,7 @@ describe('ExecuteCommandTool', () => {
     mockChild.stderr = new EventEmitter();
     mockChild.kill = vi.fn();
 
-    (child_process.spawn as any).mockReturnValue(mockChild);
+    mockedChildProcess.spawn.mockReturnValue(mockChild);
 
     const promise = tool.execute({ command: 'sleep 100', timeout_seconds: 1 });
 

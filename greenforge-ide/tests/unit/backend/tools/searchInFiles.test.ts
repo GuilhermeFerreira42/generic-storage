@@ -3,30 +3,43 @@ import { SearchInFilesTool } from '@/server/src/tools/filesystem/searchInFiles';
 import { TrustedFolders } from '@/server/src/security/trustedFolders';
 import * as fs from 'fs';
 
-vi.mock('fs');
+vi.mock('fs', () => ({
+  existsSync: vi.fn(),
+  readFileSync: vi.fn(),
+  writeFileSync: vi.fn(),
+  statSync: vi.fn(),
+  readdirSync: vi.fn(),
+  promises: {
+    readdir: vi.fn(),
+    readFile: vi.fn(),
+    writeFile: vi.fn(),
+  }
+}));
 vi.mock('@/server/src/security/trustedFolders');
 
 describe('SearchInFilesTool', () => {
   let tool: SearchInFilesTool;
   let mockTrustedFolders: TrustedFolders;
+  let mockedFS = vi.mocked(fs);
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockTrustedFolders = new TrustedFolders(['/workspace']);
     tool = new SearchInFilesTool(mockTrustedFolders);
+    mockedFS = vi.mocked(fs);
     (mockTrustedFolders.resolve as any).mockImplementation((p: string) => `/workspace/${p}`);
   });
 
   it('should find query in files', async () => {
-    (fs.readdirSync as any).mockImplementation((p: string) => {
-      if (p === '/workspace/.') return ['test.txt'];
+    mockedFS.readdirSync.mockImplementation((p: string) => {
+      if (p === '/workspace/.') return ['test.txt'] as any;
       return [];
     });
-    (fs.statSync as any).mockImplementation(() => ({
+    mockedFS.statSync.mockImplementation(() => ({
       isDirectory: () => false,
       isFile: () => true
-    }));
-    (fs.readFileSync as any).mockReturnValue('line 1\nline with query\nline 3');
+    } as any));
+    mockedFS.readFileSync.mockReturnValue('line 1\nline with query\nline 3' as any);
 
     const result = await tool.execute({ query: 'query' });
 
@@ -34,7 +47,7 @@ describe('SearchInFilesTool', () => {
   });
 
   it('should return "not found" message if no results', async () => {
-    (fs.readdirSync as any).mockReturnValue([]);
+    mockedFS.readdirSync.mockReturnValue([] as any);
 
     const result = await tool.execute({ query: 'missing' });
 

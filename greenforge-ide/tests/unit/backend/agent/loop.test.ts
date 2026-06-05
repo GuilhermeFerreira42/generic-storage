@@ -4,7 +4,18 @@ import { SessionStore } from '@/server/src/db/sessions';
 import { ToolRegistry } from '@/server/src/tools/registry';
 import { GoogleGenAI } from '@google/genai';
 
-vi.mock('@google/genai');
+const mockGenerateContentStream = vi.fn();
+
+vi.mock('@google/genai', () => {
+  return {
+    GoogleGenAI: class {
+      models = {
+        generateContentStream: mockGenerateContentStream
+      };
+    }
+  };
+});
+
 vi.mock('@/server/src/db/sessions');
 vi.mock('@/server/src/tools/registry');
 
@@ -37,12 +48,7 @@ describe('runAgentLoop', () => {
       }
     };
 
-    const mockGenerateContentStream = vi.fn().mockResolvedValue(mockResponseStream);
-    (GoogleGenAI as any).mockImplementation(() => ({
-      models: {
-        generateContentStream: mockGenerateContentStream
-      }
-    }));
+    mockGenerateContentStream.mockResolvedValue(mockResponseStream);
 
     await runAgentLoop({
       userMessage: 'Hi',
@@ -82,15 +88,9 @@ describe('runAgentLoop', () => {
       }
     };
 
-    const mockGenerateContentStream = vi.fn()
+    mockGenerateContentStream
       .mockResolvedValueOnce(mockResponseStreamWithTool)
       .mockResolvedValueOnce(mockResponseStreamFinal);
-
-    (GoogleGenAI as any).mockImplementation(() => ({
-      models: {
-        generateContentStream: mockGenerateContentStream
-      }
-    }));
 
     // Simulate user approval
     const agentPromise = runAgentLoop({

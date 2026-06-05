@@ -3,32 +3,45 @@ import { ReadFileTool } from '@/server/src/tools/filesystem/readFile';
 import { TrustedFolders } from '@/server/src/security/trustedFolders';
 import * as fs from 'fs';
 
-vi.mock('fs');
+vi.mock('fs', () => ({
+  existsSync: vi.fn(),
+  readFileSync: vi.fn(),
+  writeFileSync: vi.fn(),
+  statSync: vi.fn(),
+  readdirSync: vi.fn(),
+  promises: {
+    readdir: vi.fn(),
+    readFile: vi.fn(),
+    writeFile: vi.fn(),
+  }
+}));
 vi.mock('@/server/src/security/trustedFolders');
 
 describe('ReadFileTool', () => {
   let tool: ReadFileTool;
   let mockTrustedFolders: TrustedFolders;
+  let mockedFS = vi.mocked(fs);
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockTrustedFolders = new TrustedFolders(['/workspace']);
     tool = new ReadFileTool(mockTrustedFolders);
+    mockedFS = vi.mocked(fs);
     (mockTrustedFolders.resolve as any).mockImplementation((p: string) => `/workspace/${p}`);
   });
 
   it('should read a file successfully', async () => {
-    (fs.existsSync as any).mockReturnValue(true);
-    (fs.readFileSync as any).mockReturnValue('file content');
+    mockedFS.existsSync.mockReturnValue(true as any);
+    mockedFS.readFileSync.mockReturnValue('file content' as any);
 
     const result = await tool.execute({ path: 'test.txt' });
 
     expect(result).toBe('file content');
-    expect(fs.readFileSync).toHaveBeenCalledWith('/workspace/test.txt', 'utf-8');
+    expect(mockedFS.readFileSync).toHaveBeenCalledWith('/workspace/test.txt', 'utf-8');
   });
 
   it('should return an error message if file does not exist', async () => {
-    (fs.existsSync as any).mockReturnValue(false);
+    mockedFS.existsSync.mockReturnValue(false as any);
 
     const result = await tool.execute({ path: 'missing.txt' });
 
@@ -41,8 +54,8 @@ describe('ReadFileTool', () => {
   });
 
   it('should redact secrets in the file content', async () => {
-    (fs.existsSync as any).mockReturnValue(true);
-    (fs.readFileSync as any).mockReturnValue('My key is sk-ant-abc12345678901234567890');
+    mockedFS.existsSync.mockReturnValue(true as any);
+    mockedFS.readFileSync.mockReturnValue('My key is sk-ant-abc12345678901234567890' as any);
 
     const result = await tool.execute({ path: 'secrets.txt' });
 

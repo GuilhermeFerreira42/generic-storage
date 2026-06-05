@@ -37,13 +37,14 @@ class MCPToolAdapter implements Tool {
 export async function connectMCPServer(
   config: MCPServerConfig,
   registry: ToolRegistry,
+  deps = { Client, StdioClientTransport }
 ): Promise<void> {
   if (config.transport !== 'stdio' || !config.command) {
     console.error(`[MCP] Transporte "${config.transport}" não suportado ainda para servidor "${config.name}"`);
     return;
   }
 
-  const transport = new StdioClientTransport({
+  const transport = new deps.StdioClientTransport({
     command: config.command,
     args: config.args ?? [],
     env: {
@@ -52,7 +53,7 @@ export async function connectMCPServer(
     } as Record<string, string>,
   });
 
-  const client = new Client(
+  const client = new deps.Client(
     { name: 'greenforge-mcp-client', version: '1.0.0' },
     { capabilities: {} }
   );

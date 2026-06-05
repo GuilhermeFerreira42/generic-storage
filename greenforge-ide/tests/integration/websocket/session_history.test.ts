@@ -11,12 +11,23 @@ class MockWebSocket extends EventEmitter {
   send = vi.fn();
 }
 
+vi.mock('@/server/src/db/sessions', () => ({
+  SessionStore: {
+    getOrCreate: vi.fn(),
+    saveMessage: vi.fn(),
+    listByWorkspace: vi.fn(),
+    delete: vi.fn()
+  }
+}));
+
 describe('Session History Lacuna', () => {
   let ws: MockWebSocket;
+  let mockedSessionStore = vi.mocked(SessionStore);
 
   beforeEach(() => {
     vi.clearAllMocks();
     ws = new MockWebSocket();
+    mockedSessionStore = vi.mocked(SessionStore);
   });
 
   it('should send previous messages when a session is resumed', async () => {
@@ -25,7 +36,7 @@ describe('Session History Lacuna', () => {
       { role: 'model', parts: [{ text: 'Hi there!' }] }
     ];
 
-    (SessionStore.getOrCreate as any).mockReturnValue({
+    mockedSessionStore.getOrCreate.mockReturnValue({
       id: 'session-123',
       messages: existingMessages,
       workspace: '/workspace'
