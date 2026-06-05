@@ -70,20 +70,24 @@ function runCommand(
   timeoutMs: number,
 ): Promise<CommandResult> {
   return new Promise((resolve, reject) => {
-    // Check if running on Windows or Unix-like
-    const shell = process.platform === 'win32' ? 'cmd.exe' : 'sh';
-    const args = process.platform === 'win32' ? ['/c', command] : ['-c', command];
+    const isWindows = process.platform === 'win32';
+
+    // On Windows, force UTF-8 (code page 65001) before every command
+    // so accented characters (ã, é, ç, etc.) are decoded correctly.
+    const shell = isWindows ? 'cmd.exe' : 'sh';
+    const wrappedCmd = isWindows ? `chcp 65001 >NUL 2>&1 && ${command}` : command;
+    const args = isWindows ? ['/c', wrappedCmd] : ['-c', wrappedCmd];
 
     const child = spawn(shell, args, {
       cwd,
       env: sanitizeEnv(process.env),
     });
 
-    let stdout = '';
-    let stderr = '';
+    const stdoutChunks: Buffer[] = [];
+    const stderrChunks: Buffer[] = [];
 
-    child.stdout.on('data', (chunk: Buffer) => { stdout += chunk.toString(); });
-    child.stderr.on('data', (chunk: Buffer) => { stderr += chunk.toString(); });
+    child.stdout.on('data', (chunk: Buffer) => { stdoutChunks.push(chunk); });
+    child.stderr.on('data', (chunk: Buffer) => { stderrChunks.push(chunk); });
 
     const timer = setTimeout(() => {
       child.kill('SIGTERM');
@@ -92,7 +96,12 @@ function runCommand(
 
     child.on('close', (code) => {
       clearTimeout(timer);
-      resolve({ stdout, stderr, exitCode: code ?? -1 });
+      // Decode as UTF-8 so Windows special chars (ã, é, ç) render correctly
+      resolve({
+        stdout: Buffer.concat(stdoutChunks).toString('utf8'),
+        stderr: Buffer.concat(stderrChunks).toString('utf8'),
+        exitCode: code ?? -1,
+      });
     });
 
     child.on('error', (err) => {

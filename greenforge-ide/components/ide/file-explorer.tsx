@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { 
   ChevronRight, 
   ChevronDown, 
@@ -231,6 +231,11 @@ export function FileExplorer() {
   const addFile = useIDEStore(s => s.addFile)
   const exportWorkspace = useIDEStore(s => s.exportWorkspace)
   const flatFiles = useIDEStore(s => s.files)
+  const syncWorkspace = useIDEStore(s => s.syncWorkspace)
+
+  useEffect(() => {
+    syncWorkspace()
+  }, [syncWorkspace])
 
   const [newFileParent, setNewFileParent] = useState<string | null>(null)
   const [newFileType, setNewFileType] = useState<'file' | 'folder'>('file')

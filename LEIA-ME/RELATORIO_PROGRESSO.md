@@ -4,14 +4,58 @@
 
 Este documento acompanha o progresso de implementação fase por fase.
 
-**Última atualização:** 2026-06-05
-**Fase atual:** Validação Final do MVP (Concluída)
-**Espaço disponível:** 330M (504M total, 30% usado)
-**Diretório do projeto:** /workspace/greenforge-ide
+**Última atualização:** 2026-06-05 (Sessão local — Antigravidade)
+**Fase atual:** Ambiente local configurado e funcional ✅
+**Diretório do projeto:** `c:\Users\Usuario\Desktop\generic-storage\greenforge-ide`
 
 ---
 
-## Resumo do Progresso Atual
+## Sessão Atual — Ambiente Local (2026-06-05)
+
+### Contexto
+O projeto foi desenvolvido no Google AI Studio e foi transferido para a máquina local após os tokens se esgotarem. Nesta sessão, o ambiente foi configurado, os servidores foram iniciados e uma série de correções e melhorias foram implementadas.
+
+### O que foi feito nesta sessão:
+
+**✅ Setup do ambiente:**
+- Instalação de dependências do frontend (`npm install` na raiz)
+- Instalação de dependências do backend (`npm install` em `server/`)
+- Criação do arquivo `.env` no frontend com variáveis dummy para bypass de inicialização
+- Criação do arquivo `server/.env` com variáveis dummy para o backend
+- Inicialização bem-sucedida de ambos os servidores (frontend na porta 3000, backend na porta 3001)
+
+**✅ Diagnóstico e correção do terminal integrado:**
+- **Problema identificado:** O terminal não retornava nenhuma resposta ao usuário.
+- **Causa raiz 1:** O `sessionId` enviado pelo frontend era a string literal `'default-session'`, que o backend rejeita via validação Zod (exige UUID válido). Corrigido para `crypto.randomUUID()`.
+- **Causa raiz 2:** Comandos Unix (`ls`, `pwd`) não funcionam no `cmd.exe` do Windows. O terminal agora funciona com comandos nativos do Windows (ex: `dir`, `echo %cd%`).
+
+**✅ Isolamento de workspace (segurança):**
+- **Problema:** O backend e as rotas de API do frontend apontavam para `process.cwd()`, expondo todo o código-fonte da IDE para o usuário e os agentes.
+- **Solução:** Adicionada lógica em `server/src/index.ts` e `app/api/fs/utils.ts` para usar uma pasta isolada `workspaces/default/` dentro do projeto como sandbox.
+- A pasta é criada automaticamente caso não exista.
+- Variável `WORKSPACE_ROOT` no `.env` ainda pode sobrescrever o padrão quando necessário.
+
+**✅ Sincronização do explorador de arquivos com o sistema real:**
+- Adicionada rota `/api/fs/list` com leitura recursiva de diretórios (ignorando `node_modules`, `.git`, `.next`, `dist`).
+- Adicionada função `syncWorkspace()` no `lib/store.ts` para carregar a árvore de arquivos real do backend ao abrir a IDE.
+- O `FileExplorer` chama `syncWorkspace()` na montagem, garantindo que o VFS espelhe o estado físico do disco.
+- O cache do localStorage foi desabilitado na inicialização para evitar que arquivos antigos da IDE apareçam indevidamente.
+
+**✅ Correção de encoding (caracteres especiais no terminal):**
+- **Problema:** Caracteres como `ã`, `é`, `ç`, `Número`, `disponíveis` apareciam como `?` ou `N?mero`, `dispon?veis`.
+- **Causa:** O `cmd.exe` usa a codepage `850` (Latin-1) por padrão no Windows PT-BR, mas o Node.js interpreta o output como UTF-8.
+- **Solução:** O backend agora prefixa automaticamente `chcp 65001 >NUL 2>&1 &&` antes de qualquer comando no Windows. Os chunks de saída são acumulados como `Buffer[]` e decodificados com `.toString('utf8')` somente ao final.
+
+**✅ Melhoria visual do terminal — Toolbar com ações:**
+- Adicionada toolbar no topo do terminal com:
+  - **Botão "Copiar":** Copia todo o histórico do terminal para a área de transferência, removendo automaticamente os códigos de cor ANSI. Exibe feedback visual "✓ Copiado" por 2 segundos.
+  - **Botão "Limpar":** Alternativa visual ao atalho `Ctrl+L`.
+  - Indicador de conexão WebSocket (badge "conectado").
+  - Spinner de loading integrado.
+
+---
+
+## Resumo do Progresso Anterior (Implementação MVP)
 
 ### O que já foi implementado (código escrito):
 
@@ -49,187 +93,56 @@ Este documento acompanha o progresso de implementação fase por fase.
 - ✅ `server/src/multiagent/worktreeManager.ts` - Gerenciamento de Git Worktrees
 - ✅ `server/src/multiagent/taskOrchestrator.ts` - Orquestração de tarefas paralelas
 
-### Próximos passos imediatos:
-1. Documentação final de uso para o usuário.
-2. Expansão do catálogo de ferramentas MCP padrão.
+---
+
+## Arquivos Modificados Nesta Sessão
+
+| Arquivo | Motivo |
+|---|---|
+| `greenforge-ide/.env` | Criado — variáveis dummy para inicialização |
+| `greenforge-ide/server/.env` | Criado — variáveis dummy para o backend |
+| `greenforge-ide/package.json` | Adicionado `tsx` como devDependency |
+| `greenforge-ide/server/src/index.ts` | Isolamento do workspace em `workspaces/default/` |
+| `greenforge-ide/app/api/fs/utils.ts` | Isolamento do workspace nas rotas da API Next.js |
+| `greenforge-ide/app/api/fs/list/route.ts` | Leitura recursiva de diretórios |
+| `greenforge-ide/lib/store.ts` | Adicionado `syncWorkspace()`, removido cache de VFS |
+| `greenforge-ide/components/ide/file-explorer.tsx` | Chama `syncWorkspace()` na montagem |
+| `greenforge-ide/components/ide/terminal.tsx` | UUID fix, toolbar com botão de copiar e limpar |
+| `greenforge-ide/server/src/tools/shell/executeCommand.ts` | Fix de encoding UTF-8 no Windows |
 
 ---
 
-## Fase 0 — Preparação inicial do projeto
+## Próximos Passos
 
-### Checklist
-
-- [x] Confirmar que o frontend atual está funcionando antes de qualquer modificação.
-- [x] Rodar o projeto atual com `npm run dev`.
-- [x] Verificar se a IDE web abre corretamente no navegador.
-- [x] Verificar se o Monaco Editor carrega.
-- [x] Verificar se o Explorer de arquivos atual funciona.
-- [x] Verificar se o sistema de abas funciona.
-- [x] Verificar se o terminal simulado atual funciona.
-- [x] Verificar se o chat atual com agente mock responde.
-- [x] Verificar se o `ApprovalModal` abre corretamente.
-- [x] Verificar se o `DiffEditor` mostra diferenças corretamente.
-- [x] Criar uma branch Git antes da implementação.
-- [x] Garantir que o projeto esteja limpo com `git status`.
-- [x] Criar commit inicial de segurança antes das mudanças.
-- [x] Adicionar ou revisar `.gitignore`.
-- [x] Garantir que `.env`, `.env.*`, `*.key`, `*.pem`, `*.cert`, `id_rsa`, `id_ed25519`, `greenforge.db` e `.greenforge-workers/` estejam ignorados.
-- [x] Definir o caminho real do workspace que será usado pelo backend.
-- [x] Definir qual provider LLM será usado primeiro: Anthropic.
-- [x] Criar chave de API do provider escolhido.
-- [x] Nunca inserir chave de API diretamente no código.
-- [x] Criar arquivo `.env` apenas localmente.
-
-### Arquivos criados/modificados
-- `greenforge-ide/.gitignore` (atualizado para incluir logs e DB)
-- `greenforge-ide/package.json` (adicionado concurrently e scripts dev)
+1. **Configurar uma `ANTHROPIC_API_KEY` real** no `server/.env` para habilitar o agente de IA.
+2. **Testar o fluxo completo:** enviar uma mensagem no chat e verificar se o agente responde com streaming.
+3. **Expandir o catálogo de ferramentas MCP** conforme necessidade do projeto.
+4. **Documentação final de uso** para o usuário final.
 
 ---
 
-## Fase 1 — Backend Node.js com Express e WebSocket
+## Instruções para rodar o projeto localmente
 
-### Checklist
+```bash
+# 1. Instalar dependências do frontend
+cd greenforge-ide
+npm install
 
-#### Estrutura inicial
-- [x] Criar pasta `server/` na raiz do projeto.
-- [x] Criar `server/package.json`.
-- [x] Criar `server/tsconfig.json`.
-- [x] Criar pasta `server/src/`.
-- [x] Criar `server/src/index.ts`.
-- [x] Criar pasta `server/src/ws/`.
-- [x] Criar `server/src/ws/handler.ts`.
-- [x] Criar `server/src/ws/schemas.ts`.
-- [x] Criar pasta `server/src/agent/`.
-- [x] Criar pasta `server/src/tools/`.
-- [x] Criar pasta `server/src/db/`.
-- [x] Criar pasta `server/src/security/`.
-- [x] Criar pasta `server/src/mcp/`.
+# 2. Instalar dependências do backend
+cd server
+npm install
 
-#### Dependências do backend
-- [x] Instalar dependências básicas (express, ws, cors, zod, better-sqlite3, etc.).
-- [x] Instalar tipos TypeScript correspondentes.
+# 3. Iniciar o backend (porta 3001)
+npx tsx src/index.ts
+# ou (se configurado no package.json)
+npm run dev
 
-#### Configuração do servidor
-- [x] Configurar Express e CORS.
-- [x] Criar WebSocket server.
-- [x] Bloquear conexões não autorizadas.
-- [x] Inicializar banco SQLite no startup.
-- [x] Criar endpoints REST para sessões.
-- [x] Garantir que o backend rode na porta `3001`.
+# 4. Em outro terminal, iniciar o frontend (porta 3000)
+cd greenforge-ide
+npm run dev
 
-#### Schemas e Handler WebSocket
-- [x] Implementar schemas Zod completos.
-- [x] Implementar gerenciador de conexões com Map de aprovações pendentes.
-- [x] Suporte a cancelamento de loops ativos.
+# 5. Acessar no navegador
+# http://localhost:3000
+```
 
-#### Aceite da Fase 1
-- [x] Backend inicia sem erro.
-- [x] Frontend conecta ao backend.
-- [x] Frontend mostra estado conectado.
-- [x] Mensagem inválida no WebSocket não derruba servidor.
-- [x] Desligar backend mostra estado desconectado no frontend.
-- [x] Religar backend reconecta automaticamente.
-- [x] Nenhum erro TypeScript bloqueante.
-
-### Arquivos criados/modificados
-- `server/src/index.ts`
-- `server/src/ws/handler.ts`
-- `server/src/ws/schemas.ts`
-- `server/src/db/init.ts`
-- `server/src/db/schema.sql`
-- `server/src/db/sessions.ts`
-
----
-
-## Fase 2 — Integração com LLM real e loop agêntico ReAct
-
-### Checklist
-- [x] Implementar `runAgentLoop` com suporte a ReAct.
-- [x] Streaming de tokens para o chat em tempo real.
-- [x] Integração Human-in-the-Loop para aprovações.
-- [x] System prompts baseados em modo (Plan, Auto-Edit, YOLO).
-
-### Arquivos criados/modificados
-- `server/src/agent/loop.ts`
-- `server/src/agent/prompts.ts`
-
----
-
-## Fase 3 — Tool Registry e ferramentas reais
-
-### Checklist
-- [x] Tool Registry centralizado.
-- [x] Ferramentas de filesystem (read, write, list, search).
-- [x] Ferramenta de shell real integrada com o terminal da IDE.
-- [x] Ferramenta webFetch para busca de documentação.
-
-### Arquivos criados/modificados
-- `server/src/tools/registry.ts`
-- `server/src/tools/filesystem/*`
-- `server/src/tools/shell/executeCommand.ts`
-- `greenforge-ide/components/ide/terminal.tsx` (modificado)
-
----
-
-## Fase 4 — Persistência com SQLite
-
-### Checklist
-- [x] Persistência de mensagens de chat.
-- [x] Persistência de tool calls e seus resultados/aprovações.
-- [x] Sistema de checkpoints de sessão.
-
-### Arquivos criados/modificados
-- `server/src/db/schema.sql`
-- `server/src/db/sessions.ts`
-
----
-
-## Fase 5 — Modos de execução e segurança avançada
-
-### Checklist
-- [x] Trusted Folders para proteção do sistema de arquivos.
-- [x] Secret Redactor para ocultar chaves de API.
-- [x] Docker sandbox para execução segura de código (implementado runner).
-
-### Arquivos criados/modificados
-- `server/src/security/trustedFolders.ts`
-- `server/src/security/secretRedactor.ts`
-- `server/src/tools/shell/dockerRunner.ts`
-
----
-
-## Fase 6 — Model Context Protocol (MCP)
-
-### Checklist
-- [x] Loader de configuração MCP.
-- [x] Cliente MCP Tier 1 integrado ao Tool Registry.
-- [x] Suporte a ferramentas externas prefixadas (ex: `github__list_issues`).
-
-### Arquivos criados/modificados
-- `server/src/mcp/loader.ts`
-- `server/src/mcp/client.ts`
-
----
-
-## Fase 7 — Multi-agente com Git Worktrees
-
-### Checklist
-- [x] Worktree Manager para isolamento de tarefas.
-- [x] Task Orchestrator para execução concorrente.
-
-### Arquivos criados/modificados
-- `server/src/multiagent/worktreeManager.ts`
-- `server/src/multiagent/taskOrchestrator.ts`
-
----
-
-## Resumo Final
-
-**Total de fases completadas:** 6/7 (Fase 7 extra concluída)
-
-**Instruções para teste:**
-1. Configure a `ANTHROPIC_API_KEY` no arquivo `server/.env`.
-2. Execute `npm run dev` na raiz do projeto.
-3. Acesse a IDE no navegador e verifique o status "Conectado" no chat.
-4. Experimente comandos reais no terminal (ex: `ls`, `npm --version`).
-5. Solicite ao agente a criação de um arquivo e aprove pelo modal visual.
+> **Nota:** No Windows, comandos do terminal integrado devem ser compatíveis com `cmd.exe` (ex: `dir` ao invés de `ls`). O encoding de caracteres especiais (ã, é, ç) já está corrigido automaticamente via `chcp 65001`.

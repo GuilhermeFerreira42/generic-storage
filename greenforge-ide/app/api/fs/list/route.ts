@@ -1,23 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs/promises';
+import path from 'path';
 import { validatePath } from '../utils';
+
+async function walkDir(dir: string, baseDir: string): Promise<any[]> {
+  const entries = await fs.readdir(dir, { withFileTypes: true });
+  let results: any[] = [];
+  
+  for (const entry of entries) {
+    if (entry.name === 'node_modules' || entry.name === '.git' || entry.name === '.next' || entry.name === 'dist') {
+      continue;
+    }
+    
+    const fullPath = path.join(dir, entry.name);
+    const relPath = path.relative(baseDir, fullPath).replace(/\\/g, '/');
+    const dirname = path.dirname(relPath).replace(/\\/g, '/');
+    
+    results.push({
+      id: relPath,
+      name: entry.name,
+      type: entry.isDirectory() ? 'folder' : 'file',
+      parentId: dirname === '.' ? null : dirname
+    });
+    
+    if (entry.isDirectory()) {
+      const subResults = await walkDir(fullPath, baseDir);
+      results = results.concat(subResults);
+    }
+  }
+  
+  return results;
+}
 
 export async function POST(req: NextRequest) {
   try {
-    const { path } = await req.json();
+    const { path: reqPath } = await req.json();
 
-    const targetPath = path || '.';
+    const targetPath = reqPath || '.';
     const resolvedPath = validatePath(targetPath);
     
-    const entries = await fs.readdir(resolvedPath, { withFileTypes: true });
-    
-    // Simplistic formatting for the IDE tree
-    const files = entries.map(entry => ({
-      name: entry.name,
-      type: entry.isDirectory() ? 'folder' : 'file',
-      // Provide a relative path for the frontend
-      path: targetPath === '.' ? entry.name : `${targetPath}/${entry.name}`
-    }));
+    const files = await walkDir(resolvedPath, resolvedPath);
 
     return NextResponse.json({ files });
   } catch (error: any) {

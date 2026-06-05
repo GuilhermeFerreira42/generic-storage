@@ -114,6 +114,7 @@ interface IDEStore {
   deleteFile: (id: string) => void
   renameFile: (id: string, newName: string) => void
   getFilesTree: () => FileNode[]
+  syncWorkspace: () => Promise<void>
 
   sidebarWidth: number
   bottomPanelHeight: number
@@ -173,16 +174,7 @@ interface IDEStore {
 }
 
 function getStoredFiles(): FileNode[] {
-  if (typeof window === 'undefined') return []
-  const stored = localStorage.getItem('greenforge_vfs')
-  if (stored) {
-    try {
-      return JSON.parse(stored)
-    } catch (e) {
-      console.error('Failed to parse greenforge_vfs', e)
-    }
-  }
-  return []
+  return [] // Starts empty to prevent cache showing IDE source code
 }
 
 function getStoredGitFiles(): GitFile[] {
@@ -389,6 +381,32 @@ export const useIDEStore = create<IDEStore>((set, get) => ({
   
   getFilesTree: () => {
     return buildTree(get().files)
+  },
+
+  syncWorkspace: async () => {
+    try {
+      const res = await fetch('/api/fs/list', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: '.' })
+      });
+      if (res.ok) {
+        const { files } = await res.json();
+        const mappedFiles = files.map((f: any) => ({
+          ...f,
+          language: f.type === 'file' ? getLanguageFromFilename(f.name) : undefined,
+          isOpen: f.type === 'folder' ? false : undefined,
+          createdAt: Date.now(),
+          content: ''
+        }));
+        set({ files: mappedFiles });
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('greenforge_vfs', JSON.stringify(mappedFiles));
+        }
+      }
+    } catch (err) {
+      console.error('Failed to sync workspace:', err);
+    }
   },
 
   addTab: (tab) => {
