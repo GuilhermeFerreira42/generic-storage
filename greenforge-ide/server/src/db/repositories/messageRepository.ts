@@ -77,7 +77,7 @@ export class MessageRepository {
     const db = getDB();
     const stmt = db.prepare('DELETE FROM messages WHERE session_id = ?');
     const result = stmt.run(sessionId);
-    return result.changes || 0;
+    return Number(result.changes || 0);
   }
 
   /**

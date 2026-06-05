@@ -9,9 +9,8 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.100.1",
+    "@google/genai": "latest",
     "@modelcontextprotocol/sdk": "^1.0.0",
-    "better-sqlite3": "^9.2.2",
     "cors": "^2.8.5",
     "diff": "^5.1.0",
     "dockerode": "^4.0.12",
@@ -22,7 +21,6 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.8",
     "@types/cors": "^2.8.17",
     "@types/diff": "^5.0.8",
     "@types/dockerode": "^3.3.47",

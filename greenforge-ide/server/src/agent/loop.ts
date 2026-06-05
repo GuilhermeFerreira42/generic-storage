@@ -1,6 +1,4 @@
-// server/src/agent/loop.ts
-import Anthropic from '@anthropic-ai/sdk';
-import type { MessageParam, ToolUseBlock } from '@anthropic-ai/sdk/resources/index.js';
+import { GoogleGenAI } from '@google/genai';
 import { randomUUID } from 'crypto';
 import type { ToolRegistry } from '../tools/registry.js';
 import { SessionStore } from '../db/sessions.js';
@@ -33,57 +31,58 @@ export async function runAgentLoop(params: AgentLoopParams): Promise<void> {
     onEvent,
   } = params;
 
-  const client = new Anthropic({
-    apiKey: process.env.ANTHROPIC_API_KEY,
-  });
+  let apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  const ai = new GoogleGenAI({ apiKey });
 
   const redactor = new SecretRedactor();
   const session = SessionStore.getOrCreate(sessionId, workspacePath);
 
-  // Adiciona a mensagem do usuário ao histórico
+  // Adiciona a mensagem do usuário ao histórico (converte pra formato Gemini)
   const safeUserMessage = redactor.redact(userMessage);
-  session.messages.push({ role: 'user', content: safeUserMessage });
+  // Remove messages in authropic format in case they exist from the db, though we handle session differently now
+  // We should just map it directly.
+  const isAnthropic = session.messages.length > 0 && !(session.messages[0] as any).parts;
+  if (isAnthropic) {
+     session.messages = [];
+  }
+
+  session.messages.push({ role: 'user', parts: [{ text: safeUserMessage }] } as any);
 
   let iterations = 0;
 
+  const tools = toolRegistry.getGeminiToolDefinitions();
+  
   while (iterations < MAX_ITERATIONS) {
-    // Verifica cancelamento antes de cada iteração
-    if (signal.aborted) {
-      throw new Error('AbortError');
-    }
-
+    if (signal.aborted) throw new Error('AbortError');
     iterations++;
-
-    // Streaming de tokens para o frontend
+    
     let accumulatedText = '';
-
-    const stream = client.messages.stream({
-      model: 'claude-3-5-sonnet-20241022', // Updated to a valid stable model version
-      max_tokens: 8096,
-      system: buildSystemPrompt(mode, workspacePath),
-      messages: session.messages as MessageParam[],
-      tools: toolRegistry.getAnthropicToolDefinitions(),
+    
+    const responseStream = await ai.models.generateContentStream({
+      model: 'gemini-2.5-flash',
+      contents: session.messages as any,
+      config: {
+        systemInstruction: buildSystemPrompt(mode, workspacePath),
+        tools: tools && tools.length > 0 ? [{ functionDeclarations: tools }] : undefined
+      }
     });
 
-    // Envia cada token individualmente para aparecer em tempo real no chat
-    for await (const event of stream) {
+    let functionCalls: any[] = [];
+    
+    for await (const chunk of responseStream) {
       if (signal.aborted) throw new Error('AbortError');
-
-      if (
-        event.type === 'content_block_delta' &&
-        event.delta.type === 'text_delta'
-      ) {
-        accumulatedText += event.delta.text;
+      if (chunk.text) {
+        accumulatedText += chunk.text;
         onEvent({
           type: 'agent_token',
-          token: event.delta.text,
+          token: chunk.text,
           sessionId,
         });
       }
+      if (chunk.functionCalls) {
+        functionCalls.push(...chunk.functionCalls);
+      }
     }
-
-    // Obtém a resposta final completa com os tool_use blocks
-    const finalMessage = await stream.finalMessage();
 
     if (accumulatedText) {
       onEvent({
@@ -93,13 +92,8 @@ export async function runAgentLoop(params: AgentLoopParams): Promise<void> {
       });
     }
 
-    const toolUseBlocks = finalMessage.content.filter(
-      (b): b is ToolUseBlock => b.type === 'tool_use'
-    );
-
-    // Se não tem tool calls ou o modelo sinalizou fim, encerra
-    if (toolUseBlocks.length === 0 || finalMessage.stop_reason === 'end_turn') {
-      session.messages.push({ role: 'assistant', content: finalMessage.content });
+    if (functionCalls.length === 0) {
+      session.messages.push({ role: 'model', parts: [{ text: accumulatedText || '' }] } as any);
       SessionStore.save(session);
       onEvent({
         type: 'agent_done',
@@ -109,42 +103,39 @@ export async function runAgentLoop(params: AgentLoopParams): Promise<void> {
       return;
     }
 
-    const toolResults: Array<{
-      type: 'tool_result';
-      tool_use_id: string;
-      content: string;
-    }> = [];
+    session.messages.push({ role: 'model', parts: functionCalls.map(c => ({ functionCall: c })) } as any);
+    
+    const toolResults: any[] = [];
 
-    for (const toolCall of toolUseBlocks) {
+    for (const toolCall of functionCalls) {
       if (signal.aborted) throw new Error('AbortError');
 
       const actionId = randomUUID();
-      const tool = toolRegistry.getTool(toolCall.name);
+      const toolName = toolCall.name;
+      const tool = toolRegistry.getTool(toolName);
 
       if (!tool) {
         toolResults.push({
-          type: 'tool_result',
-          tool_use_id: toolCall.id,
-          content: `Ferramenta "${toolCall.name}" não encontrada no registry.`,
+          functionResponse: {
+            name: toolName,
+            response: { error: `Ferramenta "${toolName}" não encontrada no registry.` }
+          }
         });
         continue;
       }
 
-      const input = toolCall.input as Record<string, unknown>;
+      const input = toolCall.args || {};
 
-      // Determina se precisa de aprovação
-      const requiresApproval =
-        mode === 'plan' ||
-        (mode === 'auto_edit' && tool.isDestructive);
+      const requiresApproval = mode === 'plan' || (mode === 'auto_edit' && tool.isDestructive);
 
       if (requiresApproval) {
-        const description = tool.describeAction(input);
-        const diff = tool.previewDiff?.(input);
+        const description = tool.describeAction(input as any);
+        const diff = tool.previewDiff?.(input as any);
 
         onEvent({
           type: 'approval_required',
           actionId,
-          toolName: toolCall.name,
+          toolName: toolName,
           description,
           diff,
           sessionId,
@@ -153,33 +144,32 @@ export async function runAgentLoop(params: AgentLoopParams): Promise<void> {
         const approved = await waitForApproval(pendingApprovals, actionId, signal);
 
         if (!approved) {
-          toolResults.push({
-            type: 'tool_result',
-            tool_use_id: toolCall.id,
-            content: 'Ação rejeitada pelo usuário. Tente uma abordagem diferente.',
+           toolResults.push({
+            functionResponse: {
+              name: toolName,
+              response: { error: 'Ação rejeitada pelo usuário. Tente uma abordagem diferente.' }
+            }
           });
           continue;
         }
       } else {
-        // Mesmo sem aprovação, avisa o frontend que a ferramenta está rodando
         onEvent({
           type: 'tool_call',
           actionId,
-          toolName: toolCall.name,
+          toolName: toolName,
           args: input,
           sessionId,
         });
       }
 
-      // Executa a ferramenta
       let result: string;
       let isError = false;
 
       try {
-        result = await tool.execute(input);
+        result = await tool.execute(input as any);
         result = redactor.redact(result);
       } catch (err) {
-        result = `Erro ao executar ${toolCall.name}: ${(err as Error).message}`;
+        result = `Erro ao executar ${toolName}: ${(err as Error).message}`;
         isError = true;
       }
 
@@ -192,24 +182,22 @@ export async function runAgentLoop(params: AgentLoopParams): Promise<void> {
       });
 
       toolResults.push({
-        type: 'tool_result',
-        tool_use_id: toolCall.id,
-        content: result,
+        functionResponse: {
+          name: toolName,
+          response: { result }
+        }
       });
 
-      // Persiste o tool call no banco
       SessionStore.saveToolCall(sessionId, {
         id: actionId,
-        toolName: toolCall.name,
-        input,
+        toolName: toolName,
+        input: input as any,
         result,
         approved: requiresApproval ? true : null,
       });
     }
 
-    // Adiciona assistant message e tool results ao histórico antes da próxima iteração
-    session.messages.push({ role: 'assistant', content: finalMessage.content });
-    session.messages.push({ role: 'user', content: toolResults as any });
+    session.messages.push({ role: 'user', parts: toolResults } as any);
   }
 
   onEvent({
@@ -219,14 +207,12 @@ export async function runAgentLoop(params: AgentLoopParams): Promise<void> {
   });
 }
 
-// Promise que bloqueia até o usuário aprovar ou rejeitar
 function waitForApproval(
   pendingApprovals: Map<string, { resolve: (approved: boolean) => void }>,
   actionId: string,
   signal: AbortSignal,
 ): Promise<boolean> {
   return new Promise<boolean>((resolve, reject) => {
-    // Se o loop for cancelado enquanto espera, rejeita
     signal.addEventListener('abort', () => reject(new Error('AbortError')), { once: true });
     pendingApprovals.set(actionId, { resolve });
   });

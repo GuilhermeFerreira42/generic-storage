@@ -2,14 +2,14 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useAgentStore } from '../store/agentStore'; // adjusted path based on project structure
 
-const WS_URL = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_WS_URL)
-  ? process.env.NEXT_PUBLIC_WS_URL
-  : 'ws://localhost:3001';
+const WS_URL = typeof window !== 'undefined'
+  ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`
+  : 'ws://localhost:3000/ws';
 const RECONNECT_DELAY_MS = 3000;
 
 export function useAgentSocket() {
   const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimer = useRef<ReturnType<typeof setTimeout>>();
+  const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { isConnected, setConnected, addToken, finalizeMessage, setApprovalRequired, addToolEvent, sessionId } = useAgentStore();
 
   const connect = useCallback(() => {
@@ -48,13 +48,13 @@ export function useAgentSocket() {
           finalizeMessage(msg.fullText as string, msg.sessionId as string);
           break;
         case 'tool_call':
-          addToolEvent({ type: 'call', ...msg });
+          addToolEvent({ type: 'call', ...msg } as any);
           break;
         case 'approval_required':
-          setApprovalRequired(msg);
+          setApprovalRequired(msg as any);
           break;
         case 'tool_result':
-          addToolEvent({ type: 'result', ...msg });
+          addToolEvent({ type: 'result', ...msg } as any);
           break;
         case 'agent_done':
           finalizeMessage(msg.summary as string, msg.sessionId as string);
@@ -73,7 +73,7 @@ export function useAgentSocket() {
   useEffect(() => {
     connect();
     return () => {
-      clearTimeout(reconnectTimer.current);
+      if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
       wsRef.current?.close();
     };
   }, [connect]);

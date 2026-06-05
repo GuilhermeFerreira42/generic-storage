@@ -3,7 +3,6 @@ import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { IDELayout } from '../ide-layout';
 import { setupTestDatabase, teardownTestDatabase } from '@/lib/test-db';
-import type { Database } from 'better-sqlite3';
 
 // 2. Mocks: Use `vi.mock` estritamente local dentro do escopo do arquivo.
 vi.mock('@/lib/store', () => {
@@ -29,6 +28,7 @@ vi.mock('@/lib/store', () => {
         setActiveBottomPanel: vi.fn(),
         updateTabContent: vi.fn(),
         files: [],
+        getFilesTree: vi.fn().mockReturnValue([]),
         messages: [],
         debateSession: null,
         terminalHistory: []
@@ -39,7 +39,7 @@ vi.mock('@/lib/store', () => {
 });
 
 describe('IDE Layout [GF-TEST-001]', () => {
-  let db: Database;
+  let db: any;
 
   beforeEach(() => {
     // 1. Isolamento de Banco de Dados: SQLite efêmero com VITEST_WORKER_ID
