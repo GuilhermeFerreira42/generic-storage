@@ -89,6 +89,16 @@ export function handleWSConnection(ws: WebSocket): void {
         activeLoops.set(msg.sessionId, controller);
 
         const toolRegistry = buildToolRegistry(msg.workspacePath);
+        const session = SessionStore.getOrCreate(msg.sessionId, msg.workspacePath);
+
+        // Se a sessão já tem mensagens, envia o histórico para o frontend
+        if (session?.messages && session.messages.length > 0) {
+          send({
+            type: 'session_history',
+            messages: session.messages,
+            sessionId: msg.sessionId
+          });
+        }
 
         // Roda o loop em background sem bloquear o handler
         runAgentLoop({

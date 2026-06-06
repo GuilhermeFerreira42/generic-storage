@@ -95,6 +95,17 @@ export const OutgoingMessage = z.discriminatedUnion('type', [
     message: z.string(),
     sessionId: z.string().optional(),
   }),
+  z.object({
+    type: z.literal('agent_event'),
+    event: z.string(),
+    data: z.any(),
+    sessionId: z.string(),
+  }),
+  z.object({
+    type: z.literal('session_history'),
+    messages: z.array(z.any()),
+    sessionId: z.string(),
+  }),
 ]);
 
 export type IncomingMessageType = z.infer<typeof IncomingMessage>;

@@ -1,3 +1,4 @@
+/* @vitest-environment jsdom */
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -23,15 +24,21 @@ vi.mock('@/lib/store', () => {
         setSidebarWidth: vi.fn(),
         setBottomPanelHeight: vi.fn(),
         setRightPanelWidth: vi.fn(),
+        toggleSidebar: vi.fn(),
         toggleBottomPanel: vi.fn(),
+        toggleRightPanel: vi.fn(),
         setActiveSidebarPanel: vi.fn(),
         setActiveBottomPanel: vi.fn(),
         updateTabContent: vi.fn(),
+        toggleTheme: vi.fn(),
         files: [],
+        setFiles: vi.fn(),
         getFilesTree: vi.fn().mockReturnValue([]),
         messages: [],
         debateSession: null,
-        terminalHistory: []
+        terminalHistory: [],
+        clearTerminal: vi.fn(),
+        syncWorkspace: vi.fn()
       };
       return selector ? selector(state) : state;
     }),
