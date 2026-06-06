@@ -237,6 +237,7 @@ export function FileExplorer() {
     syncWorkspace()
   }, [syncWorkspace])
 
+  const [isCreating, setIsCreating] = useState(false)
   const [newFileParent, setNewFileParent] = useState<string | null>(null)
   const [newFileType, setNewFileType] = useState<'file' | 'folder'>('file')
   const [newFileName, setNewFileName] = useState('')
@@ -262,12 +263,13 @@ export function FileExplorer() {
     setNewFileParent(parentId)
     setNewFileType(type)
     setNewFileName('')
+    setIsCreating(true)
   }
 
   const handleCreateFile = () => {
     if (newFileName.trim()) {
       addFile(newFileParent, newFileName.trim(), newFileType)
-      setNewFileParent(null)
+      setIsCreating(false)
       setNewFileName('')
     }
   }
@@ -277,7 +279,7 @@ export function FileExplorer() {
   }
 
   const handleCancelCreate = () => {
-    setNewFileParent(null)
+    setIsCreating(false)
     setNewFileName('')
   }
 
@@ -313,7 +315,7 @@ export function FileExplorer() {
         </div>
       </div>
 
-      {newFileParent !== null && (
+      {isCreating && (
         <div id="new-node-input-box" className="px-3 py-2 border-b border-border bg-muted/20">
           <input
             id="new-node-name-input"

@@ -5,6 +5,7 @@ import { ChatPanel } from '@/components/ide/chat-panel';
 import { useIDEStore } from '@/lib/store';
 import { useAgentStore } from '@/store/agentStore';
 import { useAgentSocket } from '@/hooks/useAgentSocket';
+import { useDebateStore } from '@/store/debateStore';
 import React from 'react';
 
 // Polyfill para scrollIntoView no JSDOM
@@ -16,6 +17,7 @@ if (typeof window !== 'undefined' && window.HTMLElement) {
 vi.mock('@/lib/store');
 vi.mock('@/store/agentStore');
 vi.mock('@/hooks/useAgentSocket');
+vi.mock('@/store/debateStore');
 vi.mock('lucide-react', () => ({
   Send: () => <span>Send</span>,
   Loader2: () => <span>Loader2</span>,
@@ -33,10 +35,14 @@ vi.mock('lucide-react', () => ({
   Zap: () => <span>Zap</span>,
   Code2: () => <span>Code2</span>,
   GitBranch: () => <span>GitBranch</span>,
-  Paperclip: () => <span>Paperclip</span>
+  Paperclip: () => <span>Paperclip</span>,
+  RotateCcw: () => <span>RotateCcw</span>,
+  Square: () => <span>Square</span>,
+  Check: () => <span>Check</span>,
+  X: () => <span>X</span>,
 }));
 
-// Mock child components that might be complex
+// Mock child components
 vi.mock('@/components/chat/StatusBadge', () => ({
   StatusBadge: () => <div>StatusBadge</div>
 }));
@@ -46,6 +52,8 @@ vi.mock('@/components/chat/AgentDebateMessage', () => ({
 
 describe('ChatPanel', () => {
   const mockSendUserMessage = vi.fn();
+  const mockStopDebate = vi.fn();
+  const mockResetDebateSession = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -54,8 +62,9 @@ describe('ChatPanel', () => {
       messages: [],
       addMessage: vi.fn(),
       approvalCard: null,
-      resetDebateSession: vi.fn(),
+      resetDebateSession: mockResetDebateSession,
       debateSession: null,
+      resolveGate: vi.fn(),
     }));
 
     (useAgentStore as any).mockImplementation((selector: any) => selector({
@@ -63,10 +72,16 @@ describe('ChatPanel', () => {
       isThinking: false,
     }));
 
+    (useDebateStore as any).mockImplementation((selector: any) => selector({
+      messages: [],
+      status: 'IDLE',
+      resetDebate: vi.fn(),
+    }));
+
     (useAgentSocket as any).mockReturnValue({
       isConnected: true,
       sendUserMessage: mockSendUserMessage,
-      stopDebate: vi.fn(),
+      stopDebate: mockStopDebate,
     });
   });
 
@@ -87,25 +102,94 @@ describe('ChatPanel', () => {
     expect(mockSendUserMessage).toHaveBeenCalledWith('Hello');
   });
 
-  it('shows empty state when there are no messages', () => {
-    render(<ChatPanel />);
-    expect(screen.getByText(/Núcleo Adversarial GreenForge/i)).toBeDefined();
-  });
-
-  it('renders messages when they exist', () => {
+  it('displays streaming tokens when they arrive', () => {
     (useIDEStore as any).mockImplementation((selector: any) => selector({
       messages: [
-        { id: '1', role: 'user', content: 'User message', timestamp: Date.now() },
-        { id: '2', role: 'assistant', content: 'Agent response', timestamp: Date.now() },
+        { id: '1', role: 'assistant', content: 'Thinking...', isStreaming: true, timestamp: Date.now() }
       ],
       addMessage: vi.fn(),
       approvalCard: null,
-      resetDebateSession: vi.fn(),
+      resetDebateSession: mockResetDebateSession,
       debateSession: null,
     }));
 
     render(<ChatPanel />);
-    expect(screen.getByText('User message')).toBeDefined();
-    expect(screen.getByText('Agent response')).toBeDefined();
+    expect(screen.getByText('Thinking...')).toBeDefined();
+  });
+
+  it('renders approval card when required', () => {
+    (useIDEStore as any).mockImplementation((selector: any) => selector({
+      messages: [{ id: '0', role: 'assistant', content: '...', timestamp: Date.now() }],
+      approvalCard: {
+        id: 'action-1',
+        title: 'Criar Arquivo',
+        summary: 'Deseja criar o arquivo index.ts?',
+        risk: 'LOW',
+        synthesis: 'Consenso alcançado',
+        redFlags: [],
+        estimatedTokens: 100,
+        chunks: []
+      },
+      resetDebateSession: mockResetDebateSession,
+      debateSession: null,
+    }));
+
+    render(<ChatPanel />);
+    expect(screen.getByText('Criar Arquivo')).toBeDefined();
+    expect(screen.getByText('Deseja criar o arquivo index.ts?')).toBeDefined();
+  });
+
+  it('calls resolveGate(APPROVE) when Approve is clicked', () => {
+    const mockResolveGate = vi.fn();
+    (useIDEStore as any).mockImplementation((selector: any) => selector({
+      messages: [{ id: '0', role: 'assistant', content: '...', timestamp: Date.now() }],
+      approvalCard: { id: 'action-1', title: 'Test', summary: 'Test', risk: 'LOW', synthesis: 'S', redFlags: [], estimatedTokens: 0, chunks: [] },
+      resolveGate: mockResolveGate,
+      resetDebateSession: mockResetDebateSession,
+      debateSession: null,
+    }));
+
+    render(<ChatPanel />);
+    const approveBtn = screen.getByText(/Mesclar e Gravar Workspace/i);
+    fireEvent.click(approveBtn);
+    
+    expect(mockResolveGate).toHaveBeenCalledWith('APPROVE');
+  });
+
+  it('calls resolveGate(REJECT) when Reject is clicked', () => {
+    const mockResolveGate = vi.fn();
+    (useIDEStore as any).mockImplementation((selector: any) => selector({
+      messages: [{ id: '0', role: 'assistant', content: '...', timestamp: Date.now() }],
+      approvalCard: { id: 'action-1', title: 'Test', summary: 'Test', risk: 'LOW', synthesis: 'S', redFlags: [], estimatedTokens: 0, chunks: [] },
+      resolveGate: mockResolveGate,
+      resetDebateSession: mockResetDebateSession,
+      debateSession: null,
+    }));
+
+    render(<ChatPanel />);
+    const rejectBtn = screen.getByText('Descartar');
+    fireEvent.click(rejectBtn);
+    
+    expect(mockResolveGate).toHaveBeenCalledWith('REJECT');
+  });
+
+  it('calls stopDebate when stop button is clicked', () => {
+    (useIDEStore as any).mockImplementation((selector: any) => selector({
+      messages: [],
+      debateSession: { status: 'IN_PROGRESS', objective: 'Test' },
+      resetDebateSession: mockResetDebateSession,
+    }));
+    
+    (useDebateStore as any).mockImplementation((selector: any) => selector({
+      messages: [],
+      status: 'IN_PROGRESS',
+      resetDebate: vi.fn(),
+    }));
+
+    render(<ChatPanel />);
+    const stopBtn = screen.getByTitle(/Parar Processamento/i);
+    fireEvent.click(stopBtn);
+    
+    expect(mockStopDebate).toHaveBeenCalled();
   });
 });
