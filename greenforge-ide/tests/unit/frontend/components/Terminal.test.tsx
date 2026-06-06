@@ -45,7 +45,7 @@ describe('Terminal', () => {
   it('calls clearTerminal when clear button is clicked', () => {
     const clearTerminal = vi.fn();
     (useIDEStore as any).mockImplementation((selector: any) => selector({
-      terminalHistory: [],
+      terminalHistory: ['some command'],
       clearTerminal
     }));
 

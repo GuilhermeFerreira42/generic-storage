@@ -12,7 +12,7 @@ vi.mock('@/server/src/tools/registry', () => ({
 vi.mock('@/server/src/tools/shell/executeCommand');
 vi.mock('@/server/src/db/sessions', () => ({
   SessionStore: {
-    getOrCreate: vi.fn(),
+    getOrCreate: vi.fn().mockReturnValue({ messages: [] }),
     save: vi.fn(),
     updateMode: vi.fn(),
     createCheckpoint: vi.fn(),

@@ -45,16 +45,16 @@ describe('Session History Lacuna', () => {
     handleWSConnection(ws as any);
 
     const msg = {
-      type: 'chat_message', // Ou um novo tipo 'resume_session'
+      type: 'chat_message',
       sessionId: '550e8400-e29b-41d4-a716-446655440000',
       content: 'Hello again',
-      workspacePath: '/workspace'
+      workspacePath: '/workspace',
+      auth_token: 'valid-token'
     };
 
     ws.emit('message', Buffer.from(JSON.stringify(msg)));
 
-    // ATUALMENTE FALHA: O backend inicia o loop mas não envia o histórico existente para o frontend.
-    // O frontend "esquece" as mensagens anteriores ao recarregar a página.
+    // VERIFICADO: O backend agora envia o histórico existente para o frontend.
     await vi.waitFor(() => {
       expect(ws.send).toHaveBeenCalledWith(expect.stringContaining('session_history'));
     });
