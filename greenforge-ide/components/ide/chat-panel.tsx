@@ -388,7 +388,7 @@ export function ChatPanel() {
       {debateSession && <DebateStatus />}
 
       <div className="flex-1 overflow-y-auto space-y-4 px-3 py-2 scrollbar-thin">
-        {messages.length === 0 && debateMessages.length === 0 ? (
+        {messages.length === 0 && debateMessages.length === 0 && !approvalCard ? (
           <div className="h-full flex flex-col items-center justify-center text-muted-foreground p-6 select-none text-center">
             <Bot className="h-10 w-10 mb-3 text-primary/40 animate-bounce" />
             <p className="text-sm mb-1 font-medium text-foreground/80">

@@ -250,7 +250,7 @@ function generateId(): string {
   return Math.random().toString(36).substring(2, 11)
 }
 
-function getLanguageFromFilename(filename: string): string {
+export function getLanguageFromFilename(filename: string): string {
   const ext = filename.split('.').pop()?.toLowerCase()
   const langMap: Record<string, string> = {
     'ts': 'typescript',

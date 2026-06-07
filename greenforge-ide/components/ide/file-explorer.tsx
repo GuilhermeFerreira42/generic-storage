@@ -16,7 +16,7 @@ import {
   Braces,
   Download
 } from 'lucide-react'
-import { useIDEStore, FileNode, TabItem } from '@/lib/store'
+import { useIDEStore, FileNode, TabItem, getLanguageFromFilename } from '@/lib/store'
 import { cn } from '@/lib/utils'
 
 interface FileIconProps {
@@ -250,7 +250,7 @@ export function FileExplorer() {
         id: node.id,
         name: node.name,
         content: node.content || '',
-        language: node.language || node.name.split('.').pop() || 'plaintext',
+        language: node.language || getLanguageFromFilename(node.name),
         isDirty: false
       }
       addTab(tab)

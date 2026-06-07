@@ -32,6 +32,9 @@ export async function runAgentLoop(params: AgentLoopParams): Promise<void> {
   } = params;
 
   let apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  if (!apiKey) {
+    throw new Error('API key must be set to use the Gemini API. Please set GEMINI_API_KEY in your environment.');
+  }
   const ai = new GoogleGenAI({ apiKey });
 
   const redactor = new SecretRedactor();

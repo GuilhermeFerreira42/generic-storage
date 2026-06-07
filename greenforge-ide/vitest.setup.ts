@@ -16,6 +16,9 @@ beforeAll(async () => {
   }
 })
 
+// Mock scrollIntoView as it's not implemented in jsdom
+window.HTMLElement.prototype.scrollIntoView = vi.fn();
+
 // Mock global para módulos nativos que podem causar problemas
 vi.stubGlobal('crypto', {
   randomUUID: () => '550e8400-e29b-41d4-a716-446655440000',
