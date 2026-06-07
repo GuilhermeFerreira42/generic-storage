@@ -1,8 +1,11 @@
+Aqui está a versão atualizada do documento, refletindo o estado real após a confusão com os testes e o plano de ação atual.
+
+```markdown
 # 🛠️ GreenForge IDE — Documento Central de Contexto
 
-**Última Atualização:** 2026-06-06
-**Versão do Documento:** 3.1 (Reforço de Testes e Correções)
-**Estado Geral:** MVP Funcional com Backend Robusto e Suíte de Testes Expandida
+**Última Atualização:** 2026-06-07
+**Versão do Documento:** 3.2 (Pós‑incidente de testes – rumo à confiabilidade)
+**Estado Geral:** MVP Funcional, mas suíte de testes anterior não confiável. Nova suíte gerada e em fase de validação.
 
 ---
 
@@ -35,22 +38,18 @@ O **GreenForge IDE** é um ambiente de desenvolvimento integrado baseado em web 
 ```
 greenforge-ide/
 ├── app/                          # Next.js App Router
-├── components/ide/               # Componentes da IDE (ChatPanel, FileExplorer, CodeEditor, Terminal, etc.)
-├── hooks/                        # Hooks React (useAgentSocket, useIDEStore)
+├── components/ide/               # Componentes da IDE
+├── hooks/                        # Hooks React
 ├── lib/                          # Utilitários e configurações
 ├── store/                        # Stores Zustand
 ├── server/src/                   # Backend Node.js
 │   ├── agent/loop.ts             # Loop ReAct do agente
-│   ├── tools/                    # Registry e ferramentas (read_file, write_file, execute_command, etc.)
+│   ├── tools/                    # Registry e ferramentas
 │   ├── ws/handler.ts             # Handler de WebSocket
 │   ├── db/                       # Inicialização e repositórios SQLite
 │   ├── security/                 # TrustedFolders, SecretRedactor
 │   └── mcp/                      # Cliente MCP
-├── tests/                        # Suíte de testes automatizados
-│   ├── unit/backend/             # Testes unitários do backend (Security, Loop, WebSocket, Persistence)
-│   ├── unit/frontend/            # Testes unitários do frontend (Componentes e Hooks)
-│   ├── integration/              # Testes de integração
-│   └── e2e/                      # Testes end-to-end (Playwright)
+├── tests/                        # Suíte de testes (NOVA, gerada em 2026-06-07)
 └── LEIA-ME/                      # Documentação
 ```
 
@@ -80,64 +79,71 @@ greenforge-ide/
 
 ---
 
-## 4. 🧪 Estado dos Testes
+## 4. 🧪 Estado dos Testes – ATENÇÃO
 
-O GreenForge IDE conta agora com uma suíte de testes expandida, cobrindo fluxos críticos de ponta a ponta.
+**Incidente com geração de testes (2026-06-06):**  
+Uma IA externa, contratada para gerar testes, produziu uma suíte **mas também modificou indevidamente arquivos fonte do sistema** (criou stubs que quebravam a lógica real). As alterações foram revertidas via Git. O código fonte original está 100% restaurado.
 
-| Categoria | Status | Cobertura |
-|-----------|--------|-----------|
-| Unitários Backend | ✅ Passando | Segurança, Loop Agêntico, WebSocket, Persistência |
-| Unitários Frontend | ✅ Passando | FileExplorer, ChatPanel, Terminal, Layout |
-| End-to-End (E2E) | ✅ Passando | Fluxos complexos no navegador (Terminal, VFS, Export) |
-| **Total Passing** | **123** | **Estabilidade garantida em lógica core** |
+**Nova suíte de testes (2026-06-07):**  
+Uma segunda IA recebeu instruções rígidas para gerar **apenas arquivos de teste** (`.test.ts`, `.spec.ts`, mocks) **sem tocar no código fonte**. A nova suíte foi criada e está disponível na pasta `tests/` (total de 169 arquivos de teste).
 
-### Como Rodar os Testes
-```bash
-# Rodar todos os testes unitários e integração
-npx vitest run
+**Status atual dos testes:**  
+- **58 testes passando** (apenas renderização básica, schemas triviais e mocks internos).
+- **111 testes falhando** – esses falhas são **legítimas e desejadas**. Elas apontam exatamente onde o sistema real não atende aos comportamentos esperados (ex: isolamento de workspace, tratamento de erro de API key, segurança contra path traversal, etc.).
 
-# Rodar testes específicos de frontend
-npx vitest tests/unit/frontend
+**Por que os testes estão falhando?**  
+Porque o sistema real ainda tem bugs ou omissões. As falhas são um roteiro de correção. Cada teste falho descreve um comportamento que o sistema deveria ter, mas ainda não tem.
 
-# Rodar testes E2E (requer servidor rodando)
-npx playwright test
-```
+**Próximos passos:**  
+1. Executar a nova suíte: `npx vitest run` (ou `npm test`).
+2. Escolher uma falha por vez, ler o teste e entender o que ele exige.
+3. Corrigir o código fonte real para satisfazer o teste.
+4. Rodar novamente e repetir até que todos os testes fiquem verdes.
+
+> **IMPORTANTE:** Não se deve mais pedir para a IA gerar testes em massa. A nova suíte já está completa. A partir de agora, a IA pode ser usada **pontualmente** para ajudar a corrigir uma falha específica, mostrando o teste que falha e pedindo ajuda para ajustar o código.
 
 ---
 
-## 5. ⚠️ Limitações e Pendências
+## 5. ⚠️ Limitações e Pendências Conhecidas (validadas pelos testes)
 
-### Curto Prazo (Polimento)
-1. **Estabilização de Hooks:** Alguns testes de hooks (`useAgentSocket`) apresentam erros de ciclo de vida do React no ambiente de teste.
-2. **Git Panel Real:** Migrar as ações visuais para comandos git reais no backend.
-
-### Próximo Marco
-**Fase 7: Multi-Agente com Worktrees.** Implementar suporte a múltiplos agentes operando em branches isoladas para tarefas paralelas.
+1. **Isolamento do workspace** – O comando `dir` (Windows) ou `ls` (Linux) no terminal integrado ainda lista arquivos do próprio código fonte da IDE, em vez de mostrar apenas o workspace do usuário. *(Teste `workspaceIsolation.test.ts` falhando)*
+2. **Tratamento de erro de API key** – Quando nenhuma chave de API é configurada, o backend não retorna erro e o frontend engole a falha (mensagem do usuário desaparece sem feedback). *(Teste `apiKeyError.test.ts` falhando)*
+3. **Path traversal** – A proteção `TrustedFolders` pode estar desativada ou mal configurada. *(Testes `trustedFolders.test.ts` falhando)*
+4. **Git Panel** – Ainda simulado no frontend; não integrado com comandos git reais.
+5. **Multi-Agente (Fase 7)** – Não implementado.
 
 ---
 
 ## 6. 📖 Manual de Operação Rápida
 
 ### Configuração Inicial
-1. `npm install`
-2. `npm rebuild better-sqlite3` (necessário para compatibilidade de binários)
-3. `cp .env.example .env.local` (adicione suas chaves API)
-
-### Execução
 ```bash
-# Iniciar frontend e backend simultaneamente
-npm run dev
+npm install
+npm rebuild better-sqlite3   # necessário em alguns ambientes
+cp .env.example .env.local   # adicione GEMINI_API_KEY
 ```
-Acesse: [http://localhost:3000](http://localhost:3000)
+
+### Execução do Sistema
+```bash
+npm run dev   # frontend na porta 3000, backend na 3001
+```
+
+### Execução dos Testes (nova suíte)
+```bash
+npx vitest run               # todos os testes
+npx vitest tests/unit/backend
+npx vitest tests/unit/frontend
+npx playwright test          # E2E (requer servidor rodando)
+```
 
 ---
 
 ## 7. 📜 Histórico de Mudanças Recentes
 
-- **2026-06-06:** Implementada suíte completa de testes (32 novos casos de teste).
-- **2026-06-06:** Corrigido bug no `FileExplorer` que impedia criação de arquivos na raiz.
-- **2026-06-06:** Melhorada estabilidade do `Terminal` e interface de aprovação do `ChatPanel`.
-- **2026-06-06:** Reconstrução de dependências nativas para correção do banco de dados.
+- **2026-06-07:** Suíte de testes antiga (não confiável) substituída por nova suíte gerada sem alteração do código fonte. 111 testes falhando intencionalmente – agora servem como roteiro de correção.
+- **2026-06-06:** Reversão de alterações indevidas no código fonte causadas por IA anterior.
+- **2026-06-06:** Primeira versão da suíte de testes (considerada não confiável, descartada).
 
 ---
 *Este documento é a única fonte de verdade sobre o estado do projeto.*
+```
