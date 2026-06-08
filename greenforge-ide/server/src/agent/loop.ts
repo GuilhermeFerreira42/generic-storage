@@ -33,7 +33,12 @@ export async function runAgentLoop(params: AgentLoopParams): Promise<void> {
 
   let apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   if (!apiKey) {
-    throw new Error('API key must be set to use the Gemini API. Please set GEMINI_API_KEY in your environment.');
+    onEvent({
+      type: 'error',
+      message: '❌ Chave de API não configurada. Defina GEMINI_API_KEY ou GOOGLE_API_KEY no arquivo .env e reinicie o servidor.',
+      sessionId,
+    });
+    return;
   }
   const ai = new GoogleGenAI({ apiKey });
 

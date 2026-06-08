@@ -1,16 +1,20 @@
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
 
 export function validatePath(requestedPath: string): string {
-  let defaultWorkspace = path.join(process.cwd(), 'workspaces', 'default');
-  if (!fs.existsSync(defaultWorkspace)) {
-    fs.mkdirSync(defaultWorkspace, { recursive: true });
-  }
+  // Fallback isolado fora da árvore do projeto: ~/.greenforge/workspace
+  const defaultWorkspace = path.join(os.homedir(), '.greenforge', 'workspace');
 
   let envWorkspace = process.env.WORKSPACE_ROOT;
   const root = (!envWorkspace || envWorkspace === '.' || envWorkspace === './')
     ? defaultWorkspace
     : envWorkspace;
+
+  // Garantir que o diretório raiz exista
+  if (!fs.existsSync(root)) {
+    fs.mkdirSync(root, { recursive: true });
+  }
   
   // Resolve the requested path against the root
   // Remove leading slash if present to avoid resolving to system root

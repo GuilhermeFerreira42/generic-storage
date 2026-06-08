@@ -107,6 +107,13 @@ export function useAgentSocket() {
           break;
         case 'error':
           console.error('[Agent] Erro:', msg.message);
+          ideStore.addMessage({
+            role: 'system',
+            content: `⚠️ ${msg.message || 'Ocorreu um erro no servidor.'}`,
+            agentName: 'Sistema',
+          });
+          // Garante que o indicador de streaming seja encerrado
+          finalizeMessage('', msg.sessionId as string);
           break;
       }
     };
