@@ -23,17 +23,17 @@ echo 0.  Sair
 echo =====================================
 set /p escolha="Escolha uma opcao: "
 
-if "%escolha%"=="1"  goto status
-if "%escolha%"=="2"  goto add
-if "%escolha%"=="3"  goto add_commit
-if "%escolha%"=="4"  goto commit
-if "%escolha%"=="5"  goto push
-if "%escolha%"=="6"  goto pull
-if "%escolha%"=="7"  goto log
-if "%escolha%"=="8"  goto link
-if "%escolha%"=="9"  goto outras_opcoes
-if "%escolha%"=="10" goto usuario_padrao
-if "%escolha%"=="0"  goto fim
+if %escolha%==1  goto status
+if %escolha%==2  goto add
+if %escolha%==3  goto add_commit
+if %escolha%==4  goto commit
+if %escolha%==5  goto push
+if %escolha%==6  goto pull
+if %escolha%==7  goto log
+if %escolha%==8  goto link
+if %escolha%==9  goto outras_opcoes
+if %escolha%==10 goto usuario_padrao
+if %escolha%==0  goto fim
 goto menu
 
 :status
@@ -142,16 +142,16 @@ echo 0. Voltar ao menu principal
 echo ========================================================
 set /p escolha_outras="Escolha uma opcao: "
 
-if "%escolha_outras%"=="1" goto restaurar
-if "%escolha_outras%"=="2" goto sincronizar
-if "%escolha_outras%"=="3" goto fetch
-if "%escolha_outras%"=="4" goto merge
-if "%escolha_outras%"=="5" goto init
-if "%escolha_outras%"=="6" goto reset
-if "%escolha_outras%"=="7" goto descartar
-if "%escolha_outras%"=="8" goto branch
-if "%escolha_outras%"=="9" goto usuario_menu
-if "%escolha_outras%"=="0" goto menu
+if %escolha_outras%==1 goto restaurar
+if %escolha_outras%==2 goto sincronizar
+if %escolha_outras%==3 goto fetch
+if %escolha_outras%==4 goto merge
+if %escolha_outras%==5 goto init
+if %escolha_outras%==6 goto reset
+if %escolha_outras%==7 goto descartar
+if %escolha_outras%==8 goto branch
+if %escolha_outras%==9 goto usuario_menu
+if %escolha_outras%==0 goto menu
 goto outras_opcoes
 
 :restaurar
@@ -216,10 +216,10 @@ echo 4. Voltar para Outras Opcoes
 echo =====================================
 set /p escolha_usuario="Escolha uma opcao: "
 
-if "%escolha_usuario%"=="1" goto login
-if "%escolha_usuario%"=="2" goto ver_usuario
-if "%escolha_usuario%"=="3" goto logout
-if "%escolha_usuario%"=="4" goto outras_opcoes
+if %escolha_usuario%==1 goto login
+if %escolha_usuario%==2 goto ver_usuario
+if %escolha_usuario%==3 goto logout
+if %escolha_usuario%==4 goto outras_opcoes
 goto usuario_menu
 
 :login
