@@ -1,0 +1,68 @@
+
+
+
+
+
+
+Você gerou um PRD usando o NEXUS Protocol, mas ele ficou raso. Agora eu quero que você aprofunde cada seção significativamente, seguindo estas instruções:
+
+REGRAS DE APROFUNDAMENTO (SEM REDUNDÂNCIA)
+
+1. ACABE COM GENERALIDADES
+Substitua frases vagas como "garantir boa performance" ou "implementar funcionalidades robustas" por métricas concretas e verificáveis.
+- Ruim: "O sistema deve ser escalável"
+- Bom: "O sistema deve suportar 10.000 requisições simultâneas com latência p95 < 200ms antes de degradar"
+
+2. ACABE COM REPETIÇÕES CRUZADAS
+Se uma informação já apareceu em uma seção, não repita em outra. Use referências internas como "(ver seção X.X)" em vez de reescrever. Exceção: apenas a matriz de rastreabilidade pode consolidar informações repetidas de forma deliberada.
+
+3. ACABE COM EXEMPLOS GENÉRICOS
+Todo exemplo (JSON, código, tabela) deve ser realista, específico do domínio do projeto, e funcional. Nada de "example.com" ou "campo1", "valor2". Use nomes, endpoints e dados que fariam sentido no mundo real.
+
+4. TORNE CADA REQUISITO EXECUTÁVEL
+Para cada RF, o critério de aceite deve ser tão específico que uma IA saberia exatamente como testar. Inclua:
+- Valores de entrada concretos
+- Comportamento esperado (qual resposta, qual código HTTP, qual dado persistido)
+- Condições de contorno (o que acontece em caso de erro)
+
+5. TORNE CADA DECISÃO JUSTIFICADA
+Para cada ADR, a "alternativa rejeitada" não pode ser superficial. Explique:
+- Por que a alternativa foi considerada (quais vantagens ela tinha)
+- O ponto exato onde ela falhou (custo, complexidade, falta de recurso)
+- Que evidência ou experiência embasou a rejeição
+
+6. TORNE CADA COMPONENTE OPERACIONAL
+Cada componente deve ter:
+- Pelo menos 3 interfaces públicas com assinaturas completas (não apenas nomes)
+- Eventos que emite e escuta (com exemplos de payload)
+- Pelo menos 2 cenários de teste com Gherkin: um feliz, um de erro
+
+7. ADICIONE CONTRADITÓRIOS E TRADE-OFFS
+Documentos rasos escondem dificuldades. Adicione explicitamente:
+- O que foi sacrificado para ganhar algo (ex: "escolhemos consistência forte em vez de escalabilidade de escrita")
+- Onde há tensão entre requisitos (ex: "baixa latência vs segurança rigorosa")
+- Decisões reversíveis e irreversíveis (explicar por que)
+
+8. ESPECIFIQUE INTEGRAÇÕES EXTERNAS ATÉ O NÍVEL DE PROTOCOLO
+Para cada API externa, adicione:
+- Endpoint exato (URL com path completo)
+- Exemplo de request curl que funcionaria (com valores reais)
+- Exemplo de response real
+- O que acontece se essa API falhar (qual código de erro, qual mensagem, o sistema retenta? faz fallback?)
+
+9. USE DIAGRAMAS PARA O QUE É COMPLEXO, NÃO PARA O QUE É ÓBVIO
+Não coloque diagrama de sequência para fluxo trivial de 3 passos. Use diagrama apenas quando:
+- Há 5+ participantes
+- Há ramificações condicionais (alt/else)
+- Há loops ou paralelismo
+
+10. VALIDE SEU PRÓPRIO TRABALHO
+Antes de entregar, faça este teste de sanidade:
+- Escolha 3 RFs aleatórios. Um engenheiro pleno conseguiria implementar cada um só com o critério de aceite? Se não, refine.
+- Escolha 2 decisões de ADR. As alternativas rejeitadas são reais ou são espantalhos? Se são espantalhos, substitua por alternativas genuínas que alguém defenderia.
+- A estrutura de arquivos corresponde ao que um projeto real teria? Se está genérica ("src/module1", "src/module2"), torne específica.
+
+ENTREGA FINAL
+Refaça o PRD completo, mantendo o mesmo formato estrutural do NEXUS Protocol (Partes 1 a 14), mas com todas as profundidades acima aplicadas. Nada de "A DEFINIR". Nada de exemplos bobos. Nada de repetições.
+
+Aplique estas regras ao projeto [NOME DO SEU PROJETO] usando as informações que já forneci anteriormente.

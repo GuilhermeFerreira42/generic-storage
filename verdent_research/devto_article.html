@@ -1,0 +1,1257 @@
+﻿ class="crayons-card crayons-article mb-4"
+          id="article-show-container"
+          data-article-id="3204353"
+          data-article-slug="parallel-ai-agents-in-isolated-worktrees-a-verdent-deep-dive-4ghi"
+          data-author-id="3628135"
+          data-author-name="Sophia"
+          data-author-username="sophialuma"
+          data-co-author-ids=""
+          data-path="/sophialuma/parallel-ai-agents-in-isolated-worktrees-a-verdent-deep-dive-4ghi"
+          data-pin-path="/stories/feed/pinned_article"
+          data-pinned-article-id=""
+          data-published="true"
+          data-scheduled="false"
+          lang=en
+           >
+          <script>
+            try {
+              if(localStorage) {
+                let currentUser = localStorage.getItem('current_user');
+
+                if (currentUser) {
+                  currentUser = JSON.parse(currentUser);
+                  if (currentUser.id === 3628135) {
+                    document.getElementById('article-show-container').classList.add('current-user-is-article-author');
+                  }
+                }
+              }
+            } catch (e) {
+              console.error(e);
+            }
+          </script>
+          <header class="crayons-article__header" id="main-title">
+
+            <div class="crayons-article__header__meta">
+              <div class="flex s:items-start flex-col s:flex-row">
+                <div id="action-space" class="crayons-article__actions mb-4 s:mb-0 s:order-last"></div>
+                <div class="flex flex-1 mb-5 items-start">
+                  <div class="relative">
+                      <a href="/sophialuma"><img class="radius-full align-middle" src="https://media2.dev.to/dynamic/image/width=50,height=50,fit=cover,gravity=auto,format=auto/https%3A%2F%2Fdev-to-uploads.s3.amazonaws.com%2Fuploads%2Fuser%2Fprofile_image%2F3628135%2F1fb005b1-abde-4f63-a74d-ab267672d38f.png" width="40" height="40" alt="Sophia" /></a>
+                  </div>
+                  <div class="pl-3 flex-1">
+                    <a href="/sophialuma" class="crayons-link fw-bold">Sophia</a>
+                    
+                    <p class="fs-xs color-base-60">
+                        Posted on <time datetime="2026-01-28T10:13:34Z" class="date-no-year">Jan 28</time>
+
+
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              
+
+              <h1 class=" fs-3xl m:fs-4xl l:fs-5xl fw-bold s:fw-heavy lh-tight mb-2 long">
+                Parallel AI Agents in Isolated Worktrees: A Verdent Deep Dive
+              </h1>
+              
+                  <div class="spec__tags flex flex-wrap">
+                      <a class="crayons-tag   " style="
+        --tag-bg: rgba(11, 226, 245, 0.10);
+        --tag-prefix: #0be2f5;
+        --tag-bg-hover: rgba(11, 226, 245, 0.10);
+        --tag-prefix-hover: #0be2f5;
+      " href="/t/agents"><span class="crayons-tag__prefix">#</span>agents</a>
+                      <a class="crayons-tag   " style="
+        --tag-bg: rgba(23, 253, 26, 0.10);
+        --tag-prefix: #17fd1a;
+        --tag-bg-hover: rgba(23, 253, 26, 0.10);
+        --tag-prefix-hover: #17fd1a;
+      " href="/t/ai"><span class="crayons-tag__prefix">#</span>ai</a>
+                      <a class="crayons-tag   " style="
+        --tag-bg: rgba(235, 223, 55, 0.10);
+        --tag-prefix: #ebdf37;
+        --tag-bg-hover: rgba(235, 223, 55, 0.10);
+        --tag-prefix-hover: #ebdf37;
+      " href="/t/architecture"><span class="crayons-tag__prefix">#</span>architecture</a>
+                      <a class="crayons-tag   " style="
+        --tag-bg: rgba(193, 216, 47, 0.10);
+        --tag-prefix: #c1d82f;
+        --tag-bg-hover: rgba(193, 216, 47, 0.10);
+        --tag-prefix-hover: #c1d82f;
+      " href="/t/tooling"><span class="crayons-tag__prefix">#</span>tooling</a>
+                  </div>
+            </div>
+          </header>
+
+          <div class="crayons-article__main ">
+            <div class="crayons-article__body text-styles spec__body" data-article-id="3204353"
+              id="article-body">
+                <p>The AI coding assistant space has converged on a standard architecture: chat interface + code completion + some form of agentic execution. Most tools differ only in implementation details and UX polish.</p>
+
+<p>Verdent AI breaks this mold with a genuinely different approach to the coordination problem. Instead of one agent executing tasks sequentially, Verdent orchestrates multiple agents working concurrently in isolated environments.</p>
+
+<p>After two weeks of production use, here's a technical breakdown of what makes this architecture interesting.</p>
+
+<h2>
+  <a name="the-core-problem-sequential-bottlenecks" href="#the-core-problem-sequential-bottlenecks">
+  </a>
+  The Core Problem: Sequential Bottlenecks
+</h2>
+
+<p>Standard AI coding workflows look like this:<br>
+</p>
+
+<div class="highlight js-code-highlight">
+<pre class="highlight plaintext"><code>User Request → Agent Planning → Code Generation → Review → Apply Changes → Next Request
+</code></pre>
+<div class="highlight__panel js-actions-panel">
+<div class="highlight__panel-action js-fullscreen-code-action">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewbox="0 0 24 24" class="highlight-action crayons-icon highlight-action--fullscreen-on"><title>Enter fullscreen mode</title>
+    <path d="M16 3h6v6h-2V5h-4V3zM2 3h6v2H4v4H2V3zm18 16v-4h2v6h-6v-2h4zM4 19h4v2H2v-6h2v4z"></path>
+</svg>
+
+    <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewbox="0 0 24 24" class="highlight-action crayons-icon highlight-action--fullscreen-off"><title>Exit fullscreen mode</title>
+    <path d="M18 7h4v2h-6V3h2v4zM8 9H2V7h4V3h2v6zm10 8v4h-2v-6h6v2h-4zM8 15v6H6v-4H2v-2h6z"></path>
+</svg>
+
+</div>
+</div>
+</div>
+
+
+
+<p>This pipeline has inherent latency at each step. More critically, it prevents parallel exploration of solution spaces. If you're refactoring a component while simultaneously updating tests and documentation, you're forced to serialize these operations even though they're logically independent.</p>
+
+<p>The typical workaround is cramming multiple objectives into a single prompt:<br>
+</p>
+
+<div class="highlight js-code-highlight">
+<pre class="highlight plaintext"><code>"Refactor UserProfile component for better performance 
+AND update tests 
+AND generate documentation 
+AND fix that TypeScript error in the header"
+</code></pre>
+<div class="highlight__panel js-actions-panel">
+<div class="highlight__panel-action js-fullscreen-code-action">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewbox="0 0 24 24" class="highlight-action crayons-icon highlight-action--fullscreen-on"><title>Enter fullscreen mode</title>
+    <path d="M16 3h6v6h-2V5h-4V3zM2 3h6v2H4v4H2V3zm18 16v-4h2v6h-6v-2h4zM4 19h4v2H2v-6h2v4z"></path>
+</svg>
+
+    <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewbox="0 0 24 24" class="highlight-action crayons-icon highlight-action--fullscreen-off"><title>Exit fullscreen mode</title>
+    <path d="M18 7h4v2h-6V3h2v4zM8 9H2V7h4V3h2v6zm10 8v4h-2v-6h6v2h-4zM8 15v6H6v-4H2v-2h6z"></path>
+</svg>
+
+</div>
+</div>
+</div>
+
+
+
+<p>This creates three problems:</p>
+
+<ol>
+<li>
+<strong>Context dilution</strong>: The model must track multiple objectives simultaneously, degrading performance on each</li>
+<li>
+<strong>Dependency hell</strong>: If one objective fails, the entire request fails</li>
+<li>
+<strong>Review complexity</strong>: Changes are interleaved, making it difficult to accept some modifications while rejecting others</li>
+</ol>
+
+<h2>
+  <a name="verdents-architecture-parallel-agents-isolated-worktrees" href="#verdents-architecture-parallel-agents-isolated-worktrees">
+  </a>
+  Verdent's Architecture: Parallel Agents + Isolated Worktrees
+</h2>
+
+<p>Verdent's solution is conceptually simple but architecturally sophisticated:<br>
+</p>
+
+<div class="highlight js-code-highlight">
+<pre class="highlight plaintext"><code>┌─────────────────────────────────────────┐
+│         Central Gateway                  │
+│  - Task orchestration                    │
+│  - State management                      │
+│  - Model routing                         │
+└──────────┬──────────────────────────────┘
+           │
+           ├───────────┬───────────┬───────────┐
+           ▼           ▼           ▼           ▼
+       Task 1      Task 2      Task 3      Task 4
+       ┌────┐      ┌────┐      ┌────┐      ┌────┐
+       │ AI │      │ AI │      │ AI │      │ AI │
+       └─┬──┘      └─┬──┘      └─┬──┘      └─┬──┘
+         │           │           │           │
+         ▼           ▼           ▼           ▼
+    Worktree 1  Worktree 2  Worktree 3  Worktree 4
+    (isolated)  (isolated)  (isolated)  (isolated)
+</code></pre>
+<div class="highlight__panel js-actions-panel">
+<div class="highlight__panel-action js-fullscreen-code-action">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewbox="0 0 24 24" class="highlight-action crayons-icon highlight-action--fullscreen-on"><title>Enter fullscreen mode</title>
+    <path d="M16 3h6v6h-2V5h-4V3zM2 3h6v2H4v4H2V3zm18 16v-4h2v6h-6v-2h4zM4 19h4v2H2v-6h2v4z"></path>
+</svg>
+
+    <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewbox="0 0 24 24" class="highlight-action crayons-icon highlight-action--fullscreen-off"><title>Exit fullscreen mode</title>
+    <path d="M18 7h4v2h-6V3h2v4zM8 9H2V7h4V3h2v6zm10 8v4h-2v-6h6v2h-4zM8 15v6H6v-4H2v-2h6z"></path>
+</svg>
+
+</div>
+</div>
+</div>
+
+
+
+<p>Each task runs in its own git worktree—a separate working directory pointing to the same repository but with independent file states. Changes are completely isolated until explicit merge.</p>
+
+<h3>
+  <a name="why-worktrees-matter" href="#why-worktrees-matter">
+  </a>
+  Why Worktrees Matter
+</h3>
+
+<p>Git worktrees aren't just a convenience feature; they fundamentally solve the concurrency problem:<br>
+</p>
+
+<div class="highlight js-code-highlight">
+<pre class="highlight shell"><code><span class="c"># Main working directory</span>
+/project/main
+├── src/
+├── tests/
+└── docs/
+
+<span class="c"># Parallel worktrees</span>
+/project/worktree-task-1  <span class="c"># Refactoring components</span>
+/project/worktree-task-2  <span class="c"># Updating tests</span>
+/project/worktree-task-3  <span class="c"># Writing docs</span>
+</code></pre>
+<div class="highlight__panel js-actions-panel">
+<div class="highlight__panel-action js-fullscreen-code-action">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewbox="0 0 24 24" class="highlight-action crayons-icon highlight-action--fullscreen-on"><title>Enter fullscreen mode</title>
+    <path d="M16 3h6v6h-2V5h-4V3zM2 3h6v2H4v4H2V3zm18 16v-4h2v6h-6v-2h4zM4 19h4v2H2v-6h2v4z"></path>
+</svg>
+
+    <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewbox="0 0 24 24" class="highlight-action crayons-icon highlight-action--fullscreen-off"><title>Exit fullscreen mode</title>
+    <path d="M18 7h4v2h-6V3h2v4zM8 9H2V7h4V3h2v6zm10 8v4h-2v-6h6v2h-4zM8 15v6H6v-4H2v-2h6z"></path>
+</svg>
+
+</div>
+</div>
+</div>
+
+
+
+<p>Each agent operates in its own filesystem namespace. File writes can't collide. Merge conflicts are deferred to review time when you have full context to resolve them intelligently.</p>
+
+<h2>
+  <a name="the-plan-mode-structured-refinement-before-execution" href="#the-plan-mode-structured-refinement-before-execution">
+  </a>
+  The Plan Mode: Structured Refinement Before Execution
+</h2>
+
+<p>Verdent's Plan Mode addresses a problem most AI tools ignore: ambiguous requirements lead to wasted inference tokens and incorrect outputs.</p>
+
+<p>Standard flow:<br>
+</p>
+
+<div class="highlight js-code-highlight">
+<pre class="highlight plaintext"><code>User: "Improve the navigation"
+AI: [immediately starts changing code based on assumptions]
+</code></pre>
+<div class="highlight__panel js-actions-panel">
+<div class="highlight__panel-action js-fullscreen-code-action">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewbox="0 0 24 24" class="highlight-action crayons-icon highlight-action--fullscreen-on"><title>Enter fullscreen mode</title>
+    <path d="M16 3h6v6h-2V5h-4V3zM2 3h6v2H4v4H2V3zm18 16v-4h2v6h-6v-2h4zM4 19h4v2H2v-6h2v4z"></path>
+</svg>
+
+    <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewbox="0 0 24 24" class="highlight-action crayons-icon highlight-action--fullscreen-off"><title>Exit fullscreen mode</title>
+    <path d="M18 7h4v2h-6V3h2v4zM8 9H2V7h4V3h2v6zm10 8v4h-2v-6h6v2h-4zM8 15v6H6v-4H2v-2h6z"></path>
+</svg>
+
+</div>
+</div>
+</div>
+
+
+
+<p>Verdent's flow:<br>
+</p>
+
+<div class="highlight js-code-highlight">
+<pre class="highlight plaintext"><code>User: "Improve the navigation"
+Verdent: "Clarifying questions:
+  1. Mobile-first or desktop-first?
+  2. Preserve existing URLs?
+  3. SEO considerations?
+  4. Accessibility requirements?"
+User: [answers]
+Verdent: [generates structured plan]
+User: [reviews/modifies plan]
+Verdent: [executes plan with full context]
+</code></pre>
+<div class="highlight__panel js-actions-panel">
+<div class="highlight__panel-action js-fullscreen-code-action">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewbox="0 0 24 24" class="highlight-action crayons-icon highlight-action--fullscreen-on"><title>Enter fullscreen mode</title>
+    <path d="M16 3h6v6h-2V5h-4V3zM2 3h6v2H4v4H2V3zm18 16v-4h2v6h-6v-2h4zM4 19h4v2H2v-6h2v4z"></path>
+</svg>
+
+    <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewbox="0 0 24 24" class="highlight-action crayons-icon highlight-action--fullscreen-off"><title>Exit fullscreen mode</title>
+    <path d="M18 7h4v2h-6V3h2v4zM8 9H2V7h4V3h2v6zm10 8v4h-2v-6h6v2h-4zM8 15v6H6v-4H2v-2h6z"></path>
+</svg>
+
+</div>
+</div>
+</div>
+
+
+
+<p>This isn't just better UX—it's computationally efficient. By front-loading clarification, you avoid the expensive cycle of:</p>
+
+<ol>
+<li>Generate code based on assumptions</li>
+<li>Discover assumptions were wrong</li>
+<li>Regenerate code</li>
+<li>Repeat until alignment</li>
+</ol>
+
+<p>The plan becomes a specification that grounds subsequent code generation in explicit requirements rather than inferred intent.</p>
+
+<h2>
+  <a name="task-coordination-and-state-management" href="#task-coordination-and-state-management">
+  </a>
+  Task Coordination and State Management
+</h2>
+
+<p>The interesting technical challenge with parallel agents is state management. How do you prevent agents from making contradictory decisions when working on related code?</p>
+
+<p>Verdent's approach:</p>
+
+<h3>
+  <a name="1-shared-context-independent-execution" href="#1-shared-context-independent-execution">
+  </a>
+  1. Shared Context, Independent Execution
+</h3>
+
+<p>All agents have read access to the full codebase state. They can analyze existing code, understand patterns, and make context-aware decisions. But writes are isolated to each agent's worktree.</p>
+
+<h3>
+  <a name="2-artifactbased-boundaries" href="#2-artifactbased-boundaries">
+  </a>
+  2. Artifact-Based Boundaries
+</h3>
+
+<p>Tasks produce discrete artifacts:</p>
+
+<ul>
+<li>Planning documents</li>
+<li>Code diffs</li>
+<li>Test results</li>
+<li>Documentation</li>
+</ul>
+
+<p>These artifacts serve as boundaries for collaboration. A refactoring task produces a diff. A documentation task consumes that diff and generates docs. A review task validates both.</p>
+
+<p>This mimics real team workflows where phases overlap but have clear handoff points.</p>
+
+<h3>
+  <a name="3-humanintheloop-merge" href="#3-humanintheloop-merge">
+  </a>
+  3. Human-in-the-Loop Merge
+</h3>
+
+<p>Verdent doesn't auto-merge. You review each workspace independently:<br>
+</p>
+
+<div class="highlight js-code-highlight">
+<pre class="highlight shell"><code><span class="c"># Review workspace 1 changes</span>
+git diff main..task-1
+
+<span class="c"># Accept specific changes</span>
+git cherry-pick &lt;specific-commits&gt;
+
+<span class="c"># Or merge entire workspace</span>
+git merge task-1
+</code></pre>
+<div class="highlight__panel js-actions-panel">
+<div class="highlight__panel-action js-fullscreen-code-action">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewbox="0 0 24 24" class="highlight-action crayons-icon highlight-action--fullscreen-on"><title>Enter fullscreen mode</title>
+    <path d="M16 3h6v6h-2V5h-4V3zM2 3h6v2H4v4H2V3zm18 16v-4h2v6h-6v-2h4zM4 19h4v2H2v-6h2v4z"></path>
+</svg>
+
+    <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewbox="0 0 24 24" class="highlight-action crayons-icon highlight-action--fullscreen-off"><title>Exit fullscreen mode</title>
+    <path d="M18 7h4v2h-6V3h2v4zM8 9H2V7h4V3h2v6zm10 8v4h-2v-6h6v2h-4zM8 15v6H6v-4H2v-2h6z"></path>
+</svg>
+
+</div>
+</div>
+</div>
+
+
+
+<p>This gives you fine-grained control over which changes to accept. If Task 1's refactoring is great but Task 2's test updates are broken, you merge Task 1 and reject Task 2. They're completely decoupled.</p>
+
+<h2>
+  <a name="model-flexibility-provideragnostic-architecture" href="#model-flexibility-provideragnostic-architecture">
+  </a>
+  Model Flexibility: Provider-Agnostic Architecture
+</h2>
+
+<p>Verdent supports multiple models (Claude Sonnet 4, GPT-4, custom endpoints). This isn't just feature parity—it's architecturally important.<br>
+</p>
+
+<div class="highlight js-code-highlight">
+<pre class="highlight typescript"><code><span class="kr">interface</span> <span class="nx">ModelProvider</span> <span class="p">{</span>
+  <span class="nl">name</span><span class="p">:</span> <span class="kr">string</span><span class="p">;</span>
+  <span class="nf">generate</span><span class="p">(</span><span class="nx">prompt</span><span class="p">:</span> <span class="kr">string</span><span class="p">,</span> <span class="nx">context</span><span class="p">:</span> <span class="nx">Context</span><span class="p">):</span> <span class="nb">Promise</span><span class="o">&lt;</span><span class="nx">Response</span><span class="o">&gt;</span><span class="p">;</span>
+  <span class="nf">streamGenerate</span><span class="p">(</span><span class="nx">prompt</span><span class="p">:</span> <span class="kr">string</span><span class="p">,</span> <span class="nx">context</span><span class="p">:</span> <span class="nx">Context</span><span class="p">):</span> <span class="nx">AsyncIterator</span><span class="o">&lt;</span><span class="nx">Chunk</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kd">class</span> <span class="nc">VerdentOrchestrator</span> <span class="p">{</span>
+  <span class="nl">providers</span><span class="p">:</span> <span class="nb">Map</span><span class="o">&lt;</span><span class="kr">string</span><span class="p">,</span> <span class="nx">ModelProvider</span><span class="o">&gt;</span><span class="p">;</span>
+
+  <span class="k">async</span> <span class="nf">executeTask</span><span class="p">(</span><span class="nx">task</span><span class="p">:</span> <span class="nx">Task</span><span class="p">):</span> <span class="nb">Promise</span><span class="o">&lt;</span><span class="nx">Result</span><span class="o">&gt;</span> <span class="p">{</span>
+    <span class="kd">const</span> <span class="nx">provider</span> <span class="o">=</span> <span class="k">this</span><span class="p">.</span><span class="nf">selectProvider</span><span class="p">(</span><span class="nx">task</span><span class="p">);</span>
+    <span class="kd">const</span> <span class="nx">context</span> <span class="o">=</span> <span class="k">await</span> <span class="k">this</span><span class="p">.</span><span class="nf">buildContext</span><span class="p">(</span><span class="nx">task</span><span class="p">);</span>
+    <span class="k">return</span> <span class="nx">provider</span><span class="p">.</span><span class="nf">generate</span><span class="p">(</span><span class="nx">task</span><span class="p">.</span><span class="nx">prompt</span><span class="p">,</span> <span class="nx">context</span><span class="p">);</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</code></pre>
+<div class="highlight__panel js-actions-panel">
+<div class="highlight__panel-action js-fullscreen-code-action">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewbox="0 0 24 24" class="highlight-action crayons-icon highlight-action--fullscreen-on"><title>Enter fullscreen mode</title>
+    <path d="M16 3h6v6h-2V5h-4V3zM2 3h6v2H4v4H2V3zm18 16v-4h2v6h-6v-2h4zM4 19h4v2H2v-6h2v4z"></path>
+</svg>
+
+    <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewbox="0 0 24 24" class="highlight-action crayons-icon highlight-action--fullscreen-off"><title>Exit fullscreen mode</title>
+    <path d="M18 7h4v2h-6V3h2v4zM8 9H2V7h4V3h2v6zm10 8v4h-2v-6h6v2h-4zM8 15v6H6v-4H2v-2h6z"></path>
+</svg>
+
+</div>
+</div>
+</div>
+
+
+
+<p>This abstraction means:</p>
+
+<ol>
+<li>
+<strong>Model competition</strong>: You can A/B test models on the same task</li>
+<li>
+<strong>Cost optimization</strong>: Route simple tasks to cheaper models, complex tasks to expensive ones</li>
+<li>
+<strong>Future-proofing</strong>: New models slot in without architectural changes</li>
+<li>
+<strong>Privacy control</strong>: Sensitive codebases can use local models exclusively</li>
+</ol>
+
+<h2>
+  <a name="performance-characteristics" href="#performance-characteristics">
+  </a>
+  Performance Characteristics
+</h2>
+
+<p>I tested Verdent on a medium-sized Next.js project (120k LOC, TypeScript/React):</p>
+
+<h3>
+  <a name="benchmark-1-multiconcern-feature-development" href="#benchmark-1-multiconcern-feature-development">
+  </a>
+  Benchmark 1: Multi-concern Feature Development
+</h3>
+
+<p><strong>Task</strong>: Add authentication flow (components, API routes, tests, docs)</p>
+
+<p><strong>Sequential approach (Cursor)</strong>: 3.5 hours</p>
+
+<ul>
+<li>45 min: Build auth components</li>
+<li>40 min: Implement API routes</li>
+<li>50 min: Write tests</li>
+<li>45 min: Generate documentation</li>
+<li>30 min: Integration fixes</li>
+</ul>
+
+<p><strong>Parallel approach (Verdent)</strong>: 1.2 hours</p>
+
+<ul>
+<li>All tasks started simultaneously</li>
+<li>Most completed in 30-40 min</li>
+<li>20 min: Review and merge</li>
+<li>No integration fixes needed (isolated workspaces prevented conflicts)</li>
+</ul>
+
+<p><strong>Speedup</strong>: 2.9x</p>
+
+<h3>
+  <a name="benchmark-2-codebasewide-refactoring" href="#benchmark-2-codebasewide-refactoring">
+  </a>
+  Benchmark 2: Codebase-Wide Refactoring
+</h3>
+
+<p><strong>Task</strong>: Migrate from CSS modules to Tailwind across 40 components</p>
+
+<p><strong>Sequential</strong>: Each component done individually, high risk of inconsistency</p>
+
+<p><strong>Parallel</strong>: Created 5 tasks, each handling 8 components</p>
+
+<ul>
+<li>Completed in parallel</li>
+<li>Consistent patterns across all components (shared context)</li>
+<li>Easy to review in batches</li>
+</ul>
+
+<p><strong>Speedup</strong>: ~4x (wall-clock time)</p>
+
+<h3>
+  <a name="benchmark-3-bug-fix-test-coverage" href="#benchmark-3-bug-fix-test-coverage">
+  </a>
+  Benchmark 3: Bug Fix + Test Coverage
+</h3>
+
+<p><strong>Task</strong>: Fix rendering bug, add missing tests, update docs</p>
+
+<p><strong>Sequential</strong>: 2 hours (finish bug fix, then tests, then docs)</p>
+
+<p><strong>Parallel</strong>: 45 minutes (all three in parallel, merged selectively)</p>
+
+<p><strong>Speedup</strong>: 2.7x</p>
+
+<h2>
+  <a name="the-swebench-verified-results" href="#the-swebench-verified-results">
+  </a>
+  The SWE-bench Verified Results
+</h2>
+
+<p>Verdent achieved 76.1% single-attempt resolution on SWE-bench Verified, which is impressive but requires context:</p>
+
+<p>SWE-bench tests real GitHub issues with realistic complexity. A 76% resolution rate means the agent can handle:</p>
+
+<ul>
+<li>Multi-file changes</li>
+<li>Complex dependencies</li>
+<li>Ambiguous requirements (when clarified via Plan Mode)</li>
+<li>Legacy code patterns</li>
+</ul>
+
+<p>What's more interesting than the raw number is the <em>reliability</em>. Verdent's structured planning + isolated execution means failed tasks don't corrupt your codebase. This is critical for production use.</p>
+
+<h2>
+  <a name="integration-pattern-vs-code-desktop-app" href="#integration-pattern-vs-code-desktop-app">
+  </a>
+  Integration Pattern: VS Code + Desktop App
+</h2>
+
+<p>Verdent ships two interfaces:</p>
+
+<h3>
+  <a name="desktop-app-standalone" href="#desktop-app-standalone">
+  </a>
+  Desktop App (Standalone)
+</h3>
+
+<p>Best for:</p>
+
+<ul>
+<li>Managing multiple projects</li>
+<li>Cross-repository changes</li>
+<li>High-level orchestration</li>
+</ul>
+
+<h3>
+  <a name="vs-code-extension" href="#vs-code-extension">
+  </a>
+  VS Code Extension
+</h3>
+
+<p>Best for:</p>
+
+<ul>
+<li>Single-file edits</li>
+<li>Inline suggestions</li>
+<li>Quick iterations</li>
+</ul>
+
+<p>Both share the same backend. Tasks created in VS Code appear in the desktop app and vice versa. This dual-interface approach handles both micro-scale (single function) and macro-scale (entire feature) workflows.</p>
+
+<h2>
+  <a name="limitations-and-tradeoffs" href="#limitations-and-tradeoffs">
+  </a>
+  Limitations and Tradeoffs
+</h2>
+
+<h3>
+  <a name="1-complexity-cost" href="#1-complexity-cost">
+  </a>
+  1. Complexity Cost
+</h3>
+
+<p>Verdent's power comes with cognitive overhead. You're managing multiple concurrent tasks, reviewing multiple workspaces, and orchestrating merge strategies. This is overkill for simple scripts or single-file changes.</p>
+
+<h3>
+  <a name="2-resource-usage" href="#2-resource-usage">
+  </a>
+  2. Resource Usage
+</h3>
+
+<p>Multiple agents running simultaneously means multiple model API calls. On complex tasks, credit consumption can spike. Cost-conscious users need to monitor usage.</p>
+
+<h3>
+  <a name="3-learning-curve" href="#3-learning-curve">
+  </a>
+  3. Learning Curve
+</h3>
+
+<p>Understanding worktrees, task coordination, and merge strategies requires comfort with git internals. Junior developers might find the mental model challenging.</p>
+
+<h3>
+  <a name="4-edge-cases" href="#4-edge-cases">
+  </a>
+  4. Edge Cases
+</h3>
+
+<p>When tasks have hidden dependencies, parallel execution can produce incompatible changes. The review phase catches this, but you're trading upfront prevention for later reconciliation.</p>
+
+<h2>
+  <a name="when-verdent-makes-sense" href="#when-verdent-makes-sense">
+  </a>
+  When Verdent Makes Sense
+</h2>
+
+<p>Use Verdent when:</p>
+
+<ul>
+<li>Working on multi-concern features (logic + tests + docs)</li>
+<li>Refactoring large codebases</li>
+<li>Exploring multiple implementation approaches simultaneously</li>
+<li>Maintaining complex projects where context-awareness matters</li>
+</ul>
+
+<p>Skip Verdent when:</p>
+
+<ul>
+<li>Writing simple scripts</li>
+<li>Making single-file edits</li>
+<li>Learning to code (too much tool, not enough fundamentals)</li>
+<li>Working on projects where git workflow is already a bottleneck</li>
+</ul>
+
+<h2>
+  <a name="the-architectural-thesis" href="#the-architectural-thesis">
+  </a>
+  The Architectural Thesis
+</h2>
+
+<p>Verdent represents a specific bet about AI coding's future: the bottleneck isn't code generation speed—it's coordination overhead.</p>
+
+<p>As models get faster and cheaper, the constraint shifts from "how quickly can AI write code?" to "how effectively can AI manage multiple concurrent workstreams while maintaining context and avoiding conflicts?"</p>
+
+<p>Verdent's parallel-agent + isolated-workspace architecture directly addresses this. Whether it wins the market is uncertain, but the architectural pattern it demonstrates—treating AI assistance as orchestration rather than execution—feels like the right direction.</p>
+
+<h2>
+  <a name="getting-started-technical-setup" href="#getting-started-technical-setup">
+  </a>
+  Getting Started (Technical Setup)
+</h2>
+
+
+
+<div class="highlight js-code-highlight">
+<pre class="highlight shell"><code><span class="c"># Install Verdent CLI</span>
+npm <span class="nb">install</span> <span class="nt">-g</span> verdent-cli
+
+<span class="c"># Authenticate</span>
+verdent auth login
+
+<span class="c"># Initialize project</span>
+<span class="nb">cd </span>your-project
+verdent init
+
+<span class="c"># Create first task</span>
+verdent task create <span class="s2">"Refactor user authentication flow"</span> <span class="se">\</span>
+  <span class="nt">--plan-mode</span> <span class="se">\</span>
+  <span class="nt">--model</span> claude-sonnet-4
+
+<span class="c"># Monitor progress</span>
+verdent task list
+
+<span class="c"># Review changes</span>
+verdent task review &lt;task-id&gt;
+
+<span class="c"># Merge accepted changes</span>
+verdent task merge &lt;task-id&gt;
+</code></pre>
+<div class="highlight__panel js-actions-panel">
+<div class="highlight__panel-action js-fullscreen-code-action">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewbox="0 0 24 24" class="highlight-action crayons-icon highlight-action--fullscreen-on"><title>Enter fullscreen mode</title>
+    <path d="M16 3h6v6h-2V5h-4V3zM2 3h6v2H4v4H2V3zm18 16v-4h2v6h-6v-2h4zM4 19h4v2H2v-6h2v4z"></path>
+</svg>
+
+    <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewbox="0 0 24 24" class="highlight-action crayons-icon highlight-action--fullscreen-off"><title>Exit fullscreen mode</title>
+    <path d="M18 7h4v2h-6V3h2v4zM8 9H2V7h4V3h2v6zm10 8v4h-2v-6h6v2h-4zM8 15v6H6v-4H2v-2h6z"></path>
+</svg>
+
+</div>
+</div>
+</div>
+
+
+
+<p>For VS Code users:<br>
+</p>
+
+<div class="highlight js-code-highlight">
+<pre class="highlight plaintext"><code>ext install verdent.verdent-vscode
+</code></pre>
+<div class="highlight__panel js-actions-panel">
+<div class="highlight__panel-action js-fullscreen-code-action">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewbox="0 0 24 24" class="highlight-action crayons-icon highlight-action--fullscreen-on"><title>Enter fullscreen mode</title>
+    <path d="M16 3h6v6h-2V5h-4V3zM2 3h6v2H4v4H2V3zm18 16v-4h2v6h-6v-2h4zM4 19h4v2H2v-6h2v4z"></path>
+</svg>
+
+    <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewbox="0 0 24 24" class="highlight-action crayons-icon highlight-action--fullscreen-off"><title>Exit fullscreen mode</title>
+    <path d="M18 7h4v2h-6V3h2v4zM8 9H2V7h4V3h2v6zm10 8v4h-2v-6h6v2h-4zM8 15v6H6v-4H2v-2h6z"></path>
+</svg>
+
+</div>
+</div>
+</div>
+
+
+
+<h2>
+  <a name="conclusion-a-different-paradigm" href="#conclusion-a-different-paradigm">
+  </a>
+  Conclusion: A Different Paradigm
+</h2>
+
+<p>Most AI coding tools optimize the wrong thing: they make writing code faster. Verdent optimizes something more valuable: it makes <em>managing coding work</em> more efficient.</p>
+
+<p>The parallel-agent architecture won't appeal to everyone. But for developers working on complex, multi-faceted projects, it represents a genuinely different—and often superior—workflow.</p>
+
+<p>Worth testing with the free trial, especially if you frequently find yourself thinking "I wish I could work on these three things at once."</p>
+
+
+<hr>
+
+<p><em>Verdent AI is available at <a href="https://www.verdent.ai" target="_blank" rel="noopener noreferrer">verdent.ai</a>. Desktop app for Mac, VS Code extension, JetBrains support coming soon.</em></p>
+
+<p><em>Have you tried Verdent or similar parallel-execution AI tools? Share your experience in the comments.</em></p>
+
+
+            </div>
+
+              <div class="below-post-bb body-billboard-container" data-async-url="/sophialuma/parallel-ai-agents-in-isolated-worktrees-a-verdent-deep-dive-4ghi/bmar11/post_body_bottom"></div>
+          </div>
+          <section id="comments" data-follow-button-container="true" data-updated-at="2026-06-09 22:38:22 UTC" class="text-padding mb-4 border-t-1 border-0 border-solid border-base-10">
+    <header class="relative flex justify-between items-center mb-6">
+      <div class="flex items-center">
+        <h2 class="crayons-subtitle-1">
+          Top comments <span class="js-comments-count" data-comments-count="0">(0)</span>
+        </h2>
+      </div>
+
+
+      <div id="comment-subscription" class="print-hidden">
+        <div class="crayons-btn-group">
+          <span class="crayons-btn crayons-btn--outlined">Subscribe</span>
+        </div>
+      </div>
+    </header>
+    <div id="billboard_delay_trigger"></div>
+    <div
+      id="comments-container"
+      data-testid="comments-container"
+      data-commentable-id="3204353"
+      data-commentable-type="Article"
+      data-has-recent-comment-activity="false">
+
+        <div id="response-templates-data" class="hidden"></div>
+
+
+<form class="comment-form print-hidden" id="new_comment" action="/comments" accept-charset="UTF-8" method="post">
+
+  <input type="hidden" name="authenticity_token" value="NOTHING" id="new_comment_authenticity_token">
+
+    <input value="3204353" autocomplete="off" type="hidden" name="comment[commentable_id]" id="comment_commentable_id" />
+    <input value="Article" autocomplete="off" type="hidden" name="comment[commentable_type]" id="comment_commentable_type" />
+    
+
+  <span class="crayons-avatar m:crayons-avatar--l mr-2 shrink-0">
+    <img src="https://media2.dev.to/dynamic/image/width=256,height=,fit=scale-down,gravity=auto,format=auto/https%3A%2F%2Fdev-to-uploads.s3.amazonaws.com%2Fuploads%2Farticles%2F8j7kvp660rqzt99zui8e.png" width="32" height="32" alt="pic" class="crayons-avatar__image overflow-hidden" id="comment-primary-user-profile--avatar" loading="lazy" />
+  </span>
+  <div class="comment-form__inner">
+    <div class="comment-form__field" data-tracking-name="comment_form_textfield">
+      <textarea placeholder="Add to the discussion" onfocus="handleFocus(event)" onkeyup="handleKeyUp(event)" onkeydown="handleKeyDown(event)" oninput="handleChange(event)" id="text-area" required="required" class="crayons-textfield comment-textarea crayons-textfield--ghost" aria-label="Add a comment to the discussion" name="comment[body_markdown]">
+</textarea>
+
+    </div>
+
+    <div class="response-templates-container crayons-card crayons-card--secondary p-4 mb-4 comment-form__templates fs-base hidden">
+      <header class="mb-3">
+        <button type="button" class="crayons-btn personal-template-button active" data-target-type="personal" data-form-id="new_comment">Personal</button>
+        <button type="button" class="crayons-btn moderator-template-button hidden" data-target-type="moderator" data-form-id="new_comment">Trusted User</button>
+      </header>
+
+      <div class="personal-responses-container">
+      </div>
+      <div class="moderator-responses-container hidden">
+      </div>
+
+      <a target="_blank" rel="noopener nofollow" href="/settings/response-templates">
+        Create template
+      </a>
+      <p>Templates let you quickly answer FAQs or store snippets for re-use.</p>
+    </div>
+
+    <div class="comment-form__preview text-styles text-styles--secondary" id="preview-div"></div>
+
+    <div class="comment-form__buttons mb-4">
+      <button type="submit" class="crayons-btn mr-2 js-btn-enable" onclick="validateField(event)" data-tracking-name="comment_submit_button" disabled>Submit</button>
+      <button type="button" class="preview-toggle crayons-btn crayons-btn--secondary comment-action-preview js-btn-enable mr-2" data-tracking-name="comment_preview_button" disabled>Preview</button>
+      <a href="/404.html" class="dismiss-edit-comment crayons-btn crayons-btn--ghost js-btn-dismiss hidden">Dismiss</a>
+    </div>
+  </div>
+
+  <div class="code-of-conduct" id="toggle-code-of-conduct-checkbox"></div>
+</form>
+
+
+      <div class="comments" id="comment-trees-container">
+      </div>
+    </div>
+
+    <div class="align-center">
+
+
+  <nav class="fs-s align-center block" aria-label="Conduct controls">
+  <a href="/code-of-conduct" class="crayons-link crayons-link--secondary">Code of Conduct</a>
+  <span class="opacity-25 px-2" role="presentation">&bull;</span>
+  <a href="/report-abuse" class="crayons-link crayons-link--secondary">Report abuse</a>
+</nav>
+
+</div>
+
+</section>
+<div id="hide-comments-modal" class="hidden">
+  <form id="hide-comments-modal__form" class="hide-comments-modal__form" data-type="json" action="/comments/hide" accept-charset="UTF-8" data-remote="true" method="post"><input type="hidden" name="_method" value="patch" autocomplete="off" /><input type="hidden" name="authenticity_token" value="jhe3w76F8CaKBPoaYoDj0K8zvyDCEuI3s9Y_9oRGw1KANZpkdNizlnYhWVHAye1kDpPv9ieHsk8fvkHxRlnetw" autocomplete="off" />
+    <div class="hide-comments-modal__content">
+      <p class="pb-2">
+        Are you sure you want to hide this comment? It will become hidden in your post, but will still be visible via the comment's <a id="hide-comments-modal__comment-permalink" href="#">permalink</a>.
+      </p>
+      <label class="crayons-field crayons-field--checkbox my-2">
+        <input name="hide_children" type="hidden" value="0" autocomplete="off" /><input class="hide_children crayons-checkbox" type="checkbox" value="1" name="hide_children" id="hide_children" />
+        <p class="crayons-field__label">Hide child comments as well</p>
+      </label>
+      <p class="pb-4 pt-2">
+        <button type="submit" class="crayons-btn">
+          Confirm
+        </button>
+      </p>
+    </div>
+</form>  <p class="fs-s color-base-60">For further actions, you may consider blocking this person and/or <a id="hide-comments-modal__report-link" href="/report-abuse">reporting abuse</a></p>
+</div>
+
+
+
+        </article>
+
+        <div class="pb-4 crayons-layout__comments-billboard">
+          <div class="new-bb-container pb-4 crayons-layout__comments-billboard" data-async-url="/sophialuma/parallel-ai-agents-in-isolated-worktrees-a-verdent-deep-dive-4ghi/bmar11/post_comments"></div>
+        </div>
+
+          <!-- Bottom content skipped via SKIP_BOTTOM_CONTENT config -->
+      </div>
+    </main>
+
+    <aside class="crayons-layout__sidebar-right" aria-label="Author details">
+      <div class="crayons-article-sticky grid gap-4 pb-4 break-word" id="article-show-primary-sticky-nav">
+  <div class="crayons-card crayons-card--secondary branded-7 p-4 pt-0 gap-4 grid" style="border-top-color: #000000;">
+    <div class="-mt-4">
+  <a href="/sophialuma" class="flex">
+    <span class="crayons-avatar crayons-avatar--xl  mr-2 shrink-0">
+      <img src="https://media2.dev.to/dynamic/image/width=90,height=90,fit=cover,gravity=auto,format=auto/https%3A%2F%2Fdev-to-uploads.s3.amazonaws.com%2Fuploads%2Fuser%2Fprofile_image%2F3628135%2F1fb005b1-abde-4f63-a74d-ab267672d38f.png" class="crayons-avatar__image" alt="" loading="lazy" />
+    </span>
+    <span class="crayons-link crayons-subtitle-2 mt-5">
+      Sophia
+      
+    </span>
+  </a>
+</div>
+
+<div class="print-hidden">
+  <button name="button" type="button" data-info="{&quot;className&quot;:&quot;User&quot;,&quot;style&quot;:&quot;&quot;,&quot;id&quot;:3628135,&quot;name&quot;:&quot;Sophia&quot;}" class="crayons-btn follow-action-button whitespace-nowrap w-100 follow-user" aria-label="Follow user: Sophia" aria-pressed="false">Follow</button>
+</div>
+  <div class="color-base-70">
+    I am a SEO expert.
+  </div>
+
+  <div class="user-metadata-details">
+    <ul class="user-metadata-details-inner">
+      <li>
+        <div class="key">
+          Joined
+        </div>
+        <div class="value">
+          <time datetime="2025-11-25T02:25:20Z" class="date">Nov 25, 2025</time>
+        </div>
+      </li>
+    </ul>
+  </div>
+
+  </div>
+
+      <div class="crayons-card crayons-card--secondary">
+        <header class="crayons-card__header">
+          <h3 class="crayons-subtitle-2">
+            More from <a href="/sophialuma">Sophia</a>
+          </h3>
+        </header>
+        <div>
+            <a class="crayons-link crayons-link--contentful" href="/sophialuma/z-image-alibabas-6b-parameter-open-source-model-revolutionizes-efficient-image-generation-5m3">
+              Z-Image: Alibaba&#39;s 6B-Parameter Open-Source Model Revolutionizes Efficient Image Generation
+              <div class="crayons-link__secondary -ml-1">
+                  <span class="mr-1"><span class="opacity-50">#</span>machinelearning</span>
+                  <span class="mr-1"><span class="opacity-50">#</span>ai</span>
+                  <span class="mr-1"><span class="opacity-50">#</span>opensource</span>
+                  <span class="mr-1"><span class="opacity-50">#</span>tooling</span>
+              </div>
+            </a>
+            <a class="crayons-link crayons-link--contentful" href="/sophialuma/open-weight-ai-for-high-quality-image-generation-editing-4l85">
+              Open-Weight AI for High-Quality Image Generation &amp; Editing
+              <div class="crayons-link__secondary -ml-1">
+                  <span class="mr-1"><span class="opacity-50">#</span>ai</span>
+                  <span class="mr-1"><span class="opacity-50">#</span>deeplearning</span>
+                  <span class="mr-1"><span class="opacity-50">#</span>opensource</span>
+              </div>
+            </a>
+            <a class="crayons-link crayons-link--contentful" href="/sophialuma/sam3d-under-the-hood-how-metas-model-makes-single-image-3d-reconstruction-accessible-to-developers-4li1">
+              sam3d Under the Hood: How Meta’s Model Makes Single-Image 3D Reconstruction Accessible to Developers
+              <div class="crayons-link__secondary -ml-1">
+                  <span class="mr-1"><span class="opacity-50">#</span>ai</span>
+                  <span class="mr-1"><span class="opacity-50">#</span>machinelearning</span>
+                  <span class="mr-1"><span class="opacity-50">#</span>opensource</span>
+              </div>
+            </a>
+        </div>
+      </div>
+</div>
+
+<div class="crayons-article-sticky grid gap-4 break-word sidebar-bb" data-async-url="/sophialuma/parallel-ai-agents-in-isolated-worktrees-a-verdent-deep-dive-4ghi/bmar11/post_sidebar"></div>
+
+    </aside>
+  </div>
+
+  <div class="mod-actions-menu print-hidden"></div>
+  <div data-testid="unpublish-post-modal-container" class="unpublish-post-modal-container hidden"></div>
+
+  <div class="fullscreen-code js-fullscreen-code"></div>
+  <script src="https://assets.dev.to/assets/billboard-eec21d07e54c32f761d68007dc95fef96505557cbe27c5c8aae297aa9abfe42f.js" defer="defer"></script>
+<script src="https://assets.dev.to/assets/localizeArticleDates-70147c5c6bfe350b42e020ebb2a3dd37419d83978982b5a67b6389119bf162ac.js" defer="defer"></script>
+<script src="https://assets.dev.to/assets/articleReactions-03b03e63c7319a6caa1788ca81e7b25dff9fe90b38ca051b8b979a773b011e3b.js" defer="defer"></script>
+
+  <script>
+  </script>
+  <div class="js-billboard-container pb-4 crayons-layout__comments-billboard" data-async-url="/sophialuma/parallel-ai-agents-in-isolated-worktrees-a-verdent-deep-dive-4ghi/bmar11/post_fixed_bottom"></div>
+
+
+    <div id="runtime-banner-container"></div>
+    <div id="i18n-translations" data-translations="{&quot;en&quot;:{&quot;core&quot;:{&quot;add_comment&quot;:&quot;Add comment&quot;,&quot;beta&quot;:&quot;beta&quot;,&quot;comment&quot;:&quot;Comment&quot;,&quot;copy_link&quot;:&quot;Copy link&quot;,&quot;edit_profile&quot;:&quot;Edit profile&quot;,&quot;follow&quot;:&quot;Follow&quot;,&quot;follow_back&quot;:&quot;Follow back&quot;,&quot;following&quot;:&quot;Following&quot;,&quot;like&quot;:&quot;Like&quot;,&quot;loading&quot;:&quot;loading...&quot;,&quot;reaction&quot;:&quot;Reaction&quot;,&quot;report_abuse&quot;:&quot;Report abuse&quot;,&quot;search&quot;:&quot;Search&quot;,&quot;success_settings&quot;:&quot;Successfully updated settings.&quot;,&quot;search_placeholder&quot;:&quot;Search...&quot;,&quot;search_find_related_posts&quot;:&quot;Find related posts...&quot;,&quot;search_powered_by&quot;:&quot;Powered by Algolia&quot;,&quot;search_submit_search&quot;:&quot;Submit search for advanced filtering.&quot;,&quot;search_displaying_recommendations&quot;:&quot;Displaying Algolia Recommendations — Start typing to search&quot;,&quot;article_form_save_changes&quot;:&quot;Save changes&quot;,&quot;article_form_schedule&quot;:&quot;Schedule&quot;,&quot;article_form_publish&quot;:&quot;Publish&quot;,&quot;article_form_loading_preview&quot;:&quot;Loading preview&quot;,&quot;article_form_preview_loaded&quot;:&quot;Preview loaded&quot;,&quot;article_form_co_authors&quot;:&quot;Co-authors&quot;,&quot;article_form_co_authors_description&quot;:&quot;Add up to 4 co-authors from %{org_name}.&quot;,&quot;article_form_co_authors_placeholder&quot;:&quot;Add up to 4...&quot;,&quot;comments_preview&quot;:&quot;Preview&quot;,&quot;comments_continue_editing&quot;:&quot;Continue editing&quot;,&quot;survey_enter_response&quot;:&quot;Enter your response here...&quot;,&quot;survey_thank_you_response&quot;:&quot;Thank you for your response.&quot;,&quot;survey_thank_you_completing&quot;:&quot;Thank you for completing the survey!&quot;,&quot;dashboard_analytics_readers&quot;:&quot;Readers&quot;,&quot;dashboard_analytics_avg_read_time&quot;:&quot;avg. read time %{seconds}s&quot;,&quot;dashboard_analytics_comments&quot;:&quot;Comments&quot;,&quot;dashboard_analytics_reactions&quot;:&quot;Reactions&quot;,&quot;dashboard_analytics_unique_reactors&quot;:&quot;from %{count} unique users&quot;,&quot;dashboard_analytics_bookmarks&quot;:&quot;Bookmarks&quot;,&quot;dashboard_analytics_followers&quot;:&quot;New Followers&quot;,&quot;top_contributors_empty&quot;:&quot;No engagers found for this period.&quot;,&quot;top_contributors_reactions&quot;:&quot;reactions&quot;,&quot;top_contributors_comments&quot;:&quot;comments&quot;,&quot;top_contributors_weight_note&quot;:&quot;Comments carry more weight&quot;,&quot;follower_engagement_ratio&quot;:&quot;%{ratio}% of followers engaged&quot;,&quot;follower_engagement_detail&quot;:&quot;(%{engaged} of %{total})&quot;,&quot;dashboard_analytics_no_data&quot;:&quot;No data available for this period&quot;,&quot;dashboard_analytics_no_referrers&quot;:&quot;No traffic sources yet&quot;,&quot;stats_by&quot;:&quot;by&quot;,&quot;editor_new_title&quot;:&quot;New post title here...&quot;,&quot;editor_body_placeholder&quot;:&quot;Write your post content here...&quot;,&quot;tags_field_label&quot;:&quot;Add up to 4 tags&quot;,&quot;tags_field_placeholder&quot;:&quot;Add up to 4 tags...&quot;,&quot;counted_organization&quot;:{&quot;one&quot;:&quot;%{count} organization&quot;,&quot;other&quot;:&quot;%{count} organizations&quot;},&quot;counted_user&quot;:{&quot;one&quot;:&quot;%{count} person&quot;,&quot;other&quot;:&quot;%{count} people&quot;},&quot;not_following&quot;:&quot;You&#39;re not following anyone&quot;,&quot;following_everyone&quot;:&quot;You&#39;re following %{details} (everyone)&quot;,&quot;you_are_following&quot;:&quot;You&#39;re following&quot;,&quot;and&quot;:&quot;and&quot;}}}"></div>
+  </div>
+</div>
+    
+
+<footer id="footer" class="crayons-footer print-hidden">
+  <div id="footer-container" class="crayons-footer__container">
+
+
+        <style>
+  .long-bb-body {
+    max-height: calc(100vh - 200px);
+    overflow: hidden;
+  }
+  .long-bb-bottom {
+    height: 180px;
+    background: linear-gradient(to top, var(--card-bg), transparent);
+    margin-top: -180px;
+    position:relative;
+    z-index: 5;
+  }
+</style>
+
+  <div
+    style=""
+    data-display-unit data-id="146443"
+    data-category-click="click"
+    data-category-impression="impression"
+    data-context-type="home"
+    data-special="nothing"
+    data-article-id=""
+    data-type-of="in_house">
+          <div class="crayons-card crayons-card--secondary crayons-bb bb-placement js-billboard" style="display: inline-flex; flex-direction: column; align-items: center; margin: 0 auto 2rem auto; width: fit-content; padding: 2rem;">
+        <p style="font-weight: bold; margin: 0 0 1rem 0;">
+            💎 DEV Diamond Sponsors
+        </p>
+        <p style="font-size: 0.8em; margin: 0 0 2rem 0;">
+            Thank you to our Diamond Sponsors for supporting the DEV Community
+        </p>
+    
+        <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 2rem;">
+            <div style="display: inline-block; max-width: 240px; font-size: 0.8em; font-style: italic; text-align: center; padding: 10px; background: #ffffff; border-radius: 5px; color: #404040;">
+                <a href="https://aistudio.google.com/?utm_source=partner&amp;utm_medium=partner&amp;utm_campaign=FY25-Global-DEVpartnership-sponsorship-AIS&amp;utm_content=-&amp;utm_term=-&bb=146443" target="_blank" rel="noopener noreferrer" style="display: flex; justify-content: center; align-items: center;">
+                    <img src="https://media2.dev.to/dynamic/image/width=880%2Cheight=%2Cfit=scale-down%2Cgravity=auto%2Cformat=auto/https%3A%2F%2Fdev-to-uploads.s3.amazonaws.com%2Fuploads%2Farticles%2Fxjlyhbdqehj3akhz166w.png" alt="Google AI - Official AI Model and Platform Partner" style="display: block; background: #ffffff; margin: 0 auto; width: auto; height: 54px; padding: 10px;" loading="lazy" width="2048" height="472">
+                </a>
+                <p style="text-align: center;">Google AI is the official AI Model and Platform Partner of DEV</p>
+            </div>
+
+            <div style="display: inline-block; max-width: 240px; font-size: 0.8em; font-style: italic; text-align: center; padding: 10px; background: #ffffff; border-radius: 5px; color: #404040;">
+                <a href="https://neon.tech/?ref=devto&bb=146443" target="_blank" rel="noopener noreferrer" style="display: flex; justify-content: center; align-items: center;">
+                    <img src="https://media2.dev.to/dynamic/image/width=880%2Cheight=%2Cfit=scale-down%2Cgravity=auto%2Cformat=auto/https%3A%2F%2Fdev-to-uploads.s3.amazonaws.com%2Fuploads%2Farticles%2Fbnl88cil6afxzmgwrgtt.png" alt="Neon - Official Database Partner" style="display: block; background: #ffffff; margin: 0 auto; width: auto; height: 60px; padding: 10px;" loading="lazy" width="2286" height="596">
+                </a>
+                <p style="text-align: center;">Neon is the official database partner of DEV</p>
+            </div>
+    
+            <div style="display: inline-block; max-width: 240px; font-size: 0.8em; font-style: italic; text-align: center; padding: 10px; background: #ffffff; border-radius: 5px; color: #404040;">
+                <a href="https://www.algolia.com/developers/?utm_source=devto&amp;utm_medium=referral&bb=146443" target="_blank" rel="noopener noreferrer" style="display: flex; justify-content: center; align-items: center;">
+                    <img src="https://media2.dev.to/dynamic/image/width=880%2Cheight=%2Cfit=scale-down%2Cgravity=auto%2Cformat=auto/https%3A%2F%2Fdev-to-uploads.s3.amazonaws.com%2Fuploads%2Farticles%2Fv30ephnolfvnlwgwm0yz.png" alt="Algolia - Official Search Partner" style="display: block; background: #ffffff; margin: 0 auto; width: auto; height: 60px; padding: 10px;" loading="lazy" width="2286" height="596">
+                </a>
+                <p style="text-align: center;">Algolia is the official search partner of DEV</p>
+            </div>
+        </div>
+    </div>
+  </div>
+
+
+    <p class="fs-s crayons-footer__description">
+      <a class="c-link c-link--branded fw-medium" aria-label="DEV Community Home" href="/">DEV Community</a> — A space to discuss and keep up software development and manage your software career
+    </p>
+
+    <ul class="footer__nav-links flex gap-2 justify-center flex-wrap fs-s p-0" style="" />
+        <li class="footer__nav-link flex items-center">
+    <a href="/">
+      Home
+    </a>
+    <span class="dot ml-2"></span>
+  </li>
+  <li class="footer__nav-link flex items-center">
+    <a href="/challenges">
+      DEV Challenges
+    </a>
+    <span class="dot ml-2"></span>
+  </li>
+  <li class="footer__nav-link flex items-center">
+    <a href="/++">
+      DEV++
+    </a>
+    <span class="dot ml-2"></span>
+  </li>
+  <li class="footer__nav-link flex items-center">
+    <a href="/videos">
+      Videos
+    </a>
+    <span class="dot ml-2"></span>
+  </li>
+  <li class="footer__nav-link flex items-center">
+    <a href="/deved">
+      DEV Education Tracks
+    </a>
+    <span class="dot ml-2"></span>
+  </li>
+  <li class="footer__nav-link flex items-center">
+    <a href="/help">
+      DEV Help
+    </a>
+    <span class="dot ml-2"></span>
+  </li>
+  <li class="footer__nav-link flex items-center">
+    <a href="/advertise">
+      Advertise on DEV
+    </a>
+    <span class="dot ml-2"></span>
+  </li>
+  <li class="footer__nav-link flex items-center">
+    <a href="/organizations">
+      Organization Accounts
+    </a>
+    <span class="dot ml-2"></span>
+  </li>
+  <li class="footer__nav-link flex items-center">
+    <a href="/showcase">
+      DEV Showcase
+    </a>
+    <span class="dot ml-2"></span>
+  </li>
+  <li class="footer__nav-link flex items-center">
+    <a href="/about">
+      About
+    </a>
+    <span class="dot ml-2"></span>
+  </li>
+  <li class="footer__nav-link flex items-center">
+    <a href="/contact">
+      Contact
+    </a>
+    <span class="dot ml-2"></span>
+  </li>
+  <li class="footer__nav-link flex items-center">
+    <a href="/free-postgres-database-tier">
+      Free Postgres Database
+    </a>
+    <span class="dot ml-2"></span>
+  </li>
+  <li class="footer__nav-link flex items-center">
+    <a href="https://shop.forem.com/">
+      DEV Shop
+    </a>
+    <span class="dot ml-2"></span>
+  </li>
+  <li class="footer__nav-link flex items-center">
+    <a href="https://mlh.io/">
+      MLH
+    </a>
+    <span class="dot ml-2"></span>
+  </li>
+
+    </ul>
+
+    <ul class="footer__nav-links flex gap-2 justify-center flex-wrap fs-s p-0" style="" />
+        <li class="footer__nav-link flex items-center">
+    <a href="/code-of-conduct">
+      Code of Conduct
+    </a>
+    <span class="dot ml-2"></span>
+  </li>
+  <li class="footer__nav-link flex items-center">
+    <a href="/privacy">
+      Privacy Policy
+    </a>
+    <span class="dot ml-2"></span>
+  </li>
+  <li class="footer__nav-link flex items-center">
+    <a href="/terms">
+      Terms of Use
+    </a>
+    <span class="dot ml-2"></span>
+  </li>
+
+    </ul>
+
+    <div class="fs-s">
+      <p>Built on <a class="c-link c-link--branded" target="_blank" rel="noopener" href="https://www.forem.com">Forem</a> — the <a target="_blank" rel="noopener" class="c-link c-link--branded" href="https://dev.to/t/opensource">open source</a> software that powers <a target="_blank" rel="noopener" class="c-link c-link--branded" href="https://dev.to">DEV</a> and other inclusive communities.</p>
+      <p>Made with love and <a target="_blank" rel="noopener" class="c-link c-link--branded" href="https://dev.to/t/rails">Ruby on Rails</a>. DEV Community <span title="copyright">&copy;</span> 2016 - 2026.</p>
+    </div>
+  </div>
+</footer>
+<div id="snack-zone"></div>
+
+    <div id="global-signup-modal" class="authentication-modal hidden">
+  <div class="authentication-modal__container">
+    <figure class="authentication-modal__image-container">
+      <img class="authentication-modal__image" src="https://media2.dev.to/dynamic/image/width=190,height=,fit=scale-down,gravity=auto,format=auto/https%3A%2F%2Fdev-to-uploads.s3.amazonaws.com%2Fuploads%2Farticles%2F8j7kvp660rqzt99zui8e.png"
+        alt="DEV Community" loading="lazy" />
+    </figure>
+    <div class="authentication-modal__content">
+      <p class="authentication-modal__description">
+          We&#39;re a place where coders share, stay up-to-date and grow their careers.
+      </p>
+    </div>
+    <div class="authentication-modal__actions">
+      <a href="https://dev.to/enter?signup_subforem=1" class="crayons-btn" aria-label="Log in" data-no-instant>
+        Log in
+      </a>
+      <a href="https://dev.to/enter?signup_subforem=1&amp;state=new-user" class="crayons-btn crayons-btn--ghost-brand js-global-signup-modal__create-account" aria-label="Create new account" data-no-instant>
+        Create account
+      </a>
+    </div>
+  </div>
+</div>
+
+<script src="https://assets.dev.to/assets/signupModalShortcuts-0b25469b985100a01e94cbd7fccaf7f0a4d776e129aac65c766aa32cb28ab29a.js" defer="defer"></script>
+
+    <div id="cookie-consent"></div>
+  <div id="reaction-category-resources" class="hidden" aria-hidden="true">
+    <img data-name="Like" data-slug="like" data-position="1" src="https://assets.dev.to/assets/sparkle-heart-5f9bee3767e18deb1bb725290cb151c25234768a0e9a2bd39370c382d02920cf.svg" width="18" height="18" />
+    <img data-name="Unicorn" data-slug="unicorn" data-position="2" src="https://assets.dev.to/assets/multi-unicorn-b44d6f8c23cdd00964192bedc38af3e82463978aa611b4365bd33a0f1f4f3e97.svg" width="18" height="18" />
+    <img data-name="Exploding Head" data-slug="exploding_head" data-position="3" src="https://assets.dev.to/assets/exploding-head-daceb38d627e6ae9b730f36a1e390fca556a4289d5a41abb2c35068ad3e2c4b5.svg" width="18" height="18" />
+    <img data-name="Raised Hands" data-slug="raised_hands" data-position="4" src="https://assets.dev.to/assets/raised-hands-74b2099fd66a39f2d7eed9305ee0f4553df0eb7b4f11b01b6b1b499973048fe5.svg" width="18" height="18" />
+    <img data-name="Fire" data-slug="fire" data-position="5" src="https://assets.dev.to/assets/fire-f60e7a582391810302117f987b22a8ef04a2fe0df7e3258a5f49332df1cec71e.svg" width="18" height="18" />
+</div>
+
+    <script>
+  var userSignedIn = false;
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    initAuth();
+  } else {
+    document.addEventListener('DOMContentLoaded', initAuth);
+  }
+
+  function initAuth() {
+    var paramToken = new URLSearchParams(window.location.search).get('jwt');
+
+    if (paramToken && !userSignedIn) {
+      authenticateUser(paramToken);
+    } else {
+      var iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = 'https://forem.com/auth_pass/iframe';
+  
+      document.body.appendChild(iframe);
+  
+      window.addEventListener('message', function(event) {
+        if (event.origin !== 'https://forem.com' && event.origin !== window.location.origin) {
+          return;
+        }
+  
+        var data = event.data;
+  
+        if (data.authenticated && !userSignedIn) {
+          authenticateUser(data.token);
+        } else if(data.authenticated && window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+          window.ReactNativeWebView.postMessage(JSON.stringify({
+            action: 'login',
+            token: data.token,
+          }));
+        }
+      });  
+    }
+
+    function authenticateUser(token) {
+      fetch('/auth_pass/token_login', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': getMetaContent('csrf-token'),
+        },
+        body: JSON.stringify({ token: token }),
+      })
+      .then(function(response) {
+        return response.json();
+      })
+      .then(function(data) {
+        if (data.success) {
+          if (document.head.querySelector('meta[name="user-signed-in"][content="false"]')) {
+            // Reload the page to update the user's state
+            location.reload();
+          }
+        }
+      })
+      .catch(function(error) {
+        console.error('Error during authentication:', error);
+      });
+    }
+
+    function getMetaContent(name) {
+      var element = document.querySelector('meta[name="' + name + '"]');
+      return element ? element.getAttribute('content') : '';
+    }
+  }
+</script>
+
+  
+  
+  
+  </body>
+  </html>
+
