@@ -1,0 +1,268 @@
+# RASPAGEM 2 — Seção 3 Completa do GREENFORGE_DESIGN.md + Integração NEXUS
+# Fonte: pasta doc_referencia/
+# Data: 2026-06-11
+# ============================================================================
+
+## SEÇÃO 3 — CAMADA DE INTEGRAÇÃO (GREENFORGE_DESIGN.md)
+
+### 3.1 Visão Geral da Integração
+
+A camada de integração do GreenForge com o Gemini CLI é responsável por:
+1. Interceptar comandos do usuário via hooks
+2. Registrar ferramentas customizadas (forge_*)
+3. Gerenciar o ciclo de vida da extensão
+4. Fornecer persistência de estado via ExtensionContext
+
+Arquitetura em camadas:
+```
+┌─────────────────────────────────────┐
+│         Gemini CLI Host             │
+│  (Extension API, Hooks, Tools)      │
+├─────────────────────────────────────┤
+│     Camada de Integração            │ ← ESTA SEÇÃO
+│  (QwenPluginAdapter, IPluginHost)   │
+├─────────────────────────────────────┤
+│       Core GreenForge               │
+│  (StateMachine, WorktreeManager)    │
+└─────────────────────────────────────┘
+```
+
+### 3.2 Contrato ExtensionContext
+
+O ExtensionContext fornecido pelo Gemini CLI contém:
+
+```typescript
+interface ExtensionContext {
+  extensionPath: string;        // Caminho da extensão instalada
+  globalState: Memento;         // Persistência global
+  workspaceState: Memento;      // Persistência por workspace
+  subscriptions: Disposable[];  // Lista de disposables para cleanup
+  log: Logger;                  // Logger da plataforma
+}
+```
+
+**Uso no GreenForge:**
+- `extensionPath`: usado para resolver caminhos de templates e scripts
+- `globalState`: armazena config do usuário e métricas
+- `workspaceState`: rastreia tarefa ativa e worktrees
+- `subscriptions`: registra handlers de hooks para cleanup
+
+### 3.3 Ferramentas Customizadas Registradas
+
+O GreenForge registra 3 ferramentas principais via `registerTool()`:
+
+#### forge_start_task
+```typescript
+{
+  name: "forge_start_task",
+  description: "Inicia nova tarefa GreenForge com worktree isolado",
+  schema: {
+    taskName: { type: "string", required: true },
+    branchName: { type: "string", required: false },
+    subagents: { type: "array", items: { type: "string" }, required: false }
+  },
+  handler: async (args) => {
+    // Valida entrada
+    // Cria worktree git isolado
+    // Inicializa StateMachine no estado INITIALIZED
+    // Retorna worktree path e task ID
+  }
+}
+```
+
+#### forge_list_tasks
+```typescript
+{
+  name: "forge_list_tasks",
+  description: "Lista todas as tarefas GreenForge ativas e históricas",
+  schema: {
+    status: { type: "string", enum: ["active", "completed", "all"], default: "active" },
+    limit: { type: "number", default: 10 }
+  },
+  handler: async (args) => {
+    // Query SQLite database
+    // Retorna lista formatada de tarefas
+  }
+}
+```
+
+#### forge_approve_plan
+```typescript
+{
+  name: "forge_approve_plan",
+  description: "Aprova plano gerado por subagente e executa ações",
+  schema: {
+    planId: { type: "string", required: true },
+    taskId: { type: "string", required: true }
+  },
+  handler: async (args) => {
+    // Valida plano contra GateManager
+    // Executa ações via DiffLens
+    // Atualiza StateMachine
+  }
+}
+```
+
+### 3.4 Sistema de Regras (FORGE_RULES/AGENTS.md)
+
+[PROATIVO] Documento adicional identificado:
+
+O sistema de regras define constraints para comportamento dos subagentes:
+
+```markdown
+# FORGE_RULES/AGENTS.md
+
+## Regra 1: Isolamento de Worktree
+Todo subagente deve operar exclusivamente dentro do worktree designado.
+Nunca acessar arquivos fora do worktree sem explicit permission.
+
+## Regra 2: Atomicidade de Commits
+Cada ação do subagente deve resultar em commit atômico com mensagem estruturada.
+
+## Regra 3: Validação Pré-Execução
+Antes de executar qualquer write operation, o subagente deve:
+1. Submeter plano ao GateManager
+2. Aguardar aprovação explícita
+3. Validar diff via DiffLens
+
+## Regra 4: Timeout de Execução
+Subagentes devem completar tarefas em ≤ 5 minutos.
+Após timeout, tarefa é marcada como STALLED.
+```
+
+---
+
+## CONTEÚDO INTEGRAL: NEXUS_GREENFORGE.md
+
+### Arquitetura NEXUS
+
+O NEXUS_GREENFORGE é o orquestrador central que coordena:
+1. Recepção de comandos via hooks do Gemini CLI
+2. Dispatch para subagentes especializados
+3. Consolidação de resultados
+4. Comunicação de volta ao usuário
+
+### Fluxo de Execução
+
+```
+Usuário → /greenforge-start "refatorar auth"
+    ↓
+onMessage hook intercepta
+    ↓
+NEXUS parseia comando
+    ↓
+StateMachine → INITIALIZED
+    ↓
+WorktreeManager cria worktree isolado
+    ↓
+Dispatch para Explorer (descobre estrutura)
+    ↓
+Dispatch para CodeReviewer (analisa código atual)
+    ↓
+Dispatcher para Verifier (valida mudanças)
+    ↓
+Resultado consolidado → Usuário
+```
+
+### Subagentes Especializados
+
+| Subagente | Responsabilidade | Hooks Utilizados |
+|-----------|------------------|------------------|
+| Explorer | Descobrir estrutura do projeto | onToolCall (list_dir, read_file) |
+| CodeReviewer | Analisar qualidade do código | onToolCall (grep, read_many_files) |
+| Verifier | Validar mudanças e testes | onToolCall (run_tests, git_diff) |
+| Planner | Gerar plano de execução | onMessage (recebe contexto) |
+
+---
+
+## CONTEÚDO INTEGRAL: NEXUS_GREENFORGE_DEEPENED.md
+
+### Integração Profunda com Contexto da Sessão
+
+O NEXUS acessa contexto rico da sessão do Gemini CLI:
+
+```typescript
+interface SessionContext {
+  conversationHistory: Message[];  // Histórico completo
+  executedTools: ToolExecution[];   // Ferramentas já executadas
+  currentModel: string;             // Modelo LLM ativo
+  sessionStartTime: Date;           // Timestamp de início
+  userPreferences: UserConfig;      // Preferências do usuário
+}
+```
+
+**Casos de uso:**
+1. **Continuidade de contexto**: Subagentes recebem histórico relevante
+2. **Otimização de tokens**: Evita re-enviar contexto já conhecido
+3. **Personalização**: Adapta comportamento baseado em preferências
+
+### Protocolo de Handoff entre Subagentes
+
+```typescript
+interface AgentHandoff {
+  fromAgent: string;
+  toAgent: string;
+  context: {
+    taskDescription: string;
+    completedSteps: string[];
+    pendingSteps: string[];
+    artifactsGenerated: Artifact[];
+    warnings: string[];
+  };
+  validationHash: string;  // SHA-256 do contexto para integridade
+}
+```
+
+**Garantias:**
+- Contexto é imutável após handoff
+- Hash valida integridade na recepção
+- Timeouts previnem deadlocks
+
+---
+
+## CONTEÚDO INTEGRAL: INTEGRACAO_STATUS.md
+
+### Status de Integração — Última Atualização
+
+| Componente | Status | Observações |
+|------------|--------|-------------|
+| activate() hook | ✅ Implementado | Inicializa Database e StateMachine |
+| deactivate() hook | ✅ Implementado | Salva estado e libera recursos |
+| onMessage hook | ✅ Implementado | Intercepta comandos slash |
+| onToolCall hook | ✅ Implementado | Valida ferramentas antes de executar |
+| onStateChange hook | ⚠️ Parcial | Apenas logging, sem UI sync |
+| registerTool() | ✅ Implementado | 3 ferramentas registradas |
+| globalState | ✅ Implementado | Config e métricas |
+| workspaceState | ✅ Implementado | Task tracking |
+
+### Dívidas Técnicas
+
+1. **Testes de integração**: Mocks do Gemini CLI estão desatualizados
+2. **Error handling**: Falhas na Extension API não são tratadas uniformemente
+3. **Performance**: onToolCall adiciona ~50ms de latência por chamada
+4. **Documentação**: Faltam exemplos de uso da API para desenvolvedores
+
+### Próximos Passos (Originalmente para Gemini CLI)
+
+1. Implementar onStateChange completo com atualização de UI
+2. Adicionar ferramenta forge_debug para troubleshooting
+3. Criar suite de testes E2E com Extension API mockada
+4. Documentar contrato de integração para contribuidores
+
+---
+
+## [PROATIVO] LACUNAS IDENTIFICADAS PARA MIGRAÇÃO QWEN CLI
+
+1. **Skill System do Qwen**: Não há mapeamento claro de como tools do GreenForge 
+   serão expostas via Skill manifest do Qwen CLI
+
+2. **Hooks do Qwen**: A documentação original não menciona equivalentes Qwen para:
+   - globalState/workspaceState → Qwen usa storage.ts diferente
+   - ExtensionContext → Qwen tem Config + Storage separados
+
+3. **Comandos Slash**: Qwen CLI tem sistema próprio de slash commands que pode 
+   conflitar com /greenforge-* se não namespaced corretamente
+
+4. **MCP Server**: Não há spec de como o core GreenForge pode expor ferramentas 
+   via MCP para o Qwen CLI (alternativa ao registro direto de tools)
+

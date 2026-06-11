@@ -1,0 +1,114 @@
+# RASPAGEM 1 — Inventário de Hooks e APIs do Gemini CLI
+# Fonte: pasta doc_referencia/
+# Data: 2026-06-11
+# ============================================================================
+
+## 1. OCORRÊNCIAS DE "GEMINI CLI"
+
+[GREENFORGE_DESIGN.md]
+O GreenForge é uma extensão para o Gemini CLI que implementa um sistema de 
+gerenciamento de tarefas com worktrees git isolados. A extensão intercepta 
+comandos do usuário via hooks onMessage e onToolCall.
+
+[GREENFORGE_DESIGN.md:Seção 3]
+A camada de integração com o Gemini CLI utiliza a Extension API oficial, 
+registrando hooks de ciclo de vida (activate/deactivate) e hooks de evento 
+(onMessage, onToolCall, onStateChange).
+
+[NEXUS_GREENFORGE.md]
+O NEXUS_GREENFORGE atua como orquestrador entre o Gemini CLI e os subagentes 
+especializados (Explorer, CodeReviewer, Verifier).
+
+[NEXUS_GREENFORGE_DEEPENED.md]
+A integração profunda com o Gemini CLI permite que o NEXUS receba contexto 
+rico da sessão atual, incluindo histórico de ferramentas executadas e estado 
+da conversa.
+
+[INTEGRACAO_STATUS.md]
+Status atual da integração com Gemini CLI:
+- Hooks implementados: onMessage, onToolCall
+- Hooks pendentes: onStateChange
+- Comandos slash registrados: /greenforge-start, /greenforge-status
+
+[01-vision-and-architecture.md]
+O Gemini CLI atua como host da extensão, fornecendo acesso ao sistema de 
+arquivos, terminal e rede através de sua Extension API.
+
+[03-technical-spec-and-data.md]
+Requisitos de compatibilidade: Gemini CLI v2.0+, Node.js v20+
+
+[06-api-and-extensibility.md]
+A Extension API do Gemini CLI expõe os seguintes pontos de extensão:
+- extensionContext: objeto de contexto da extensão
+- globalState: armazenamento persistente global
+- workspaceState: armazenamento persistente por workspace
+
+[README.md]
+Instalação requerer Gemini CLI instalado globalmente via npm install -g gemini-cli
+
+## 2. HOOKS E APIS IDENTIFICADOS
+
+### Hooks de Ciclo de Vida
+- activate(context: ExtensionContext): void
+  → Chamado quando a extensão é ativada
+  → Contexto inclui: extensionPath, globalState, workspaceState
+
+- deactivate(): void
+  → Chamado antes da extensão ser desativada
+  → Deve liberar recursos e salvar estado
+
+### Hooks de Evento
+- onMessage(handler: (message: UserMessage) => void): Disposable
+  → Intercepta mensagens do usuário antes do processamento
+  → Permite modificar ou bloquear mensagens
+
+- onToolCall(handler: (toolCall: ToolCall) => Promise<ToolResult>): Disposable
+  → Intercepta chamadas de ferramentas
+  → Permite validar, modificar ou bloquear execuções
+
+- onStateChange(handler: (state: ExtensionState) => void): Disposable
+  → Notifica mudanças no estado da extensão
+  → Usado para sincronização UI
+
+### API de Registro de Ferramentas
+- registerTool(name: string, schema: ToolSchema, handler: ToolHandler): void
+  → Registra ferramenta customizada na Extension API
+  → Schema define parâmetros e validação
+  → Handler executa a lógica da ferramenta
+
+### Sistema de Estado
+- globalState.get(key: string): any
+- globalState.set(key: string, value: any): void
+- workspaceState.get(key: string): any
+- workspaceState.set(key: string, value: any): void
+
+## 3. COMANDOS SLASH IDENTIFICADOS
+
+/greenforge-start [task-name]     → Inicia nova tarefa GreenForge
+/greenforge-status                → Mostra status das tarefas ativas
+/greenforge-list                  → Lista todas as tarefas
+/greenforge-approve [plan-id]     → Aprova plano gerado
+/greenforge-abort [task-id]       → Aborta tarefa em execução
+
+## 4. SISTEMA DE PERSISTÊNCIA
+
+### globalState (persistência global)
+Chaves utilizadas:
+- greenforge.version: versão da extensão instalada
+- greenforge.config: configuração do usuário
+- greenforge.metrics: métricas de uso agregadas
+
+### workspaceState (persistência por workspace)
+Chaves utilizadas:
+- greenforge.activeTask: ID da tarefa ativa no workspace
+- greenforge.worktreeRoot: caminho raiz dos worktrees
+- greenforge.taskHistory: histórico de tarefas do workspace
+
+## 5. LACUNAS IDENTIFICADAS NA DOCUMENTAÇÃO ORIGINAL
+
+⚠️ [PROATIVO] O que NÃO foi encontrado mas é relevante:
+- Não há documentação sobre limite de timeouts para hooks
+- Não há spec de erro handling para falhas na Extension API
+- Não há menção a rate limiting ou throttling de tool calls
+- Não há exemplo de teste unitário mockando ExtensionContext
+
