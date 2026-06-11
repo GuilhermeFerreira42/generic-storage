@@ -21,7 +21,7 @@ STACK TECNOLÓGICA:
   Comunicação: Extension API Hooks + MCP (Model Context Protocol)
   Infraestrutura: Git (Worktrees obrigatórios)
   Testes: Node.js Test Runner / Jest (TDD Approach)
-  Outros: Gemini 1.5 Flash (Router), Gemini 1.5 Pro (Planner)
+  Outros: Qwen 2.5 (Router), Qwen 2.5-Max (Planner)
 
 PRD DE REFERÊNCIA: Sim (extraído da tarefa inicial e pesquisa Verdant AI)
 ARQUIVOS DO PRD DISPONÍVEIS: Sim - Dossiê de pesquisa e requisitos de tarefa.

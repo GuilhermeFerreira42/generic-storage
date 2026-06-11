@@ -184,11 +184,11 @@ stateDiagram-v2
 2. Garanta **Git >= 2.30.0** (`git --version`).
 3. Clone o repositório: `git clone <repo_url>`.
 4. Instale as dependências: `npm install`.
-5. Configure o ambiente: `cp .env.example .env` e adicione sua `GEMINI_API_KEY`.
+5. Configure o ambiente: `cp .env.example .env` e adicione sua `QWEN_API_KEY`.
 6. Inicialize o banco: `npm run db:init`.
 7. Execute os testes de sanidade: `npm test`.
 8. Link a CLI globalmente: `npm link`.
 9. Inicie sua primeira tarefa: `forge start "Adicione um log de erro no core"`.
-10. Verifique o isolamento: `ls .gemini/worktrees/` e valide o novo diretório.
+10. Verifique o isolamento: `ls .qwen/worktrees/` e valide o novo diretório.
 
 --- FINAL DO DOSSIÊ NEXUS v1.2 ---

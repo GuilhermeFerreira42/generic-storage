@@ -48,13 +48,16 @@ O GreenForge opera em múltiplos diretórios (main e worktrees). É crítico que
 
 ```typescript
 async function safeResolve(inputPath: string, allowedRoot: string): Promise<string> {
-  // 1. Resolver symlinks e normalizar
-  const absolutePath = path.resolve(allowedRoot, inputPath);
+  // 0. Resolver o próprio root (evita bypass via symlink no root)
+  const resolvedRoot = await fs.realpath(allowedRoot);
+
+  // 1. Resolver symlinks e normalizar path de entrada
+  const absolutePath = path.resolve(resolvedRoot, inputPath);
   const realPath = await fs.realpath(absolutePath);
   
-  // 2. Validar prefixo
-  if (!realPath.startsWith(allowedRoot)) {
-    throw new SecurityError(`Path Traversal Detectado: ${realPath} está fora de ${allowedRoot}`);
+  // 2. Validar prefixo contra root resolvido
+  if (!realPath.startsWith(resolvedRoot)) {
+    throw new SecurityError(`Path Traversal Detectado: ${realPath} está fora de ${resolvedRoot}`);
   }
   
   return realPath;

@@ -6,24 +6,35 @@
 
 ## Componentes de Integração
 
-| Componente | Mecanismo | Status | Observações |
-|---|---|---|---|
-| Inicialização | SessionStart hook | ⬜ Pendente | Substitui activate() |
-| Shutdown | SessionEnd hook | ⬜ Pendente | Substitui deactivate() |
-| Interceptação de prompt | UserPromptSubmit hook | ⬜ Pendente | Substitui onMessage() |
-| Validação de ferramentas | PreToolUse hook | ⬜ Pendente | Substitui onToolCall() |
-| Sync de estado | PreToolUse + PostToolUse | ⬜ Pendente | Workaround para onStateChange ausente |
-| Ferramentas dinâmicas | MCP Server :7777 | ⬜ Pendente | Substitui registerTool() |
-| Comandos slash | SKILL.md manifest | ⬜ Pendente | Substitui comandos slash Gemini |
-| Controle de subagentes | SubagentStart/Stop hooks | ⬜ Pendente | NOVO — nativo no Qwen |
-| Persistência global | SQLite (mantido) | ⬜ Pendente | globalState → SQLite direto |
-| Persistência workspace | SQLite (mantido) | ⬜ Pendente | workspaceState → SQLite direto |
+| Componente | Mecanismo | Status | Arquivo de Referência | Observações |
+|---|---|---|---|---|
+| Inicialização | SessionStart hook | ✅ Especificado | `06-api-and-extensibility.md` | Substitui activate() |
+| Shutdown | SessionEnd hook | ✅ Especificado | `06-api-and-extensibility.md` | Substitui deactivate() |
+| Interceptação de prompt | UserPromptSubmit hook | ✅ Especificado | `06-api-and-extensibility.md` | Substitui onMessage() |
+| Validação de ferramentas | PreToolUse hook | ✅ Especificado | `06-api-and-extensibility.md` | Substitui onToolCall() |
+| Sync de estado | PreToolUse + PostToolUse | ✅ Especificado | `06-api-and-extensibility.md` | Workaround para onStateChange ausente |
+| Ferramentas dinâmicas | MCP Server :7777 | ✅ Especificado | `06-api-and-extensibility.md` | Substitui registerTool() |
+| Comandos slash | SKILL.md manifest | ✅ Especificado | `SKILL.md` | Substitui comandos slash Gemini |
+| Controle de subagentes | SubagentStart/Stop hooks | ✅ Especificado | `06-api-and-extensibility.md` | NOVO — nativo no Qwen |
+| Persistência global | SQLite (mantido) | ✅ Especificado | `03-technical-spec-and-data.md` | globalState → SQLite direto |
+| Persistência workspace | SQLite (mantido) | ✅ Especificado | `03-technical-spec-and-data.md` | workspaceState → SQLite direto |
 
 ## Dívidas Técnicas Herdadas
 
-1. Testes de integração: mocks são do Gemini CLI, precisam ser reescritos para MockQwenHookRunner
-2. Error handling: falhas no MCP Server não têm tratamento uniforme definido
-3. onStateChange sem equivalente direto: definir contrato de polling via PreToolUse + PostToolUse
+1. **MockQwenHookRunner**
+   - **Referência:** `03-technical-spec-and-data.md` (§7)
+   - **Status:** Bloqueante para MVP (TDD Basis).
+   - **Contrato:** Deve implementar interface `IMockHookRunner { dispatchHook(name, payload): Promise<void>; getHookLog(): HookEvent[]; }`.
+
+2. **Error Handling MCP Server**
+   - **Referência:** `06-api-and-extensibility.md` (§3)
+   - **Status:** Bloqueante para MVP.
+   - **Contrato:** Falhas devem retornar JSON padrão: `{ "error": string, "code": string, "retryable": boolean }`.
+
+3. **onStateChange Workaround**
+   - **Referência:** `GREENFORGE_DESIGN.md` (§3.4)
+   - **Status:** Adiado (pode iniciar com Pre/Post hooks simples).
+   - **Resolução:** Confirmada via `PreToolUse` + `PostToolUse` para polling de estado.
 
 ## Variáveis de Ambiente
 
