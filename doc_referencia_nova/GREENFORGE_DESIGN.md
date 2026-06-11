@@ -376,7 +376,7 @@ Em caso de detecção de corrupção ou lock persistente:
 | RF-09 | Handoff | `AgentArtifact.hash` registrado no SQLite antes de `DONE`. | `handoff.test.ts` |
 | RNF-01 | Latência | Tempo entre `onMessage` e resposta do router < 1.2s. | `performance.test.ts` |
 | RNF-02 | Persistência | PRAGMA journal_mode retorna WAL após inicialização. | `handoff.test.ts` |
-| RNF-02 (Legacy) | Segurança | Tentativa de Path Traversal lança `SecurityError`. | `security.test.ts` |
+| RNF-06 | Segurança | Tentativa de Path Traversal lança `SecurityError`. | `security.test.ts` |
 | RNF-03 | Command Inj. | Meta-caracteres de shell em argumentos são tratados como literais. | `security.test.ts` |
 | RNF-04 | Contexto | Volume de contexto enviado reduzido em > 80% via signatures. | `context.test.ts` |
 | RNF-05 | Concorrência | Sistema suporta 5 subtarefas paralelas em 16GB RAM sem OOM. | `stress.test.ts` |
