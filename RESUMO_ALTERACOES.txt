@@ -1,0 +1,34 @@
+# RESUMO DE ALTERAÇÕES — Migração GreenForge (Gemini → Qwen)
+
+## 1. Documentação Reescrita (Surgical Rewrites)
+- **GREENFORGE_DESIGN.md**: Seção 3 totalmente reescrita para o modelo de Skill Manifest, Hooks JSON e MCP Server.
+- **INTEGRACAO_STATUS.md**: Resetado e reescrito para acompanhar os componentes Qwen (Hooks, MCP, Skills).
+- **06-api-and-extensibility.md**: Substituída a Gemini Extension API pelo modelo tripartido Qwen.
+- **README.md**: Atualizados requisitos (Node v22+), instalação via `qwen extensions` e troubleshooting de MCP.
+- **01-vision-and-architecture.md**: Novo diagrama Mermaid incluindo Qwen CLI Host e descrição da Camada 1.
+- **000_ler_primeiro_CONTEXT_TRANSFER.md**: Atualizada stack, componentes centrais e estrutura de pastas esperada.
+- **NEXUS_GREENFORGE.md**: Novo fluxo de execução baseado em Hooks e nova tabela de subagentes.
+
+## 2. Novos Arquivos Criados
+- **qwen-extension.json**: Manifesto raiz da extensão.
+- **.qwen/skills/greenforge/SKILL.md**: Manifesto da skill GreenForge para o modelo Qwen.
+- **docs/MIGRATION_GUIDE.md**: Guia completo de migração para referência futura.
+
+## 3. Substituições Nominais em Massa
+- **Gemini CLI** → **Qwen CLI**
+- **gemini-cli** → **qwen-code**
+- **.gemini/** → **.qwen/**
+- **GEMINI_API_KEY** → **QWEN_API_KEY**
+- **Gemini 1.5 Flash** → **Qwen 2.5**
+- **Gemini 1.5 Pro** → **Qwen 2.5 Max**
+- **Node.js v20+** → **Node.js v22+**
+
+## 4. Hardening e Segurança
+- Adição do vetor de ameaça **T-08 (Insecure Hook Registration)** em `05-governance-and-security.md`.
+- Nova entrada no `CHANGELOG_HARDENING.md` documentando a redução da superfície de ataque via modelo tripartido.
+
+## 5. Notas Adicionais
+- [AJUSTE PENDENTE]: Mocks de teste no documento 03 são conceituais, necessitam de implementação real baseada no SDK do Qwen.
+- [AJUSTE PENDENTE]: OnStateChange no documento 06 usa workaround PreToolUse+PostToolUse por falta de hook nativo direto no Qwen v0.4.
+
+**Status Final:** ✅ MIGRAÇÃO DOCUMENTAL CONCLUÍDA
