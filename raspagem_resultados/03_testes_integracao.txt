@@ -1,0 +1,199 @@
+# RASPAGEM 3 — Testes de Integração Existentes
+# Fonte: pasta doc_referencia/
+# Data: 2026-06-11
+# ============================================================================
+
+## 1. ESTRUTURA DE TESTES DESCRITA NA DOCUMENTAÇÃO
+
+### Pastas de Teste (03-technical-spec-and-data.md)
+```
+tests/
+├── unit/           ← Testes unitários do core (StateMachine, WorktreeManager)
+├── integration/    ← Testes de integração com Gemini CLI Extension API
+├── e2e/            ← Testes end-to-end com CLI real
+└── mocks/          ← Mocks e stubs do Gemini CLI
+    ├── MockExtensionContext.ts
+    ├── MockGlobalState.ts
+    └── MockToolRegistry.ts
+```
+
+### Ferramentas de Teste
+- **Framework**: Vitest (recomendado no package.json)
+- **Coverage**: c8 para cobertura de código
+- **E2E**: Script customizado com spawn do CLI
+
+---
+
+## 2. MOCKS DO GEMINI CLI DOCUMENTADOS
+
+### MockExtensionContext (GREENFORGE_DESIGN.md - Seção de Testes)
+```typescript
+class MockExtensionContext implements ExtensionContext {
+  extensionPath = '/mock/greenforge';
+  globalState = new MockMemento();
+  workspaceState = new MockMemento();
+  subscriptions: Disposable[] = [];
+  log = new MockLogger();
+  
+  dispose() {
+    this.subscriptions.forEach(s => s.dispose());
+  }
+}
+```
+
+### MockMemento (para globalState/workspaceState)
+```typescript
+class MockMemento implements Memento {
+  private store = new Map<string, any>();
+  
+  get<T>(key: string): T | undefined {
+    return this.store.get(key);
+  }
+  
+  set(key: string, value: any): void {
+    this.store.set(key, value);
+  }
+}
+```
+
+### MockToolRegistry
+```typescript
+class MockToolRegistry {
+  registeredTools = new Map<string, ToolDefinition>();
+  
+  registerTool(name: string, schema: ToolSchema, handler: ToolHandler) {
+    this.registeredTools.set(name, { name, schema, handler });
+  }
+  
+  async executeTool(name: string, args: any) {
+    const tool = this.registeredTools.get(name);
+    if (!tool) throw new Error(`Tool ${name} not found`);
+    return tool.handler(args);
+  }
+}
+```
+
+---
+
+## 3. CENÁRIOS DE TESTE DE INTEGRAÇÃO (Gherkin)
+
+### Cenário 1: Ativação da Extensão
+```gherkin
+Dado que o Gemini CLI está inicializando
+Quando a extensão GreenForge é ativada
+Então activate() deve ser chamado com ExtensionContext válido
+E StateMachine deve estar no estado INITIALIZED
+E Database SQLite deve estar conectada
+E worktreeRoot deve estar configurado
+```
+
+### Cenário 2: Registro de Ferramentas
+```gherkin
+Dado que a extensão foi ativada
+Quando registerTool() é chamado para forge_start_task
+E registerTool() é chamado para forge_list_tasks
+E registerTool() é chamado para forge_approve_plan
+Então todas as 3 ferramentas devem estar registradas
+E o schema de cada ferramenta deve ser válido
+```
+
+### Cenário 3: Interceptação de Mensagem
+```gherkin
+Dado que onMessage hook está registrado
+Quando usuário envia "/greenforge-start nova-tarefa"
+Então onMessage deve interceptar antes do Gemini CLI processar
+E NEXUS deve parsear o comando
+E StateMachine deve transitar para INITIALIZED
+```
+
+### Cenário 4: Execução de Ferramenta
+```graherkin
+Dado que uma tarefa está ativa
+Quando usuário invoca forge_approve_plan
+Então onToolCall deve validar os parâmetros
+E GateManager deve aprovar o plano
+E DiffLens deve aplicar as mudanças
+E StateMachine deve atualizar estado
+```
+
+### Cenário 5: Persistência de Estado
+```gherkin
+Dado que uma tarefa está em execução
+Quando workspaceState.set() é chamado
+Então o estado deve ser persistido no SQLite
+E após restart, workspaceState.get() deve retornar valor correto
+```
+
+### Cenário 6: Desativação Limpa
+```gherkin
+Dado que há tarefas ativas
+Quando deactivate() é chamado
+Então todas as tarefas devem ser salvas
+E recursos devem ser liberados
+E subscriptions devem ser disposed
+```
+
+### Cenário 7: Error Handling
+```gherkin
+Dado que Extension API lança erro
+Quando onToolCall é executado
+Então erro deve ser capturado e logado
+E usuário deve receber mensagem amigável
+E StateMachine não deve corromper
+```
+
+---
+
+## 4. ARQUIVOS DE TESTE RECOMENDADOS (03-technical-spec-and-data.md)
+
+| Arquivo | Tipo | Descrição |
+|---------|------|-----------|
+| tests/integration/extension-lifecycle.test.ts | Integração | Testa activate/deactivate |
+| tests/integration/tool-registration.test.ts | Integração | Testa registerTool |
+| tests/integration/hook-interception.test.ts | Integração | Testa onMessage/onToolCall |
+| tests/integration/state-persistence.test.ts | Integração | Testa globalState/workspaceState |
+| tests/unit/state-machine.test.ts | Unitário | Testa transições de estado |
+| tests/unit/worktree-manager.test.ts | Unitário | Testa criação de worktrees |
+| tests/unit/diff-lens.test.ts | Unitário | Testa aplicação de diffs |
+| tests/e2e/full-workflow.test.ts | E2E | Fluxo completo de tarefa |
+| tests/mocks/MockPluginHost.ts | Mock | Host plugin mockado para Qwen |
+| tests/mocks/MockQwenConfig.ts | Mock | Config do Qwen CLI mockada |
+| tests/mocks/MockSkillRegistry.ts | Mock | Registry de skills mockado |
+| tests/mocks/MockMcpClient.ts | Mock | Cliente MCP mockado |
+| tests/mocks/MockHookRunner.ts | Mock | Runner de hooks mockado |
+
+---
+
+## 5. MATRIZ DE RASTREABILIDADE (RF → Testes)
+
+| Requisito | Testes Associados | Status |
+|-----------|-------------------|--------|
+| RF-001: Criar worktree isolado | unit/worktree-manager.test.ts | ✅ Coberto |
+| RF-002: StateMachine 10 estados | unit/state-machine.test.ts | ✅ Coberto |
+| RF-003: Interceptação via hooks | integration/hook-interception.test.ts | ⚠️ Parcial |
+| RF-004: Validação pré-execução | integration/tool-registration.test.ts | ✅ Coberto |
+| RF-005: Persistência SQLite | integration/state-persistence.test.ts | ✅ Coberto |
+| RF-006: Subagentes especializados | e2e/full-workflow.test.ts | ⚠️ Pendente |
+| RF-007: Gates de aprovação | unit/gate-manager.test.ts | ✅ Coberto |
+| RF-008: DiffLens seguro | unit/diff-lens.test.ts | ✅ Coberto |
+
+---
+
+## 6. [PROATIVO] LACUNAS PARA MIGRAÇÃO QWEN CLI
+
+1. **Mocks desatualizados**: Mocks atuais são para Gemini CLI Extension API
+   - Precisa criar: MockQwenConfig, MockSkillManager, MockHookRegistry
+
+2. **Novos pontos de teste**:
+   - Testar integração com Skill manifest do Qwen
+   - Testar hooks do Qwen (PreToolUse, PostToolUse, SessionStart, etc.)
+   - Testar MCP Server como alternativa de integração
+
+3. **Testes de compatibilidade**:
+   - Validar que commands slash não conflitam com Qwen nativo
+   - Testar persistence com storage.ts do Qwen (não Memento)
+
+4. **E2E específico do Qwen**:
+   - Rodar testes com Qwen CLI real (não mock)
+   - Validar integração com channels (Telegram, Discord, etc.)
+

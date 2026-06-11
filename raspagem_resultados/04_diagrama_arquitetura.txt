@@ -1,0 +1,232 @@
+# RASPAGEM 4 — Diagrama de Arquitetura e Componentes
+# Fonte: pasta doc_referencia/
+# Data: 2026-06-11
+# ============================================================================
+
+## 1. DIAGRAMA DE ARQUITETURA (01-vision-and-architecture.md)
+
+### Diagrama Mermaid Original
+
+```mermaid
+graph TB
+    subgraph "Gemini CLI Host"
+        GC[Gemini CLI Core]
+        EA[Extension API]
+        HS[Hook System]
+        TR[Tool Registry]
+    end
+    
+    subgraph "GreenForge Extension"
+        subgraph "Integration Layer"
+            ACT[activate/deactivate]
+            OM[onMessage Handler]
+            OT[onToolCall Handler]
+            RT[registerTool]
+        end
+        
+        subgraph "Core GreenForge"
+            SM[StateMachine<br/>10 estados]
+            WM[WorktreeManager]
+            DL[DiffLens]
+            GM[GateManager]
+            DB[(SQLite WAL)]
+        end
+        
+        subgraph "Subagents"
+            EX[Explorer]
+            CR[CodeReviewer]
+            VF[Verifier]
+            PL[Planner]
+        end
+    end
+    
+    User[Usuário] -->|Slash Commands| GC
+    GC -->|Hooks| HS
+    HS --> OM
+    GC -->|Tool Calls| TR
+    TR --> OT
+    
+    OM --> NEX[NEXUS Orchestrator]
+    OT --> GM
+    
+    NEX --> SM
+    GM --> SM
+    
+    SM --> WM
+    SM --> DL
+    SM --> DB
+    
+    WM --> EX
+    WM --> CR
+    WM --> VF
+    
+    DL --> GM
+```
+
+### Descrição Textual da Arquitetura
+
+**Camada 1: Gemini CLI Host**
+- Fornece Extension API como ponto de extensão
+- Hook System intercepta eventos do ciclo de vida
+- Tool Registry gerencia ferramentas registradas
+- Usuário interage via comandos slash
+
+**Camada 2: Integration Layer (GreenForge)**
+- activate()/deactivate(): ciclo de vida da extensão
+- onMessage: intercepta comandos do usuário
+- onToolCall: valida ferramentas antes de executar
+- registerTool: expõe ferramentas customizadas
+
+**Camada 3: Core GreenForge**
+- StateMachine: orquestra transições de estado (10 estados)
+- WorktreeManager: gerencia worktrees git isolados
+- DiffLens: aplica mudanças de forma segura e atômica
+- GateManager: valida planos antes de execução
+- SQLite WAL: persistência durável de estado
+
+**Camada 4: Subagentes**
+- Explorer: descobre estrutura do projeto
+- CodeReviewer: analisa qualidade do código
+- Verifier: valida mudanças e executa testes
+- Planner: gera planos de execução
+
+---
+
+## 2. PONTOS DE CONEXÃO COM GEMINI CLI
+
+### Ponto de Entrada Principal
+```typescript
+// index.ts - Entry point da extensão
+export function activate(context: ExtensionContext) {
+  // Inicializa core
+  const stateMachine = new StateMachine();
+  const worktreeManager = new WorktreeManager();
+  const diffLens = new DiffLens();
+  const gateManager = new GateManager();
+  
+  // Registra hooks
+  context.subscriptions.push(
+    onMessage(handleUserMessage),
+    onToolCall(validateToolExecution),
+    onStateChange(syncUI)
+  );
+  
+  // Registra ferramentas
+  registerTool('forge_start_task', schema, handler);
+  registerTool('forge_list_tasks', schema, handler);
+  registerTool('forge_approve_plan', schema, handler);
+}
+```
+
+### Fluxo de Dados
+```
+1. Usuário digita: /greenforge-start "refatorar auth module"
+2. Gemini CLI processa comando slash
+3. onMessage hook é disparado
+4. GreenForge intercepta e parseia comando
+5. StateMachine transita: IDLE → INITIALIZED
+6. WorktreeManager cria worktree isolado
+7. NEXUS dispatch para subagentes
+8. Resultados consolidados → Usuário
+```
+
+---
+
+## 3. COMPONENTES ARQUITETURAIS COMPLETOS
+
+### Macro-Componentes (5)
+
+| Componente | Responsabilidade | Arquivo |
+|------------|------------------|---------|
+| StateMachine | Gerencia 10 estados do ciclo de vida da tarefa | src/core/StateMachine.ts |
+| WorktreeManager | Cria/gerencia worktrees git isolados | src/core/WorktreeManager.ts |
+| DiffLens | Aplica diffs de forma segura e atômica | src/core/DiffLens.ts |
+| GateManager | Valida planos contra regras e constraints | src/core/GateManager.ts |
+| Database | Persistência SQLite com WAL | src/persistence/Database.ts |
+
+### Subcomponentes (4 Subagentes)
+
+| Subagente | Tipo | Hooks Utilizados |
+|-----------|------|------------------|
+| Explorer | Leitura | list_dir, read_file, grep |
+| CodeReviewer | Análise | read_many_files, ast_parse |
+| Verifier | Validação | run_tests, git_diff, shell |
+| Planner | Geração | onMessage, conversation_history |
+
+### Estados da StateMachine (10)
+
+1. **IDLE**: Sem tarefa ativa
+2. **INITIALIZED**: Tarefa criada, worktree pronto
+3. **EXPLORING**: Explorer analisando estrutura
+4. **REVIEWING**: CodeReviewer analisando código
+5. **PLANNING**: Planner gerando plano
+6. **WAITING_APPROVAL**: Plano aguardando aprovação
+7. **EXECUTING**: Executando ações aprovadas
+8. **VERIFYING**: Verifier validando mudanças
+9. **COMPLETED**: Tarefa finalizada com sucesso
+10. **FAILED**: Tarefa falhou (requer intervenção)
+
+### Camadas Arquiteturais (3)
+
+```
+┌─────────────────────────────────────────┐
+│         CAMADA DE INTEGRAÇÃO            │ ← Reescrever para Qwen
+│  (Hooks, Tools, Lifecycle, Persistence) │
+├─────────────────────────────────────────┤
+│           CAMADA CORE                   │ ← Inalterada
+│  (StateMachine, Worktree, Diff, Gates)  │
+├─────────────────────────────────────────┤
+│         CAMADA DE SUBAGENTES            │ ← Inalterada
+│  (Explorer, Reviewer, Verifier, Planner)│
+└─────────────────────────────────────────┘
+```
+
+---
+
+## 4. [PROATIVO] MAPEAMENTO PARA QWEN CLI
+
+### Equivalentes Sugeridos
+
+| Gemini CLI | Qwen CLI | Status |
+|------------|----------|--------|
+| ExtensionContext | Config + Storage | ⚠️ Precisa adapter |
+| activate() | Skill onLoad / Plugin init | ✅ Similar |
+| deactivate() | Skill onUnload / Plugin dispose | ✅ Similar |
+| onMessage | Hook: UserPromptSubmit | ✅ Mapeável |
+| onToolCall | Hook: PreToolUse | ✅ Mapeável |
+| onStateChange | Hook: SessionStateChange | ⚠️ Não existe nativo |
+| registerTool() | Skill manifest tools / MCP | ✅ Via MCP |
+| globalState | Storage.global | ✅ Similar |
+| workspaceState | Storage.workspace | ✅ Similar |
+| Slash commands | Skill commands / MCP tools | ✅ Via MCP |
+
+### Arquitetura Proposta para Qwen
+
+```
+┌─────────────────────────────────────────┐
+│          QWEN CLI HOST                  │
+│  (Skills, Hooks, MCP, Channels)         │
+├─────────────────────────────────────────┤
+│     GREENFORGE PLUGIN LAYER             │
+│  ┌─────────────────────────────────┐    │
+│  │ QwenPluginAdapter               │    │
+│  │ - Skill manifest registration   │    │
+│  │ - Hook event mapping            │    │
+│  │ - MCP server embedded           │    │
+│  └─────────────────────────────────┘    │
+├─────────────────────────────────────────┤
+│       CORE GREENFORGE                   │ ← INALTERADO
+│  (StateMachine, Worktree, Diff, Gates)  │
+├─────────────────────────────────────────┤
+│         SUBAGENTES                      │ ← INALTERADO
+│  (Explorer, Reviewer, Verifier, Planner)│
+└─────────────────────────────────────────┘
+```
+
+### Estratégia de Integração Recomendada
+
+1. **Skill Manifest**: Define ferramentas estáticas (forge_*)
+2. **Hooks JSON**: Intercepta eventos (PreToolUse, SessionStart)
+3. **MCP Server**: Expõe ferramentas runtime + callbacks de hooks
+4. **Core Inalterado**: StateMachine, WorktreeManager, etc. permanecem iguais
+

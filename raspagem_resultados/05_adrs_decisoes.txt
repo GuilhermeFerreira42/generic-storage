@@ -1,0 +1,199 @@
+# RASPAGEM 5 — ADRs e Decisões Técnicas Vinculadas ao Gemini CLI
+# Fonte: pasta doc_referencia/
+# Data: 2026-06-11
+# ============================================================================
+
+## 1. ADRs (Architecture Decision Records) IDENTIFICADAS
+
+### ADR-001: Uso de Worktrees Git para Isolamento
+- **Status**: ACEITA
+- **Contexto**: Necessidade de isolar mudanças de cada tarefa sem afetar branch principal
+- **Decisão**: Usar `git worktree` em vez de branches ou stashes
+- **Consequências**: 
+  - ✅ Isolamento completo do filesystem
+  - ✅ Múltiplas tarefas simultâneas
+  - ⚠️ Requer Git >= 2.30.0
+- **Vínculo com Gemini CLI**: Nenhum (decisão independente de plataforma)
+
+### ADR-002: StateMachine de 10 Estados
+- **Status**: ACEITA
+- **Contexto**: Orquestração complexa de subagentes requer controle de estado explícito
+- **Decisão**: Implementar state machine finita com 10 estados bem definidos
+- **Consequências**:
+  - ✅ Previsibilidade total do fluxo
+  - ✅ Debugging facilitado
+  - ⚠️ Rigidez para mudanças futuras
+- **Vínculo com Gemini CLI**: Nenhum (core business logic)
+
+### ADR-003: SQLite com WAL Mode
+- **Status**: ACEITA
+- **Contexto**: Persistência durável necessária para recuperação após crash
+- **Decisão**: SQLite em WAL mode via better-sqlite3
+- **Consequências**:
+  - ✅ ACID compliance
+  - ✅ Recuperação automática após crash
+  - ✅ Leitura concorrente sem locks
+  - ⚠️ Write lock exclusivo durante transações
+- **Vínculo com Gemini CLI**: Nenhum, mas usa globalState para metadados
+
+### ADR-004: DiffLens para Aplicação Segura de Mudanças
+- **Status**: ACEITA
+- **Contexto**: Subagentes geram diffs que precisam ser aplicados atomicamente
+- **Decisão**: Criar camada DiffLens que valida e aplica diffs com rollback
+- **Consequências**:
+  - ✅ Nenhuma mudança parcial aplicada
+  - ✅ Rollback automático em caso de erro
+  - ⚠️ Overhead de ~10ms por diff
+- **Vínculo com Gemini CLI**: Usa onToolCall hook para interceptar writes
+
+### ADR-005: GateManager para Validação de Planos
+- **Status**: ACEITA
+- **Contexto**: Planos gerados por LLM podem conter ações destrutivas
+- **Decisão**: Implementar GateManager com regras validadoras antes de execução
+- **Consequências**:
+  - ✅ Bloqueia ações perigosas automaticamente
+  - ✅ Audit trail de todas as validações
+  - ⚠️ Falsos positivos podem bloquear ações válidas
+- **Vínculo com Gemini CLI**: Integrado ao onToolCall hook
+
+### ADR-006: Subagentes Especializados (não monolítico)
+- **Status**: ACEITA
+- **Contexto**: Agente único tem dificuldade em focar em tarefas especializadas
+- **Decisão**: 4 subagentes especializados (Explorer, CodeReviewer, Verifier, Planner)
+- **Consequências**:
+  - ✅ Melhor qualidade por especialização
+  - ✅ Paralelismo possível
+  - ⚠️ Overhead de coordenação (NEXUS)
+- **Vínculo com Gemini CLI**: Dispatch via hooks do Gemini CLI
+
+### ADR-007: Integração via Extension API Oficial
+- **Status**: OBSOLETA (será substituída na migração Qwen)
+- **Contexto**: Gemini CLI fornece Extension API oficial para extensões
+- **Decisão**: Usar apenas APIs oficiais, sem hacks ou reverse engineering
+- **Consequências**:
+  - ✅ Estabilidade garantida pelo vendor
+  - ✅ Documentação oficial disponível
+  - ⚠️ Limitado pelo que a API expõe
+  - ❌ Não portável para outras plataformas
+- **Vínculo com Gemini CLI**: CRÍTICO — esta ADR será reescrita para Qwen CLI
+
+---
+
+## 2. DECISÕES TÉCNICAS VINCULADAS AO GEMINI CLI
+
+### Decisão: Hooks como Ponto de Interceptação Primário
+- **Motivação**: Gemini CLI expõe hook system rico via Extension API
+- **Implementação**: onMessage, onToolCall, onStateChange
+- **Limitação**: onStateChange não é suportado nativamente no Qwen CLI
+- **Ação para Migração**: Substituir por combinação de PreToolUse + PostToolUse hooks
+
+### Decisão: registerTool() para Ferramentas Customizadas
+- **Motivação**: Gemini CLI permite registro dinâmico de ferramentas
+- **Implementação**: 3 ferramentas forge_* registradas via API
+- **Limitação**: Qwen CLI não tem registerTool() runtime
+- **Ação para Migração**: Usar Skill manifest (estático) + MCP Server (dinâmico)
+
+### Decisão: ExtensionContext para Persistência
+- **Motivação**: Gemini CLI fornece globalState e workspaceState via context
+- **Implementação**: Memento pattern com get/set assíncronos
+- **Limitação**: Qwen CLI usa Storage class diferente
+- **Ação para Migração**: Adapter para Config + Storage do Qwen
+
+### Decisão: Slash Commands para UX do Usuário
+- **Motivação**: Gemini CLI suporta comandos slash customizados (/comando)
+- **Implementação**: /greenforge-start, /greenforge-status, etc.
+- **Limitação**: Qwen CLI tem sistema próprio de slash commands
+- **Ação para Migração**: Manter nomes mas registrar via Skill manifest
+
+---
+
+## 3. REQUISITOS DE RUNTIME E PLATAFORMA
+
+### Requisitos Originais (Gemini CLI)
+
+| Requisito | Versão Mínima | Justificativa |
+|-----------|---------------|---------------|
+| Gemini CLI | v2.0+ | Extension API estável |
+| Node.js | v20+ | Required pelo Gemini CLI SDK |
+| Git | >= 2.30.0 | Suporte a worktree com paths relativos |
+| SQLite | 3.x | Via better-sqlite3 native module |
+
+### Requisitos Propostos (Qwen CLI)
+
+| Requisito | Versão Mínima | Justificativa |
+|-----------|---------------|---------------|
+| Qwen CLI | v0.4+ | SDK TypeScript estável |
+| Node.js | v22+ | Required pelo Qwen CLI SDK |
+| Git | >= 2.30.0 | Inalterado (worktrees) |
+| SQLite | 3.x | Inalterado (better-sqlite3) |
+
+---
+
+## 4. [PROATIVO] DECISÕES ARQUITETURAIS IMPORTANTES PARA MIGRAÇÃO
+
+### Decisão-M: Manter Core Inalterado
+- **Status**: ACEITA
+- **Contexto**: Migração é apenas de camada de integração
+- **Decisão**: StateMachine, WorktreeManager, DiffLens, GateManager, Subagentes permanecem 100% inalterados
+- **Justificativa**: 
+  - Core é agnóstico de plataforma
+  - Testes unitários já cobrem core
+  - Reduz risco de regressão
+- **Impacto**: Apenas QwenPluginAdapter e IPluginHost são novos
+
+### Decisão-N: MCP Server como Camada de Adaptação
+- **Status**: PROPOSTA
+- **Contexto**: Qwen CLI tem suporte nativo a MCP
+- **Decisão**: Implementar MCP Server embedded que expõe ferramentas forge_*
+- **Justificativa**:
+  - MCP é padrão emergente na indústria
+  - Permite tools dinâmicas (não apenas estáticas via manifest)
+  - Facilita debugging independente
+- **Impacto**: Adiciona dependência @modelcontextprotocol/sdk
+
+### Decisão-O: Skill Manifest para Configuração Estática
+- **Status**: PROPOSTA
+- **Contexto**: Qwen CLI usa Skill system para plugins
+- **Decisão**: Criar Skill manifest com ferramentas, hooks e comandos
+- **Justificativa**:
+  - É o mecanismo oficial do Qwen CLI
+  - Permite descoberta automática
+  - Integração com UI do Qwen
+- **Impacto**: Necessário aprender formato SKILL.md
+
+### Decisão-P: Hooks JSON para Interceptação de Eventos
+- **Status**: PROPOSTA
+- **Contexto**: Qwen CLI suporta hooks via .qwen/hooks.json
+- **Decisão**: Configurar hooks PreToolUse, SessionStart, SubagentStart/Stop
+- **Justificativa**:
+  - Substitui onMessage/onToolCall do Gemini
+  - Não requer código customizado para interceptação básica
+  - Compatível com MCP fallback
+- **Impacto**: Hooks JSON limitados a command/http/prompt; function hooks requerem code
+
+---
+
+## 5. LIÇÕES DO CHANGELOG_HARDENING.md
+
+### Vulnerabilidades Resolvidas
+
+1. **Path Traversal em Worktrees** (v0.3.1)
+   - Problema: WorktreeManager não validava paths fora do root
+   - Solução: Adicionar validação com path.resolve + startsWith
+   - Seção relacionada: 09-hardening-deterministic-contracts.md
+
+2. **State Corruption em Crash** (v0.3.2)
+   - Problema: SQLite sem WAL corrompia em crash durante write
+   - Solução: Habilitar WAL mode + checkpoint automático
+   - Seção relacionada: 03-technical-spec-and-data.md
+
+3. **Command Injection via Tool Args** (v0.4.0)
+   - Problema: forge_start_task não sanitizava argumentos
+   - Solução: Validar schema estritamente + escape shell args
+   - Seção relacionada: 05-governance-and-security.md
+
+### Implicações para Migração Qwen
+- Todas as validações de segurança devem ser portadas integralmente
+- Qwen CLI pode ter vetores de ataque diferentes (ex: MCP server injection)
+- Revisar 05-governance-and-security.md para ameaças específicas do Qwen
+
