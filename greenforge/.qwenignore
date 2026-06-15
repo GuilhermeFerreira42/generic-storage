@@ -1,0 +1,14 @@
+.git/
+node_modules/
+**/node_modules/
+dist/
+build/
+coverage/
+.cache/
+.next/
+.vite/
+.turbo/
+*.log
+*.tmp
+*.bak
+*.old

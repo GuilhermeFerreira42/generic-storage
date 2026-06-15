@@ -1,0 +1,25 @@
+# GreenForge AI Context
+
+Este arquivo serve como ponto de entrada para agentes de IA que assumem este projeto.
+
+## Visão Geral
+GreenForge é um orquestrador avançado para Qwen CLI que usa Git Worktrees para isolamento.
+
+## Fontes de Verdade (Documentação Portátil)
+- **Onboarding:** `documentacao/000_ler_primeiro_CONTEXT_TRANSFER.md`
+- **Design de Referência:** `documentacao/GREENFORGE_DESIGN.md`
+- **Especificação Técnica:** `documentacao/03-technical-spec-and-data.md`
+
+## Memória do Projeto (Estado e Decisões)
+- **Estado Atual:** `docs/CURRENT_STATE.md`
+- **Backlog Progressivo:** `docs/BACKLOG_FUTURO.md`
+- **Log de Decisões (ADR):** `docs/DECISION_LOG.md`
+- **Protocolo de Arquivamento:** `docs/ARCHIVING_PROTOCOL.md`
+
+## Logs de Interação Humana
+- **Human Log:** `.humano`
+
+## Comandos Úteis
+- `npm test`: Executa suíte de testes (Vitest)
+- `npm run build`: Compila TypeScript
+- `npm run lint`: Executa verificação de estilo e erros estáticos

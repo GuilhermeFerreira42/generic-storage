@@ -1,0 +1,15 @@
+{
+  "name": "greenforge",
+  "version": "1.0.0",
+  "description": "Advanced orchestration for Qwen CLI using Git Worktrees",
+  "mcpServers": {
+    "greenforgeServer": {
+      "command": "node",
+      "args": ["${extensionPath}${/}dist${/}mcp-server.js"],
+      "cwd": "${extensionPath}"
+    }
+  },
+  "skills": "skills",
+  "contextFileName": "QWEN.md",
+  "hooks": "./settings.json"
+}
