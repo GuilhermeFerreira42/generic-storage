@@ -1,32 +1,23 @@
-Olá. Na pasta atual, você tem os seguintes itens:
+Leia primeiro o arquivo `greenforge-phase-executor-SKILL.md` e siga essa skill como regra obrigatória para esta sessão.
 
-- pasta `doc_referencia/` → documentação original do GreenForge (feita para Gemini CLI)
-- pasta `qwen-code-main/` → código fonte do Qwen CLI (consulte se precisar)
-- pasta `raspagem_resultados/` → investigação técnica feita anteriormente (pode ignorar, o relatório já sintetiza)
-- arquivo `GREENFORGE_MIGRATION_V2_FINAL.md` → relatório final do Claude com TODAS as instruções de migração
+Agora comece somente a Fase 0 do GreenForge.
 
-Sua tarefa é executar fielmente o que está descrito no arquivo `GREENFORGE_MIGRATION_V2_FINAL.md`. Siga as instruções seção por seção, documento por documento.
+Contexto do projeto:
+- A documentação completa do GreenForge está em `documentacao/`.
+- O código-fonte do Qwen CLI está em `qwen-code-main/`.
+- O protocolo de arquivamento progressivo está em `Protocolo_Sistema_de_Arquivamento_Progressivo_v1.2.md.txt`.
 
-Passos obrigatórios:
+Regras obrigatórias:
+- Execute apenas a Fase 0.
+- Não avance para a Fase 1 sem minha aprovação explícita.
+- Leia a documentação na ordem indicada pelo arquivo `documentacao/000_ler_primeiro_CONTEXT_TRANSFER.md`.
+- Considere `documentacao/GREENFORGE_DESIGN.md` como fonte única da verdade.
+- Não implemente funcionalidades complexas ainda.
+- Prepare a estrutura inicial necessária para o GreenForge, os arquivos de memória do workflow e a base de testes.
+- Rode as verificações necessárias.
+- Se houver testes, rode os testes.
+- Se algo falhar, corrija até passar ou pare após 5 tentativas explicando o bloqueio.
+- Ao terminar, entregue um relatório em português brasileiro dizendo o que foi feito, quais arquivos foram criados ou modificados, quais comandos foram executados, qual foi o resultado dos testes e qual é a próxima fase recomendada.
+- Depois do relatório, pare e aguarde minha aprovação.
 
-1. Crie uma cópia da pasta `doc_referencia` chamada `doc_referencia_nova`. Todas as modificações devem ser feitas dentro dessa nova pasta. A pasta original `doc_referencia` deve permanecer intacta como backup.
-
-2. Aplique as modificações conforme o relatório:
-   - Substituições nominais em massa (ex: "Gemini CLI" → "Qwen CLI", "GEMINI_API_KEY" → "QWEN_API_KEY", etc.)
-   - Reescreva as seções críticas indicadas (Seção 3 do GREENFORGE_DESIGN.md, INTEGRACAO_STATUS.md, 06-api-and-extensibility.md, etc.)
-   - Atualize os diagramas e textos nos documentos de média prioridade.
-   - Crie os três novos arquivos solicitados: `qwen-extension.json`, `.qwen/skills/greenforge/SKILL.md`, e `docs/MIGRATION_GUIDE.md`.
-
-3. Se alguma instrução do relatório não estiver 100% clara (por exemplo, faltar o texto exato para substituir ou o contexto não bater), use o bom senso para fazer a mudança mais apropriada e **marque o local com um comentário `[AJUSTE PENDENTE]`** para que eu possa revisar depois. Não trave a execução por causa de pequenas ambiguidades.
-
-4. Ao final, gere um arquivo `RESUMO_ALTERACOES.txt` dentro da pasta `doc_referencia_nova` listando:
-   - Quais documentos foram modificados.
-   - Quais seções foram reescritas.
-   - Quais novos arquivos foram criados.
-   - Se houve algum `[AJUSTE PENDENTE]`, aponte onde.
-
-5. Execute todas as tarefas em loop, só pare quando TODAS as modificações listadas no relatório estiverem concluídas. Após terminar, me avise e mostre o caminho da pasta `doc_referencia_nova`.
-
-A documentação original era para o Gemini CLI. Agora queremos migrar para o Qwen CLI. O relatório do Claude é o seu guia definitivo. Use também a pasta `qwen-code-main` se precisar consultar algo específico do Qwen, mas o relatório já contém quase tudo o que você precisa.
-
-Comece agora.
+Comece agora a Fase 0.

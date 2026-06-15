@@ -1,0 +1,555 @@
+# Protocolo — Sistema de Arquivamento Progressivo v1.2
+
+> **O que mudou na v1.2:**
+> A v1.1 criava memória do estado atual, mas não capturava as decisões tomadas *antes* da implementação — aquelas que emergem durante conversas de refinamento com o modelo. Isso forçava o NEXUS a fazer perguntas sobre contratos que o usuário já havia resolvido mentalmente, mas que nunca foram escritos. A v1.2 resolve isso com dois mecanismos: o bloco `CONTRATOS_DA_ONDA` no `BACKLOG_FUTURO.md` e o campo correspondente no bloco de contexto do NEXUS. Com isso, o ciclo conversa → arquivamento → blueprint fecha sem interrupções.
+
+---
+
+## COMO USAR ESTE PROTOCOLO
+
+Copie, preencha os campos entre `{colchetes}` e cole para a IA executora.
+
+Este protocolo é executado em **dois momentos distintos**:
+
+| Momento | Quando | O que faz |
+|---|---|---|
+| **Inicialização** | Uma única vez, no início do projeto | Cria os 6 artefatos de memória do zero |
+| **Arquivamento pós-fase** | Após cada fase validada | Atualiza os artefatos para refletir o estado atual |
+
+As instruções para cada momento estão separadas abaixo.
+
+---
+
+## PARTE A — INICIALIZAÇÃO DO SISTEMA
+
+Execute este bloco **uma única vez**, após o PRD ou NEXUS inicial ter sido aprovado.
+
+```
+PROJETO: {NOME_DO_PROJETO}
+Fase atual concluída: {NUMERO_DA_FASE_ATUAL}  ← use "0" se ainda não implementou nada
+Diretório do código-fonte: {CAMINHO_DO_CODIGO}     (ex: src/)
+Diretório de testes:       {CAMINHO_DOS_TESTES}    (ex: tests/)
+Diretório de documentação: {CAMINHO_DOS_DOCS}      (ex: docs/)
+Diretório de arquivo morto:{CAMINHO_DO_ARCHIVE}    (ex: docs/archive/)
+```
+
+### TAREFA DE INICIALIZAÇÃO
+
+Executar **6 ações** na ordem abaixo. Não pular nenhuma. Não alterar nenhum arquivo de código-fonte.
+
+---
+
+### AÇÃO 1 — Criar `{CAMINHO_DOS_DOCS}/CURRENT_STATE.md`
+
+Descreve **exclusivamente o que o sistema É agora**. É o único arquivo que a IA lerá no futuro para entender onde o projeto está.
+
+**Regras de escrita:**
+1. Sem histórico — apenas o estado atual
+2. Sem justificativas — o "porquê" fica no `DECISION_LOG`
+3. Sem código — apenas assinaturas públicas (nome + parâmetros + retorno)
+4. Sem exemplos de output — apenas especificações
+5. Tabelas sobre prosa — cada módulo = 1 linha de tabela
+6. Invariantes como lista numerada — máximo 15 itens
+7. **Target obrigatório: ≤ 1500 tokens** — exceder inviabiliza o objetivo do arquivo
+
+**Estrutura obrigatória:**
+
+```markdown
+# CURRENT_STATE — {NOME_DO_PROJETO}
+> Última atualização: Fase {NUMERO_DA_FASE_ATUAL} | {DATA}
+
+## Arquitetura Ativa
+- [padrão arquitetural, orquestração, persistência, integrações principais — 3 a 5 bullets]
+
+## Módulos e Contratos Vigentes
+| Módulo | Arquivo | Contrato Público | Desde |
+|---|---|---|---|
+| [1 linha por módulo/classe com métodos públicos e assinaturas] | | | |
+
+## Fluxo Principal
+[descrição compacta: 1 linha por etapa, ou DAG se aplicável]
+
+## Invariantes Globais (nunca violar)
+1. [regra que nunca pode ser quebrada]
+2. ...
+
+## Restrições Técnicas Ativas
+[configurações, limites e parâmetros que afetam comportamento]
+
+## Testes Obrigatórios
+| Suite | Arquivo | Cobertura Aproximada | Comando |
+|---|---|---|---|
+
+## Dependências Externas
+| Pacote | Versão | Motivo |
+|---|---|---|
+```
+
+**Para preencher:** leia `{CAMINHO_DO_CODIGO}` e `{CAMINHO_DOS_TESTES}`. Extraia todos os módulos, contratos, fluxos, invariantes e restrições existentes até a Fase {NUMERO_DA_FASE_ATUAL}.
+
+---
+
+### AÇÃO 2 — Criar `{CAMINHO_DOS_DOCS}/DECISION_LOG.md`
+
+Registro compacto de todas as decisões arquiteturais de cada fase.
+
+**Formato — uma linha por decisão:**
+```
+F{N} | {TIPO} | {DECISÃO} | {MOTIVO} | {ARQUIVOS IMPACTADOS}
+```
+
+**Tipos válidos:**
+| Tipo | Significado |
+|---|---|
+| `ADD` | Novo arquivo, classe, método ou componente |
+| `MOD` | Modificação de existente |
+| `DEL` | Remoção |
+| `FREEZE` | Interface ou contrato congelado |
+| `RULE` | Regra arquitetural ou operacional estabelecida |
+| `CFG` | Configuração ou parâmetro definido |
+| `FIX` | Correção de bug com impacto arquitetural |
+
+**Estrutura:**
+
+```markdown
+# DECISION_LOG — {NOME_DO_PROJETO}
+
+## Formato
+`[FASE] | [TIPO] | [DECISÃO] | [MOTIVO] | [ARQUIVOS IMPACTADOS]`
+
+Tipos: ADD, MOD, DEL, FREEZE, RULE, CFG, FIX
+
+---
+
+### Fase 0 — Planejamento
+F0 | ADD | ... | ... | ...
+
+### Fase 1 — [nome]
+F1 | ADD | ... | ... | ...
+
+[uma seção por fase até a fase atual]
+```
+
+**Para preencher:** leia cada blueprint/documento em `{CAMINHO_DO_ARCHIVE}`. Entre 3 e 10 linhas por fase. Foque em: o que foi criado/modificado/removido, contratos definidos ou congelados, regras estabelecidas, bugs estruturais corrigidos.
+
+---
+
+### AÇÃO 3 — Criar `{CAMINHO_DOS_DOCS}/BACKLOG_FUTURO.md`
+
+Roadmap estratégico do projeto com critérios de aceite por onda **e contratos pré-decididos por onda**.
+
+Esta é a principal mudança da v1.2. Cada onda agora inclui um bloco `CONTRATOS_DA_ONDA` que captura decisões tomadas antes da implementação — durante conversas de refinamento, sessões de design ou revisão do PRD. Esse bloco é o insumo direto para o campo `CONTRATOS_DA_ONDA` no NEXUS, eliminando perguntas sobre informações que o usuário já decidiu.
+
+**Regras de escrita:**
+1. Cada item tem critério binário — passou/não passou, nunca "melhoria geral"
+2. Status explícito em cada item — `PENDENTE` ou `CONCLUÍDO`, nunca vazio
+3. Pré-requisitos declarados — cada onda declara de quais fases depende
+4. Sem especulação — inclua apenas o que foi deliberadamente planejado
+5. `CONTRATOS_DA_ONDA` deve ser preenchido **antes** de disparar o NEXUS para aquela onda
+
+**Estrutura:**
+
+```markdown
+# BACKLOG ESTRATÉGICO — {NOME_DO_PROJETO}
+
+## Intenção Original
+- **Objetivo:** [objetivo final em 1-2 frases]
+- **Estado Atual:** [estado após Fase {NUMERO_DA_FASE_ATUAL}]
+- **Meta Final:** [onde o projeto deve chegar]
+
+---
+
+## Onda 1 — [Nome]
+> Pré-requisito: [lista de fases que devem estar concluídas]
+
+### Itens
+
+| ID | Feature/Técnica | Descrição | Arquivos Impactados | Critério de Aceite | Status |
+|---|---|---|---|---|---|
+| W1-01 | [nome] | [descrição concisa] | [arquivos] | [critério binário] | CONCLUÍDO |
+| W1-02 | [nome] | [descrição concisa] | [arquivos] | [critério binário] | PENDENTE |
+
+### Meta da Onda 1
+- **Critério binário:** [condição de saída da onda inteira]
+- **Status:** CONCLUÍDO / PENDENTE
+
+### CONTRATOS_DA_ONDA 1
+> Este bloco é PROPOSTO PELA IA com base no BACKLOG, CURRENT_STATE e DECISION_LOG.
+> O usuário revisa, corrige o que estiver errado e acrescenta o que a IA não tem como saber.
+> Só disparar o NEXUS após o usuário confirmar a proposta.
+> Campos marcados com [?] são lacunas que a IA não conseguiu inferir — o usuário deve preencher antes de confirmar.
+
+```
+OUTPUT_SCHEMAS:
+  W1-01: [esquema exato do output — campos, tipos, formato]
+  W1-02: [esquema exato do output]
+
+ESCOPO_CONGELADO:
+  - [arquivos que NÃO podem ser tocados nesta onda]
+  - [ex: controller.py — reescrita prevista para Onda 3]
+
+ARQUIVOS_A_DELETAR:
+  - [arquivos que serão removidos nesta onda e motivo]
+
+REESCRITAS:
+  - [NomeComponente]: TOTAL | INCREMENTAL — [motivo]
+
+SPECIALISTS_MVP:  ← preencher apenas se aplicável ao domínio
+  - [lista exata de especialistas incluídos no MVP desta onda]
+
+DECISOES_EXTRAS:
+  - [qualquer outra decisão tomada antes da implementação que o NEXUS precisaria inferir]
+```
+
+---
+
+## Onda 2 — [Nome]
+> Pré-requisito: Onda 1 concluída
+
+[repetir estrutura acima]
+
+---
+
+## Regras do Backlog
+1. Itens movem de `PENDENTE` para `CONCLUÍDO` apenas após validação com critério binário
+2. Nenhuma Onda inicia sem a anterior concluída
+3. Novas técnicas descobertas durante implementação são adicionadas como item novo na Onda apropriada
+4. `CONTRATOS_DA_ONDA` deve estar confirmado pelo usuário antes de disparar o NEXUS — nunca durante
+5. A IA propõe o `CONTRATOS_DA_ONDA` — o usuário valida. Campos marcados com [?] exigem resposta do usuário antes da confirmação
+6. Campos que o usuário confirmar sem alteração são tratados pelo NEXUS como fatos — não serão questionados
+```
+
+**Para preencher na inicialização:** leia os blueprints em `{CAMINHO_DO_ARCHIVE}` e extraia fases planejadas. Crie `CONTRATOS_DA_ONDA` vazio para ondas futuras — o usuário preencherá antes de cada onda.
+
+---
+
+### AÇÃO 4 — Criar `{CAMINHO_DOS_DOCS}/ARCHIVING_PROTOCOL.md`
+
+Instruções que a IA seguirá no futuro ao concluir cada nova fase.
+
+```markdown
+# PROTOCOLO DE ARQUIVAMENTO PÓS-FASE — {NOME_DO_PROJETO}
+
+## Quando Executar
+Após a conclusão e validação de cada nova fase do projeto, mediante instrução explícita do usuário.
+
+## Pré-condição Obrigatória
+Antes de iniciar, CONFIRMAR que:
+- [ ] A suíte de testes em `{CAMINHO_DOS_TESTES}` passa integralmente
+- [ ] Nenhum arquivo de código-fonte está em estado inconsistente
+- [ ] O blueprint da fase foi fornecido pelo usuário ou existe em `{CAMINHO_DO_ARCHIVE}`
+
+Se qualquer item falhar: PARAR e reportar ao usuário antes de continuar.
+
+## Passos Obrigatórios
+
+### Passo 1 — Verificar Testes
+Confirmar que a suíte de testes passa. Reportar explicitamente:
+- Número total de testes encontrados
+- Número de testes passando
+- Qualquer falha identificada
+
+Não arquivar se houver falha não documentada.
+
+### Passo 2 — Arquivar Blueprint
+- Salvar o blueprint em `{CAMINHO_DO_ARCHIVE}/phase_XX_nome.resolved`
+- Extensão `.resolved` sinaliza: auditoria humana, não leitura de IA
+- Este arquivo NUNCA será lido automaticamente pela IA
+
+### Passo 3 — Reescrever CURRENT_STATE.md
+- Abrir `{CAMINHO_DOS_DOCS}/CURRENT_STATE.md`
+- SUBSTITUIR (não acumular) com o estado atual
+- Atualizar: tabela de módulos, fluxo, invariantes, restrições, testes com comandos
+- Target: ≤ 1500 tokens — se ultrapassar, comprimir, não expandir
+
+### Passo 4 — Append ao DECISION_LOG.md
+- Adicionar seção `### Fase N — [nome]` ao final
+- 1 linha por decisão: `FN | TIPO | DECISÃO | MOTIVO | ARQUIVOS`
+- Entre 3 e 10 linhas por fase
+- Incluir `FIX` para bugs estruturais corrigidos durante a fase
+
+### Passo 5 — Compressão Progressiva (quando DECISION_LOG > 3000 tokens)
+- Consolidar fases antigas em sumário de 1 linha por fase
+- Manter as 10 fases mais recentes no formato detalhado
+- Exemplo:
+  ```
+  ### Fases 1–10 (Consolidado)
+  - Feature X implementada com padrão Y (F1)
+  - Migração para arquitetura Z (F3)
+  - Otimização de performance em módulo W (F7)
+  ```
+
+### Passo 6 — Atualizar BACKLOG_FUTURO.md
+- Localizar o item da fase recém-concluída
+- Alterar `Status` de `PENDENTE` para `CONCLUÍDO`
+- Se última fase de uma Onda: verificar se a Meta da Onda foi atingida e atualizar seu status
+- Se novas técnicas foram descobertas: adicionar como item novo na Onda apropriada
+- **NÃO preencher** `CONTRATOS_DA_ONDA` de ondas futuras — isso é responsabilidade do usuário
+
+### Passo 7 — Limpeza do Projeto
+- Mover scripts de verificação temporários para `{CAMINHO_DO_ARCHIVE}/phase_XX/`
+- Remover arquivos `.tmp`, `.bak`, `.old` gerados durante a fase
+- Mover o blueprint da fase para `{CAMINHO_DO_ARCHIVE}/phase_XX/`
+
+### Passo 8 — Sugerir Mensagem de Commit
+Ao final, sugerir no formato:
+```
+[FASE N] DESCRIÇÃO CURTA EM MAIÚSCULO — resumo do que foi entregue
+```
+Exemplo: `[FASE 9.6] RETRY ORCHESTRATOR — recuperação semântica em 3 níveis`
+
+## Regras de Leitura para a IA
+- **SEMPRE ler antes de qualquer tarefa:** `{CAMINHO_DOS_DOCS}/CURRENT_STATE.md`
+- **Ler no início de cada onda:** `{CAMINHO_DOS_DOCS}/BACKLOG_FUTURO.md`
+- **Ler sob demanda:** `{CAMINHO_DOS_DOCS}/DECISION_LOG.md` (apenas para entender "por quê")
+- **NUNCA ler automaticamente:** `{CAMINHO_DO_ARCHIVE}/*`
+```
+
+---
+
+### AÇÃO 5 — Criar `.ai-context` na raiz do projeto
+
+```markdown
+# INSTRUÇÕES DE CONTEXTO PARA IA — {NOME_DO_PROJETO}
+
+## Leitura Obrigatória (antes de qualquer tarefa)
+1. `{CAMINHO_DOS_DOCS}/CURRENT_STATE.md` — estado atual completo do sistema
+2. Os arquivos de `{CAMINHO_DO_CODIGO}` que serão modificados na fase atual
+
+## Leitura no Início de Cada Onda
+3. `{CAMINHO_DOS_DOCS}/BACKLOG_FUTURO.md` — roadmap estratégico, critérios de aceite e CONTRATOS_DA_ONDA
+
+## Leitura Sob Demanda
+4. `{CAMINHO_DOS_DOCS}/DECISION_LOG.md` — apenas quando precisar entender "por quê" uma decisão foi tomada
+5. Arquivo específico em `{CAMINHO_DO_ARCHIVE}/` — apenas se o usuário pedir explicitamente
+
+## NUNCA Ler Automaticamente
+- `{CAMINHO_DO_ARCHIVE}/*` — blueprints arquivados (auditoria humana)
+- `.git/` — controle de versão
+- `__pycache__/`, `node_modules/`, `.cache/`, `dist/`, `build/` — artefatos de build
+- Qualquer arquivo `*.resolved`, `*.bak`, `*.old`, `*.tmp`
+
+## Workflow de Nova Fase
+1. Ler `CURRENT_STATE.md` — entender onde o sistema está agora
+2. Ler `BACKLOG_FUTURO.md` — confirmar qual fase é a próxima e ler `CONTRATOS_DA_ONDA`
+3. Receber o blueprint da fase do usuário
+4. Ler apenas os arquivos de `{CAMINHO_DO_CODIGO}` que serão modificados
+5. Implementar
+6. Após validação: executar `{CAMINHO_DOS_DOCS}/ARCHIVING_PROTOCOL.md`
+
+## Regra de Log Obrigatório
+Se qualquer artefato esperado não for encontrado (arquivo ausente, parsing falhou, dependência não resolvida):
+- NUNCA usar fallback silencioso
+- SEMPRE reportar: "Artefato [{nome}] não encontrado em [{caminho}]. Aguardando instrução."
+
+## Regra de Contrato
+Se o `CONTRATOS_DA_ONDA` do backlog estiver preenchido para a onda atual:
+- NUNCA questionar os contratos listados — eles são decisões já tomadas pelo usuário
+- Usar os contratos como fatos, não como sugestões
+- Perguntar apenas sobre o que está genuinamente em branco no bloco de contratos
+```
+
+---
+
+### AÇÃO 6 — Criar `.humano` na raiz do projeto
+
+```
+SOBRE O SEU WORKFLOW — LEIA ANTES DE INICIAR QUALQUER FASE
+══════════════════════════════════════════════════════════
+
+O QUE ESTE ARQUIVO RESOLVE
+────────────────────────────────────────────────────────
+Antes (desperdiçava tokens e gerava perguntas evitáveis):
+  "Leia todo o projeto e implemente a fase X"
+  → IA lê 50.000+ tokens de arquivos irrelevantes
+  → Consome 70% do contexto só para carregar
+  → O NEXUS faz perguntas sobre decisões que você já tomou
+    mas que nunca foram escritas em lugar nenhum
+  → Resultado: blueprint incompleto ou cheio de interrupções
+
+Depois (otimizado com v1.2):
+  → Você preenche CONTRATOS_DA_ONDA antes de disparar o NEXUS
+  → IA lê ~2.000 tokens de estado + contratos + blueprint
+  → IA lê apenas os arquivos de src/ que vai modificar
+  → NEXUS gera sem interrupções porque as respostas já chegam nele
+  → 90%+ do contexto disponível para implementação real
+
+────────────────────────────────────────────────────────
+FLUXO PADRÃO DE CADA ONDA
+══════════════════════════
+
+ANTES DE INICIAR UMA ONDA (você faz isso):
+  1. Abra docs/BACKLOG_FUTURO.md
+  2. Preencha o bloco CONTRATOS_DA_ONDA para a onda que vai começar:
+     - OUTPUT_SCHEMAS: o formato exato de output de cada componente
+     - ESCOPO_CONGELADO: arquivos que não podem ser tocados
+     - ARQUIVOS_A_DELETAR: o que será removido nesta onda
+     - REESCRITAS: TOTAL ou INCREMENTAL para cada componente
+     - DECISOES_EXTRAS: qualquer decisão que você já tomou em conversa
+
+  REGRA CHAVE: se você decidiu algo numa conversa com a IA mas não
+  escreveu aqui, o NEXUS vai perguntar. Se escreveu aqui, não pergunta.
+
+────────────────────────────────────────────────────────
+FLUXO PADRÃO DE CADA FASE (dentro de uma onda)
+══════════════════════════════════════════════
+
+PASSO 1 — Gere o blueprint da fase com o NEXUS:
+  "Aqui está o CURRENT_STATE.md: [conteúdo]
+   Aqui está o BACKLOG_FUTURO.md (com CONTRATOS_DA_ONDA preenchido): [conteúdo]
+   Gere o blueprint completo da Fase N usando o NEXUS Protocol."
+
+PASSO 2 — Revise o blueprint gerado
+
+PASSO 3 — Dispare a implementação:
+  "Leia .ai-context e docs/CURRENT_STATE.md.
+   A próxima fase é [Fase N] — [nome].
+   Aqui está o blueprint: [cola ou indica o arquivo].
+   Implemente."
+
+PASSO 4 — Valide (rode os testes, execute manualmente)
+
+PASSO 5 — Arquive:
+  "Fase N concluída e validada.
+   Execute o protocolo docs/ARCHIVING_PROTOCOL.md."
+
+PASSO 6 — IA executa o arquivamento:
+  → Verifica e reporta resultado dos testes
+  → Atualiza CURRENT_STATE + DECISION_LOG + BACKLOG_FUTURO
+  → Arquiva blueprint como .resolved
+  → Sugere mensagem de commit
+
+PASSO 7 — Você faz o commit. Próxima fase começa com contexto limpo.
+
+────────────────────────────────────────────────────────
+SITUAÇÕES ESPECIAIS
+═══════════════════
+
+QUANDO A IA PRECISAR VER CÓDIGO QUE NÃO VAI MODIFICAR:
+  Diga: "Consulte o DECISION_LOG para entender por que [módulo] funciona assim"
+  Não faça ela ler o arquivo inteiro.
+
+QUANDO UM ARTEFATO NÃO FOR ENCONTRADO:
+  A IA deve parar e reportar — nunca usar fallback silencioso.
+  Correto:  "Artefato [nome] não encontrado em [caminho]. Aguardando instrução."
+  Errado:   [injeta contexto geral sem avisar e continua silenciosamente]
+
+QUANDO OS TESTES FALHAREM:
+  A IA não arquiva. Reporta a falha e aguarda.
+  O arquivamento pressupõe suíte de testes passando integralmente.
+
+QUANDO O NEXUS FIZER PERGUNTAS QUE VOCÊ JÁ RESPONDEU:
+  Isso significa que a decisão não está no CONTRATOS_DA_ONDA.
+  Responda à pergunta E adicione a resposta ao bloco de contratos
+  para que a próxima fase não precise repetir a pergunta.
+
+QUANDO UMA DECISÃO MUDAR DURANTE A IMPLEMENTAÇÃO:
+  Atualize CONTRATOS_DA_ONDA imediatamente.
+  Não deixe o backlog desatualizado — ele é a fonte de verdade.
+```
+
+---
+
+### VALIDAÇÃO FINAL DA INICIALIZAÇÃO
+
+Após criar os 6 arquivos, confirmar cada item. Não marcar como concluído se qualquer item falhar.
+
+1. ✅ `{CAMINHO_DOS_DOCS}/CURRENT_STATE.md` existe e tem ≤ 1500 tokens
+2. ✅ `{CAMINHO_DOS_DOCS}/DECISION_LOG.md` existe e cobre Fases 0 a {NUMERO_DA_FASE_ATUAL}
+3. ✅ `{CAMINHO_DOS_DOCS}/BACKLOG_FUTURO.md` existe com itens classificados como `CONCLUÍDO` ou `PENDENTE` e bloco `CONTRATOS_DA_ONDA` presente em cada onda
+4. ✅ `{CAMINHO_DOS_DOCS}/ARCHIVING_PROTOCOL.md` existe com os 8 passos completos
+5. ✅ `.ai-context` existe na raiz com a seção "Regra de Contrato" presente
+6. ✅ `.humano` existe na raiz com a seção "Antes de Iniciar uma Onda" presente
+7. ✅ Arquivos em `{CAMINHO_DO_ARCHIVE}/` **NÃO foram deletados**
+8. ✅ Nenhum arquivo de código-fonte foi alterado
+9. ✅ Suíte de testes verificada — reportar: **[N testes encontrados, N passando]**
+
+Listar os 6 arquivos criados com contagem aproximada de tokens de cada um e resultado da verificação de testes.
+
+---
+
+## PARTE B — ARQUIVAMENTO PÓS-FASE
+
+Execute este bloco após cada fase validada, substituindo `{N}` pelo número da fase.
+
+```
+PROJETO: {NOME_DO_PROJETO}
+Fase concluída: {N} — {NOME_DA_FASE}
+Blueprint da fase: [cole aqui ou indique o arquivo]
+```
+
+### TAREFA DE ARQUIVAMENTO
+
+Executar os **8 passos do `ARCHIVING_PROTOCOL.md`** na ordem documentada.
+
+Ao concluir, reportar:
+```
+ARQUIVAMENTO FASE {N} — CONCLUÍDO
+─────────────────────────────────
+Testes: {N_TOTAL} encontrados / {N_PASSANDO} passando / {N_FALHAS} falhas
+CURRENT_STATE.md: atualizado ({N_TOKENS} tokens)
+DECISION_LOG.md: {N_LINHAS} linhas adicionadas
+BACKLOG_FUTURO.md: item W{X}-{Y} marcado como CONCLUÍDO
+Blueprint: arquivado em {CAMINHO_DO_ARCHIVE}/phase_{N}_{nome}.resolved
+Commit sugerido: [FASE {N}] {DESCRICAO} — {RESUMO}
+```
+
+---
+
+## PARTE C — INTEGRAÇÃO COM O NEXUS PROTOCOL
+
+Quando for gerar o blueprint de uma nova onda, o bloco de contexto do NEXUS deve ser preenchido assim:
+
+```
+PROJETO: [conteúdo do CURRENT_STATE.md]
+
+ESTADO ATUAL:
+- Já existe PRD anterior? Sim
+- Fases já implementadas: [lista do BACKLOG_FUTURO.md com status CONCLUÍDO]
+- Decisões arquiteturais já tomadas: [conteúdo do DECISION_LOG.md — seções relevantes]
+- Restrições conhecidas: [seção "Restrições Técnicas Ativas" do CURRENT_STATE.md]
+
+CONTRATOS_DA_ONDA:
+[colar aqui o bloco CONTRATOS_DA_ONDA do BACKLOG_FUTURO.md para a onda atual]
+```
+
+> **Regra de ouro:** tudo que estiver preenchido em `CONTRATOS_DA_ONDA` é uma decisão já tomada. O NEXUS não questiona — usa como fato. O NEXUS só faz perguntas sobre o que estiver genuinamente em branco.
+
+---
+
+## MAPEAMENTO DE SEÇÕES: NEXUS → ARQUIVAMENTO
+
+| Seção do NEXUS | Destino no Arquivamento |
+|---|---|
+| Partes 1–7 (Visão, Arquitetura, Fluxos, Infra, Erros, Requisitos, Árvore) | `CURRENT_STATE.md` — estado inicial do projeto |
+| Parte 8 (ADRs) | `DECISION_LOG.md` — decisões da Fase 0 (planejamento) |
+| Parte 9.3 (Fases de Implementação) | `BACKLOG_FUTURO.md` — ondas com critérios de aceite |
+| Parte 9.1 (MVP) | `BACKLOG_FUTURO.md` — meta da Onda 1 |
+| Parte 10.5 (Escopo Congelado) | `CONTRATOS_DA_ONDA` — campo `ESCOPO_CONGELADO` |
+
+---
+
+## RESUMO DAS MUDANÇAS EM RELAÇÃO À v1.1
+
+| Mudança | Problema resolvido |
+|---|---|
+| Bloco `CONTRATOS_DA_ONDA` no `BACKLOG_FUTURO.md` | Decisões tomadas em conversa se perdiam antes de chegar ao NEXUS, forçando perguntas sobre informações já resolvidas |
+| Campo `CONTRATOS_DA_ONDA` no bloco de contexto do NEXUS | Sem esse campo, o NEXUS não tinha onde receber os contratos pré-decididos |
+| Regra de Contrato no `.ai-context` | IA precisava de instrução explícita para tratar contratos como fatos, não sugestões |
+| Seção "Antes de Iniciar uma Onda" no `.humano` | Usuário não sabia que devia preencher contratos antes de disparar o NEXUS |
+| Instrução de NÃO preencher contratos futuros no Passo 6 do ARCHIVING_PROTOCOL | Risco de a IA especular e preencher contratos que só o usuário pode decidir |
+| Relatório estruturado de conclusão no arquivamento pós-fase | Faltava confirmação explícita do que foi atualizado em cada arquivamento |
+| Integração como Parte C separada | Conexão NEXUS ↔ Arquivamento estava implícita em ambos os documentos, sem instrução clara de preenchimento |
+
+---
+
+## EXEMPLO DE PREENCHIMENTO
+
+| Variável | Exemplo |
+|---|---|
+| `{NOME_DO_PROJETO}` | `IdeaForge` |
+| `{NUMERO_DA_FASE_ATUAL}` | `1` |
+| `{CAMINHO_DO_CODIGO}` | `src/` |
+| `{CAMINHO_DOS_TESTES}` | `tests/` |
+| `{CAMINHO_DOS_DOCS}` | `docs/` |
+| `{CAMINHO_DO_ARCHIVE}` | `docs/archive/` |
