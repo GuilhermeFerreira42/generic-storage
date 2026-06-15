@@ -1,0 +1,45 @@
+Sim, agora eu **aprovaria a Fase 0**. A fundação está boa o suficiente para seguir para a Fase 1.
+
+Eu conferi o relatório, os arquivos principais e as validações. O projeto agora tem documentação portátil dentro de `greenforge/documentacao`, tem `.ai-context`, tem `.qwenignore`, tem `docs/CURRENT_STATE.md`, `docs/BACKLOG_FUTURO.md`, `docs/DECISION_LOG.md`, `docs/ARCHIVING_PROTOCOL.md`, tem `package.json`, `tsconfig.json`, `vitest.config.ts`, `eslint.config.js`, `src/index.ts` e `tests/smoke.test.ts`. Além disso, os três comandos importantes passaram: `npm test` passou, `npm run build` passou e `npm run lint` passou. Então a base técnica está funcionando.
+
+Tem só um cuidado importante antes de mandar começar a Fase 1. No `BACKLOG_FUTURO.md`, a Fase 1 fala em “utilizar API Qwen 2.5”. Isso pode fazer o agente tentar chamar API real logo de cara. Para TDD, o ideal é **não depender da API real no teste inicial**. Primeiro ele deve criar uma interface de LLM, um mock, e testar o comportamento do Router com respostas falsas. Depois, mais tarde, você conecta na API real. Então, quando você mandar iniciar a Fase 1, deixe isso bem claro.
+
+Outro detalhe pequeno: a pasta `.qwen/skills/greenforge` aparece na árvore, mas não vi claramente um `SKILL.md` dentro dela na raiz do projeto, só dentro de `documentacao/.qwen/skills/greenforge/SKILL.md`. Isso não bloqueia a Fase 1, porque agora vocês estão usando o arquivo da skill manualmente, mas mais para frente, quando for empacotar a extensão, será bom garantir que exista também `greenforge/.qwen/skills/greenforge/SKILL.md` ou a estrutura correta de extensão. Por enquanto, não precisa travar.
+
+Então minha decisão é: **Fase 0 aprovada com observação**. A observação é apenas orientar bem a Fase 1 para não fazer integração real com API antes dos testes mockados.
+
+Agora você pode mandar para o agente algo assim:
+
+```text
+Fase 0 aprovada.
+
+Comece agora somente a Fase 1: Intention Router (GF-ROUTER).
+
+Leia primeiro:
+- `.ai-context`
+- `docs/CURRENT_STATE.md`
+- `docs/BACKLOG_FUTURO.md`
+- `documentacao/000_ler_primeiro_CONTEXT_TRANSFER.md`
+- `documentacao/GREENFORGE_DESIGN.md`
+- `documentacao/03-technical-spec-and-data.md`
+
+Regras obrigatórias para a Fase 1:
+- Execute apenas a Fase 1.
+- Não avance para a Fase 2.
+- Use TDD estrito: primeiro crie `tests/router.test.ts`, depois implemente o código.
+- Não chame API real do Qwen nos testes.
+- Crie uma interface/adaptador mockável para o modelo de linguagem.
+- Use mock/fake LLM nos testes.
+- O Router deve classificar entradas como `NORMAL_CHAT` ou `DEVELOPMENT_TASK`.
+- Se `confidence < 0.7`, deve retornar `NORMAL_CHAT`.
+- Se a resposta do modelo for inválida, erro, timeout ou JSON quebrado, deve retornar fallback seguro `NORMAL_CHAT`.
+- Não implemente WorktreeManager, SQLite, Planner, MCP ou Orchestrator nesta fase.
+- Ao terminar, rode `npm test`, `npm run build` e `npm run lint`.
+- Atualize os arquivos de memória conforme `docs/ARCHIVING_PROTOCOL.md`.
+- Entregue relatório final em português brasileiro.
+- Pare e aguarde minha aprovação antes de qualquer próxima fase.
+
+Comece a Fase 1 agora.
+```
+
+Esse prompt está bom porque protege você de dois perigos: o agente sair fazendo coisa da Fase 2 e o agente tentar usar API real antes de ter teste unitário. A Fase 1 deve ser pequena e limpa: teste do Router, mock do modelo, implementação mínima, validação e relatório.

@@ -4,6 +4,6 @@ Este arquivo registra marcos que exigiram ou exigirão aprovação humana.
 
 ---
 
-### [2026-06-15] Inicialização da Fase 0
-- Status: Aguardando verificação final e aprovação.
-- Próxima parada: Aprovação do usuário para transição para a Fase 1.
+### [2026-06-15] Refinamento da Fase 1
+- Status: Fase 1 (Intention Router) refinada com validação Zod e suíte de 13 testes.
+- Próxima parada: Aprovação do usuário para transição para a Fase 2 (Worktree Manager).

@@ -1,0 +1,54 @@
+A Fase 1 está quase aprovada, mas ainda não está aprovada.
+
+Não avance para a Fase 2.
+
+Faça uma correção final da Fase 1: Intention Router.
+
+Problemas encontrados:
+
+1. O `docs/BACKLOG_FUTURO.md` diz que a Fase 1 precisa ter 10+ cenários de intenção, mas `tests/router.test.ts` tem apenas 6 testes. Aumente a suíte para pelo menos 10 cenários reais e relevantes.
+
+2. O `QwenRouter.ts` não valida se `result.intention` é realmente `NORMAL_CHAT` ou `DEVELOPMENT_TASK`. Corrija isso. Se a intenção recebida do LLM for qualquer outro valor, o fallback deve ser `NORMAL_CHAT`.
+
+3. O Router também deve validar `confidence`. Se `confidence` estiver ausente, não for número, for menor que 0, maior que 1, ou vier em formato inválido, o fallback deve ser `NORMAL_CHAT`.
+
+4. Resolva a inconsistência entre documentação e código. Hoje o backlog menciona `Router.classify(input: string): Promise<IntentResult>`, mas o código retorna `Promise<Intent>`. Escolha uma opção e deixe código, tipos e documentação consistentes. Para esta fase, prefiro manter o retorno simples como `Promise<Intent>`, desde que isso fique documentado corretamente.
+
+5. Adicione testes cobrindo pelo menos estes casos:
+- DEVELOPMENT_TASK com confiança alta.
+- NORMAL_CHAT com confiança alta.
+- DEVELOPMENT_TASK com confiança baixa abaixo de 0.7.
+- Confiança exatamente 0.7.
+- JSON inválido.
+- Resposta vazia.
+- Erro/timeout lançado pelo LLMProvider.
+- Intenção inválida, por exemplo `DELETE_EVERYTHING`.
+- Confidence ausente.
+- Confidence como string, por exemplo `"0.95"`.
+- Confidence maior que 1.
+- Confidence menor que 0.
+- Resposta JSON válida mas sem campo `intention`.
+
+6. Garanta que os testes não chamem API real nem modelo local real. Use apenas mock determinístico.
+
+7. Depois rode:
+- `npm test`
+- `npm run build`
+- `npm run lint`
+
+8. Atualize a documentação viva:
+- `docs/CURRENT_STATE.md`
+- `docs/BACKLOG_FUTURO.md`
+- `docs/DECISION_LOG.md`
+- `.humano`
+
+9. No relatório final, informe:
+- quantos testes existem em `router.test.ts`
+- quais casos foram adicionados
+- se `npm test` passou
+- se `npm run build` passou
+- se `npm run lint` passou
+- se a documentação viva foi atualizada
+- confirmação de que parou aguardando aprovação humana
+
+Não implemente WorktreeManager, SQLite, SafeResolve, Planner, MCP ou qualquer coisa da Fase 2.
