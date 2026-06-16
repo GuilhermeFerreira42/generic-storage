@@ -1,12 +1,13 @@
 # CURRENT_STATE — GreenForge
-> Última atualização: Fase 5 | 2026-06-16
+> Última atualização: Fase 6 | 2026-06-16
 
 ## Arquitetura Ativa
 - **Arquitetura Hexagonal:** Core desacoplado via portas.
-- **Orquestração:** Triagem via Router e Planejamento via `PlannerEngine`.
+- **Orquestração:** Máquina de estados centralizada e blindada no `Orchestrator`.
+- **Planejamento:** `PlannerEngine` gera planos estruturados e DAGs.
 - **Isolamento:** Sandbox físico via Git Worktrees.
-- **Segurança:** Validação de caminhos (`SafeResolve`) e integridade de escrita (`AtomicWrite`).
-- **Persistência:** SQLite com modo WAL, transações ACID e Foreign Keys ativas.
+- **Segurança:** Validação de caminhos e integridade de escrita.
+- **Persistência:** SQLite com modo WAL, transações ACID e Foreign Keys.
 
 ## Módulos e Contratos Vigentes
 | Módulo | Arquivo | Contrato Público | Desde |
@@ -16,37 +17,39 @@
 | `WorktreeManager` | `src/infrastructure/git/WorktreeManager.ts` | `provision(taskId)`, `deprovision(taskId)`, `list()` | Fase 2 |
 | `SafeResolve` | `src/shared/SafeResolve.ts` | `safeResolve`, `safeResolveForWrite` | Fase 3 |
 | `AtomicWrite` | `src/shared/AtomicWrite.ts` | `atomicWrite(path, content)` | Fase 3 |
-| `SQLiteRepository` | `src/infrastructure/db/SQLiteRepository.ts` | `createTask`, `getTask`, `updateTaskStatus`, `saveSubtasksGraph`, `runInTransaction` | Fase 4 |
-| `PlannerEngine` | `src/core/PlannerEngine.ts` | `generatePlan(taskId, prompt)`, `renderToMarkdown(plan)`, `savePlan(plan, root)` | Fase 5 |
+| `SQLiteRepository` | `src/infrastructure/db/SQLiteRepository.ts` | `createTask`, `getTask`, `updateTaskStatus`, `runInTransaction` | Fase 4 |
+| `PlannerEngine` | `src/core/PlannerEngine.ts` | `generatePlan(taskId, prompt)`, `savePlan(plan, root)` | Fase 5 |
+| `Orchestrator` | `src/core/Orchestrator.ts` | `trigger(taskId, event): Promise<void>` | Fase 6 |
 
 ## Fluxo Principal
 1. Router identifica tarefa técnica.
-2. `PlannerEngine` gera plano estruturado (JSON) validado via Zod.
-3. Plano é verificado contra dependências circulares, IDs duplicados e IDs inexistentes.
-4. Plano é renderizado em markdown e salvo como `GREENFORGE_PLAN.md` no worktree.
-5. Sistema aguarda aprovação (Fase 6).
+2. `PlannerEngine` gera plano (auditado via `PLAN_GENERATED`).
+3. Usuário aprova plano (`APPROVE_PLAN`).
+4. `Orchestrator` inicia construção.
+5. Se 1 tarefa: `BUILDING`. Se 2+ tarefas: `BUILDING_PARALLEL`.
+6. Estados terminais `COMPLETED` e `FAILED` bloqueiam transações subsequentes.
 
 ## Invariantes Globais
 1. **No-Shell Policy:** `execa` sem shell.
 2. **Fallback Seguro:** Incerteza = `NORMAL_CHAT`.
 3. **Segurança de FS:** Acesso apenas via `SafeResolve`.
-4. **Aciclicidade:** Grafo de subtarefas deve ser um DAG (Directed Acyclic Graph).
-5. **Clarificação Mínima:** Sempre 5-7 perguntas de clarificação por plano.
-6. **Integridade de IDs:** IDs de subtarefas devem ser únicos no grafo.
-7. **Não-Confiança no LLM:** Campos críticos como `id` e `originalPrompt` no plano são sobrescritos pelo sistema.
+4. **Aciclicidade:** Grafo de subtarefas deve ser um DAG.
+5. **Aprovação Obrigatória:** Proibido ir de `PLANNING` para `BUILDING` sem `APPROVE_PLAN`.
+6. **Integridade de Transição:** Todas as mudanças de status e checkpoints são atômicos (Rollback em falhas).
+7. **Estados Terminais:** Proibido sair de `COMPLETED` ou `FAILED`.
 
 ## Restrições Técnicas Ativas
-- **Runtime:** Node.js v24.
-- **Plan Constraints:** 5-7 perguntas, grafo validado, persistência atômica como `GREENFORGE_PLAN.md`.
+- **Retry Limit:** Máximo de 3 tentativas de verificação.
+- **Rollback Garantido:** Transações SQLite em todas as transições críticas.
 
 ## Testes Obrigatórios
 | Suite | Arquivo | Cobertura Aproximada | Comando |
 |-------|---------|----------------------|---------|
-| Total Suíte | `tests/*.test.ts` | 61 testes ativos | `npm test` |
-| Planner Test | `tests/planner.test.ts` | 13 testes (Integridade + FS) | `npm test` |
+| Total Suíte | `tests/*.test.ts` | 83 testes ativos | `npm test` |
+| Orchestrator | `tests/orchestrator.test.ts` | 22 testes (Refinados) | `npm test` |
 
 ## Dependências Externas
 | Pacote | Versão | Motivo |
 |--------|--------|--------|
-| `zod` | ^3.23.0 | Validação de schemas (LLM/Plano). |
-| `better-sqlite3` | ^11.0.0 | Persistência ACID. |
+| `better-sqlite3` | ^11.0.0 | Persistência transacional. |
+| `zod` | ^3.23.0 | Validação de contratos. |

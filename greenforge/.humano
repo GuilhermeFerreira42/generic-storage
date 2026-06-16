@@ -14,20 +14,24 @@ HISTÓRICO DE APROVAÇÕES
 - Status: CONCLUÍDO e VALIDADO.
 
 ### [2026-06-15] Fase 1 — Intention Router
-- Status: CONCLUÍDO e VALIDADO (13 testes unitários + Zod).
+- Status: CONCLUÍDO e VALIDADO.
 
 ### [2026-06-16] Fase 2 — Worktree Manager
-- Status: REFINADA e CONCLUÍDA (12 testes de integração + Validação taskId).
+- Status: REFINADA e CONCLUÍDA.
 
 ### [2026-06-16] Fase 3 — Segurança de Path
-- Status: CONCLUÍDA E ARQUIVADA (10 testes de segurança).
+- Status: CONCLUÍDA E ARQUIVADA.
 
 ### [2026-06-16] Fase 4 — Persistence Layer
-- Status: REFINADA E ARQUIVADA (9 testes: FK, Rollback, Full Creation).
+- Status: REFINADA E ARQUIVADA.
 
 ### [2026-06-16] Fase 5 — Planner Engine
-- Status: REFINADA E ARQUIVADA (13 testes: DAG, Zod, Duplicate IDs, Trusted fields).
-- Próxima parada: Aprovação para Onda 2 - Fase 6 (Orchestrator).
+- Status: REFINADA E ARQUIVADA.
+
+### [2026-06-16] Fase 6 — Orchestrator
+- Status: REFINADA E ARQUIVADA (v2.0).
+- Destaque: Estados terminais blindados, rollback comprovado (22 testes).
+- Próxima parada: Onda 3 - Fase 7 (MCP Client).
 
 ────────────────────────────────────────────────────────
 GUIA RÁPIDO PARA O USUÁRIO

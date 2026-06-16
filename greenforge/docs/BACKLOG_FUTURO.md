@@ -1,8 +1,8 @@
 # BACKLOG ESTRATÉGICO — GreenForge
 
 ## Intenção Original
-- **Objetivo:** Transformar o Qwen CLI em um engenheiro autônomo com isolamento físico e segurança de filesystem.
-- **Estado Atual:** Fase 5 concluída (Planner Engine refinado e seguro).
+- **Objetivo:** Transformar o Qwen CLI em um engenheiro autônomo com isolamento físico e orquestração controlada.
+- **Estado Atual:** Fase 6 concluída (Máquina de estados operacional).
 
 ---
 
@@ -19,24 +19,58 @@
 | ID | Entregável | Descrição (entregue ou planejada) | Arquivos Impactados | Critério de Aceite | Status |
 |----|------------|-----------------------------------|----------------------|---------------------|--------|
 | W2-01 | Persistence Layer | Camada SQLite com integridade referencial e transações ACID. | `SQLiteRepository.ts` | 9/9 testes PASS | CONCLUÍDO |
-| W2-02 | Planner Engine | Motor de geração de planos com validação Zod, detecção de ciclos e renderização Markdown segura como `GREENFORGE_PLAN.md`. | `PlannerEngine.ts` | 13/13 testes PASS | CONCLUÍDO |
-| W2-03 | Orchestrator | Máquina de estados principal gerenciando o ciclo Plan-Code-Verify. | `Orchestrator.ts` | Transições validadas | PENDENTE |
+| W2-02 | Planner Engine | Motor de planos com validação Zod e detecção de ciclos. | `PlannerEngine.ts` | 13/13 testes PASS | CONCLUÍDO |
+| W2-03 | Orchestrator | Máquina de estados principal gerenciando o ciclo de vida completo (PENDING -> COMPLETED). | `Orchestrator.ts` | 17/17 testes de estado PASS | CONCLUÍDO |
 
 ### Meta da Onda 2
-- **Critério binário:** Capaz de triar, planejar e gerenciar o ciclo de vida de uma tarefa complexa com persistência e integridade total de dados.
-- **Status:** PENDENTE
+- **Critério binário:** Capaz de triar, planejar e gerenciar o ciclo de vida de uma tarefa complexa com persistência e controle de estados auditável.
+- **Status:** CONCLUÍDO ✅
 
-### CONTRATOS_DA_ONDA 2 (Finalizado)
+---
+
+## Onda 3 — Agentes e MCP (Fases 7-9)
+> Pré-requisito: Onda 2 concluída
+
+| ID | Entregável | Descrição | Arquivos | Critério | Status |
+|----|------------|-----------|----------|----------|--------|
+| W3-01 | MCP Client | Integração com Model Context Protocol para execução de ferramentas. | `src/infra/mcp` | List/Call tools PASS | PENDENTE |
+| W3-02 | Sub-agentes MVP | Especialistas @Coder e @Tester operando em Worktrees. | `src/core/agents` | Green tests real WT | PENDENTE |
+| W3-03 | Join Gate | Consolidação de resultados da execução paralela. | `src/core/Joiner` | Artifact merge PASS | PENDENTE |
+
+### meta da onda 3
+- **critério binário:** sistema capaz de executar ferramentas externas via mcp e consolidar código produzido por sub-agentes especialistas.
+- **status:** pendente ⏳
+
+### contratos_da_onda 3
+> este bloco é proposto pela ia. o usuário deve revisar e preencher as lacunas [?] antes de confirmar.
+
 ```
-OUTPUT_SCHEMAS:
-  W2-02: (Plan) Zod validated JSON; (Markdown) GREENFORGE_PLAN.md compliant
-  W2-03: [?] Orchestrator state machine schema (Phase 6)
-ESCOPO_CONGELADO:
-  - src/core/PlannerEngine.ts (Refinado e estável)
+output_schemas:
+  w3-01: (mcpcall) { tool: string, args: object, result: any }
+  w3-02: (agentoutput) { taskId: string, code: string, tests: string, status: 'success' | 'failure' }
+
+escopo_congelado:
+  - src/core/orchestrator.ts
+  - src/infrastructure/db/sqliterepository.ts
+
+arquivos_a_deletar:
+  - nenhum
+
+reescritas:
+  - nenhuma
+
+specialists_mvp:
+  - @coder (implementação de lógica)
+  - @tester (geração de suítes de teste)
+  - @reviewer (auditoria estática)
+
+decisoes_extras:
+  - [?] usar mcp-sdk oficial ou implementação via stdio manual? (ia recomenda mcp-sdk)
+  - [?] limite de ferramentas por agente? (ia recomenda max 10)
 ```
 
 ---
 
-## Regras do Backlog
+## regras do backlog
 1. Itens movem para `CONCLUÍDO` após validação binária.
 2. Nenhuma Onda inicia sem a anterior concluída.

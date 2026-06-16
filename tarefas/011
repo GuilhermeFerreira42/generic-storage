@@ -1,0 +1,181 @@
+Agora eu vou corrigir uma coisa importante da minha leitura anterior: essa aparência de GREENFORGE_[PLAN.md](http://PLAN.md) provavelmente é artefato da interface/renderização, não necessariamente o texto real dentro do arquivo. Dá para perceber isso porque aparecem outras coisas como [plan.id](http://plan.id) e [expect.fail](http://expect.fail), que se estivessem realmente no código quebrariam o TypeScript. Como npm run build passou, então o arquivo real provavelmente está correto como GREENFORGE_PLAN.md.
+
+Então, com o que você trouxe agora, eu aprovo a Fase 5.
+
+O executor corrigiu os pontos importantes: aumentou os testes do Planner para 13, sobrescreveu id e originalPrompt com valores confiáveis do sistema, bloqueou IDs duplicados no grafo de subtarefas, manteve validação Zod, manteve detecção de ciclos, salvou o plano via SafeResolveForWrite e AtomicWrite, e a suíte inteira passou com 61 testes. Também passou build e lint. Isso é suficiente para aprovar.
+
+Só deixo uma observação pequena para o futuro: o createdAt ainda parece vir do LLM. Eu não travaria a fase por isso, mas em algum momento seria melhor o sistema também sobrescrever createdAt com new Date().toISOString(), assim como fez com id e originalPrompt. Isso deixa o plano mais confiável para auditoria. Pode ficar como melhoria futura ou entrar na Fase 6 quando o Orchestrator começar a controlar estados e datas.
+
+Antes de avançar, se quiser confirmar visualmente que o nome real do arquivo não está com link quebrado, rode este comando no PowerShell:
+
+PowerShell
+
+Select-String -Path .\src\core\PlannerEngine.ts -Pattern "GREENFORGE"
+Select-String -Path .\tests\planner.test.ts -Pattern "GREENFORGE"
+Se aparecer GREENFORGE_PLAN.md, está perfeito. Se aparecer literalmente GREENFORGE_[PLAN.md](http://PLAN.md), aí teria que corrigir. Mas, pelo build passando, eu acredito que é só renderização do chat.
+
+Agora a situação está assim:
+
+text
+
+Fase 0: aprovada
+Fase 1: aprovada
+Fase 2: aprovada
+Fase 3: aprovada
+Fase 4: aprovada
+Fase 5: aprovada
+O próximo passo é a Fase 6 — Orchestrator.
+
+Essa fase é mais delicada, porque começa a juntar as peças: Router, Planner, SQLite, Worktree, estados e aprovação. Eu recomendo que a Fase 6 não tente executar subagentes reais ainda. Ela deve implementar primeiro a máquina de estados e o fluxo mínimo controlado.
+
+Você pode mandar este prompt para o executor:
+
+text
+
+Fase 5 aprovada.
+
+Comece agora somente a Fase 6: Orchestrator / State Machine.
+
+Leia primeiro:
+- `.ai-context`
+- `docs/CURRENT_STATE.md`
+- `docs/BACKLOG_FUTURO.md`
+- `docs/DECISION_LOG.md`
+- `documentacao/000_ler_primeiro_CONTEXT_TRANSFER.md`
+- `documentacao/GREENFORGE_DESIGN.md`
+- `documentacao/03-technical-spec-and-data.md`
+- `documentacao/02-functional-requirements.md`
+- `documentacao/05-governance-and-security.md`
+
+Execute apenas a Fase 6.
+Não avance para MCP, DiffLens, subagentes reais, execução paralela real ou integração com Qwen CLI.
+Use TDD estrito: primeiro testes, depois implementação.
+
+Objetivo da Fase 6:
+Implementar a máquina de estados principal do GreenForge e o fluxo mínimo:
+PENDING → CLARIFYING → PLANNING → BUILDING / BUILDING_PARALLEL bloqueado por aprovação → REVIEWING → VERIFYING → COMPLETED / FAILED
+
+Nesta fase, implemente apenas o controle de estado e pré-condições. Não implemente agentes reais.
+
+CONTRATOS_DA_FASE 6:
+
+TaskStatus:
+- PENDING
+- CLARIFYING
+- PLANNING
+- BUILDING
+- BUILDING_PARALLEL
+- JOINING
+- REVIEWING
+- VERIFYING
+- COMPLETED
+- FAILED
+
+Eventos mínimos:
+- ROUTE_TASK
+- CLARIFICATION_DONE
+- PLAN_GENERATED
+- APPROVE_PLAN
+- START_BUILD
+- BUILD_DONE
+- REVIEW_APPROVED
+- REVIEW_VIOLATIONS
+- VERIFY_SUCCESS
+- VERIFY_FAILED
+- FAIL_TASK
+
+Regras obrigatórias:
+- Transições inválidas devem lançar erro controlado.
+- Não pode ir de PLANNING para BUILDING sem aprovação de plano.
+- Se houver uma subtarefa, após aprovação pode ir para BUILDING.
+- Se houver duas ou mais subtarefas independentes, após aprovação pode ir para BUILDING_PARALLEL.
+- BUILDING_PARALLEL só pode ir para JOINING quando todas as subtarefas estiverem DONE.
+- JOINING só pode ir para REVIEWING quando todos os artifactOutput estiverem presentes.
+- REVIEWING com violações volta para BUILDING.
+- VERIFYING com sucesso vai para COMPLETED.
+- VERIFYING com falha volta para BUILDING se retry menor que 3; depois FAILED.
+- Toda mudança de estado deve ser persistida no SQLiteRepository.
+- Toda mudança crítica deve registrar checkpoint.
+- Não chame LLM real.
+- Não execute Git real nesta fase, exceto se for absolutamente necessário. Prefira mocks do WorktreeManager.
+- Não implemente subagentes reais.
+- Não implemente MCP.
+
+Arquivos esperados:
+- `src/core/Orchestrator.ts` ou `src/application/CreateTask.ts`
+- `src/core/types/Orchestrator.ts` se necessário
+- `tests/orchestrator.test.ts` ou `tests/state-machine.test.ts`
+- `docs/phase_6_resumo.md` se fizer sentido
+
+Mocks permitidos:
+- MockRouter
+- MockPlannerEngine
+- MockWorktreeManager
+- SQLiteRepository real com banco temporário, ou mock se ficar mais simples
+- Plan mockado
+
+Testes mínimos esperados:
+1. estado inicial de uma task é PENDING
+2. PENDING → CLARIFYING com ROUTE_TASK
+3. CLARIFYING → PLANNING após clarificação
+4. PLANNING não vai para BUILDING sem APPROVE_PLAN
+5. PLANNING → BUILDING com plano aprovado e 1 subtarefa
+6. PLANNING → BUILDING_PARALLEL com plano aprovado e 2+ subtarefas independentes
+7. transição inválida lança erro
+8. BUILDING → REVIEWING após BUILD_DONE
+9. REVIEWING → VERIFYING quando review aprovado
+10. REVIEWING → BUILDING quando há violações
+11. VERIFYING → COMPLETED quando verificação passa
+12. VERIFYING → BUILDING quando verificação falha e retry < 3
+13. VERIFYING → FAILED quando retry >= 3
+14. BUILDING_PARALLEL → JOINING somente quando todas subtarefas estão DONE
+15. JOINING não vai para REVIEWING se faltar artifactOutput
+16. Toda transição atualiza status no repositório
+17. Toda transição crítica registra checkpoint
+
+Depois rode:
+- `npm test`
+- `npm run build`
+- `npm run lint`
+
+Atualize a documentação viva:
+- `docs/CURRENT_STATE.md`
+- `docs/BACKLOG_FUTURO.md`
+- `docs/DECISION_LOG.md`
+- `.humano`
+- `docs/phase_6_resumo.md`, se fizer sentido
+
+No relatório final, informe:
+- arquivos criados
+- arquivos modificados
+- número de testes adicionados
+- transições implementadas
+- transições bloqueadas
+- como a aprovação de plano foi modelada
+- como checkpoints foram registrados
+- resultado de `npm test`
+- resultado de `npm run build`
+- resultado de `npm run lint`
+- riscos conhecidos
+- confirmação de que parou aguardando aprovação humana
+
+Comece a Fase 6 agora.
+Quando ele terminar, traga principalmente:
+
+text
+
+src/core/Orchestrator.ts
+src/core/types/Orchestrator.ts se existir
+tests/orchestrator.test.ts ou tests/state-machine.test.ts
+docs/CURRENT_STATE.md
+docs/BACKLOG_FUTURO.md
+docs/DECISION_LOG.md
+.humano
+E a saída de:
+
+PowerShell
+
+npm test
+npm run build
+npm run lint
+Resumo direto: Fase 5 aprovada. Próximo passo: Fase 6 — Orchestrator / máquina de estados, ainda sem subagentes reais e sem MCP.

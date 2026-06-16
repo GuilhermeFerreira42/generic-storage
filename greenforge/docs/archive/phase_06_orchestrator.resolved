@@ -1,0 +1,17 @@
+# BLUEPRINT RESOLVIDO — Fase 6: Orchestrator / State Machine
+
+## Objetivo Original
+Implementar a máquina de estados principal do GreenForge e o fluxo mínimo:
+PENDING → CLARIFYING → PLANNING → BUILDING / BUILDING_PARALLEL bloqueado por aprovação → REVIEWING → VERIFYING → COMPLETED / FAILED
+
+## Entregáveis Concluídos
+- Máquina de estados robusta em `src/core/Orchestrator.ts`.
+- Prova empírica de rollback transacional em `tests/orchestrator.test.ts`.
+- Estados terminais `COMPLETED` e `FAILED` blindados contra novas transições.
+- Checkpoints auditáveis para marcos de planejamento (`PLAN_GENERATED`, `APPROVE_PLAN`).
+- Suporte a paralelismo automático baseado no grafo de subtarefas.
+
+## Resultado Final
+- 22 testes unitários de estado passando.
+- Integração total com SQLiteRepository.
+- Documentação v2.0 sincronizada.

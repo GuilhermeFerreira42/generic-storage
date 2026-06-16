@@ -1,0 +1,110 @@
+Eu **não aprovaria a Fase 6 ainda**, apesar de ela estar bem avançada. O executor fez uma boa base da máquina de estados, os testes passaram, build e lint também, mas encontrei alguns pontos importantes que precisam de refinamento antes de liberar a próxima onda.
+
+O principal problema é que ele disse no relatório que validou **transações e rollback**, mas no arquivo `orchestrator.test.ts` que você trouxe eu não vi um teste real de rollback. Ele testa várias transições, mas não testa o caso mais importante: “se a transição atualiza o status e depois falha ao registrar checkpoint, o status volta ao valor anterior”. Como o Orchestrator usa `runInTransaction`, isso precisa ser comprovado.
+
+Outro ponto importante é que estados finais como `COMPLETED` e `FAILED` deveriam ser terminais. Hoje, pelo código, o evento `FAIL_TASK` pode forçar `nextStatus = 'FAILED'` mesmo se a tarefa já estiver `COMPLETED`. Isso é perigoso, porque uma tarefa finalizada com sucesso não deveria ser rebaixada para falha por acidente depois. O ideal é bloquear qualquer transição a partir de `COMPLETED` e `FAILED`, salvo se no futuro existir um evento explícito de reabertura, que não é o caso agora.
+
+Também senti falta de um teste positivo para `JOINING → REVIEWING` quando todos os `artifactOutput` existem. Existe teste bloqueando quando falta artefato, mas precisa existir o teste comprovando que passa quando todos estão presentes.
+
+Outro ponto menor, mas importante para auditabilidade: o evento `PLAN_GENERATED` atualmente dá `return` silencioso. Ele não muda status, tudo bem, mas deveria pelo menos registrar checkpoint, porque gerar um plano é um marco auditável. O mesmo vale para aprovação: `APPROVE_PLAN` registra checkpoint, mas seria bom garantir em teste que esse checkpoint existe e contém metadados mínimos.
+
+Então minha decisão é: **Fase 6 quase aprovada, mas ainda precisa de correção final**.
+
+Mande este prompt para o executor:
+
+```text
+A Fase 6 está quase aprovada, mas ainda não está aprovada.
+
+Não avance para a Fase 7.
+Não implemente MCP, subagentes, DiffLens, execução paralela real ou integração com Qwen CLI.
+
+Faça uma correção final da Fase 6: Orchestrator / State Machine.
+
+Problemas encontrados:
+
+1. O relatório diz que rollback de transações foi validado, mas não há teste claro em `tests/orchestrator.test.ts`.
+   Adicione teste real de rollback:
+   - crie uma task em PENDING
+   - force uma falha durante o registro de checkpoint, por exemplo mockando `repository.addCheckpoint` para lançar erro
+   - chame uma transição como ROUTE_TASK
+   - confirme que a transição falha
+   - confirme que o status da task continua PENDING
+   - isso prova que `updateTaskStatus` e `addCheckpoint` estão realmente dentro de uma transação atômica
+
+2. Estados finais devem ser terminais.
+   Corrija o Orchestrator para impedir transições a partir de:
+   - COMPLETED
+   - FAILED
+
+   Mesmo `FAIL_TASK` não deve alterar uma task já COMPLETED ou FAILED.
+
+   Adicione testes:
+   - COMPLETED + FAIL_TASK deve lançar erro e continuar COMPLETED
+   - FAILED + ROUTE_TASK ou outro evento deve lançar erro e continuar FAILED
+
+3. Adicione teste positivo para JOINING -> REVIEWING:
+   - task em JOINING
+   - subtasksGraph com todas as subtarefas DONE
+   - todos os artifactOutput preenchidos
+   - evento BUILD_DONE deve levar para REVIEWING
+
+4. O evento PLAN_GENERATED hoje retorna silenciosamente.
+   Ajuste para registrar checkpoint `PLAN_GENERATED` sem alterar o status, mantendo a task em PLANNING.
+   Adicione teste confirmando:
+   - status continua PLANNING
+   - checkpoint PLAN_GENERATED foi registrado
+
+5. Adicione teste confirmando que APPROVE_PLAN registra checkpoint de aprovação.
+   O status deve continuar PLANNING, mas o checkpoint deve existir.
+
+6. Garanta que toda transição que muda status continue registrando checkpoint com:
+   - from
+   - to
+   - event
+
+7. Rode novamente:
+- `npm test`
+- `npm run build`
+- `npm run lint`
+
+8. Atualize a documentação viva:
+- `docs/CURRENT_STATE.md`
+- `docs/BACKLOG_FUTURO.md`
+- `docs/DECISION_LOG.md`
+- `.humano`
+- `docs/phase_6_resumo.md`, se existir
+
+9. No relatório final, informe:
+- quantos testes existem agora em `orchestrator.test.ts`
+- quais testes novos foram adicionados
+- se estados COMPLETED e FAILED são terminais
+- se rollback transacional foi comprovado
+- se PLAN_GENERATED e APPROVE_PLAN registram checkpoints
+- resultado de `npm test`
+- resultado de `npm run build`
+- resultado de `npm run lint`
+- confirmação de que parou aguardando aprovação humana
+
+Não avance para a Fase 7.
+```
+
+Depois que ele corrigir, você não precisa trazer tudo de novo. Traga só:
+
+```text
+src/core/Orchestrator.ts
+tests/orchestrator.test.ts
+docs/CURRENT_STATE.md
+docs/BACKLOG_FUTURO.md
+docs/DECISION_LOG.md
+.humano
+```
+
+E a saída de:
+
+```powershell
+npm test
+npm run build
+npm run lint
+```
+
+Resumo direto: a Fase 6 está boa, mas ainda falta blindar a máquina de estados contra transições depois de finalizada, provar rollback real e auditar melhor `PLAN_GENERATED` e `APPROVE_PLAN`. Depois disso, provavelmente eu aprovo a Fase 6.
