@@ -1,28 +1,23 @@
-# DECISION_LOG.md
+# DECISION_LOG — GreenForge
 
-## Projeto: GreenForge
+## Formato
+`[FASE] | [TIPO] | [DECISÃO] | [MOTIVO] | [ARQUIVOS IMPACTADOS]`
+
+Tipos: ADD, MOD, DEL, FREEZE, RULE, CFG, FIX, TECH
 
 ---
 
-### [2026-06-15] ADR-00: Inicialização do Projeto
-- **Status:** Aprovado
-- **Contexto:** Necessidade de iniciar a estrutura base do GreenForge seguindo o protocolo de Fase 0.
-- **Decisão:** Criado diretório `greenforge` como repositório independente, configurado com TypeScript, Vitest e Node.js v24.
-- **Consequências:** Base sólida para as próximas fases de implementação (Router, Worktree, etc.).
+### Fase 0 — Planejamento
+F0 | ADD | Estrutura de diretórios portátil | Garantir que a documentação acompanhe o código | `greenforge/documentacao/`
+F0 | TECH | Node.js v22+ e TypeScript | Compatibilidade com Qwen CLI e padrões modernos | `package.json`, `tsconfig.json`
+F0 | RULE | No-Shell Policy | Segurança contra injeção de comandos | `package.json`
+F0 | RULE | TDD como regra de desenvolvimento | Garantir qualidade e verificabilidade | `ARCHIVING_PROTOCOL.md`
+F0 | CFG | .qwenignore | Otimizar uso de tokens e contexto de IA | `.qwenignore`
 
-### [2026-06-08] ADR-05: Stack Tecnológica (Herdado do Design)
-- **Status:** Aprovado
-- **Decisão:** Node.js v22+ com `better-sqlite3` e `execa`. Rejeição do Bun.
-- **Justificativa:** Estabilidade máxima com Qwen CLI e suporte nativo a transações.
-
-### [2026-06-15] ADR-01: Desacoplamento do LLM Provider no Router
-- **Status:** Aprovado
-- **Contexto:** Necessidade de testar o Router sem depender de APIs reais e permitir troca de modelos.
-- **Decisão:** Criada a interface `LLMProvider` em `src/core/ports/`. O `QwenRouter` depende desta abstração.
-- **Consequências:** Facilidade de teste unitário via Mocks e flexibilidade futura para suportar outros provedores de LLM.
-
-### [2026-06-15] ADR-02: Validação Robusta de Respostas do LLM com Zod
-- **Status:** Aprovado
-- **Contexto:** Garantir que o Router falhe de forma segura (`NORMAL_CHAT`) caso o LLM retorne dados inválidos ou fora do intervalo de confiança.
-- **Decisão:** Implementado schema de validação via `zod` no `QwenRouter`.
-- **Consequências:** Proteção contra intenções desconhecidas e valores de confiança malformados (strings, fora de 0-1, ausentes).
+### Fase 1 — Intention Router
+F1 | ADD | Interface LLMProvider | Desacoplar core da infraestrutura de LLM | `src/core/ports/LLMProvider.ts`
+F1 | ADD | QwenRouter com Zod | Validação robusta de contratos de borda com IA | `src/infrastructure/llm/QwenRouter.ts`
+F1 | TECH | Vitest com Mocks determinísticos | Testar lógica de roteamento sem custos de API | `tests/router.test.ts`
+F1 | CFG | Threshold de confiança em 0.7 | Equilíbrio entre precisão e utilidade | `src/infrastructure/llm/QwenRouter.ts`
+F1 | FIX | Validação de tipos de confiança | Evitar crash com retornos malformados do LLM | `src/infrastructure/llm/QwenRouter.ts`
+F1 | RULE | Fallback para NORMAL_CHAT | Segurança operacional em caso de dúvida | `src/infrastructure/llm/QwenRouter.ts`

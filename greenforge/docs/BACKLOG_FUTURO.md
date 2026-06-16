@@ -1,68 +1,61 @@
-# BACKLOG_FUTURO.md — Backlog de Desenvolvimento GreenForge
+# BACKLOG ESTRATÉGICO — GreenForge
 
-Este documento segue o Protocolo de Arquivamento Progressivo v1.2.
-
----
-
-## 🌊 ONDA 0: ALICERCE (Fase 0)
-**Status:** CONCLUÍDO ✅
-
-### Fase 0: Inicialização e Setup
-- **Objetivo:** Preparar o ambiente, estrutura de diretórios e artefatos de memória.
-- **Critérios de Aceite:**
-  - [x] Estrutura de pastas básica criada (`src`, `tests`, `docs`, `documentacao`).
-  - [x] `package.json`, `tsconfig.json` e `vitest.config.ts` operacionais.
-  - [x] Dependências críticas instaladas (`better-sqlite3`, `execa`).
-  - [x] `npm test` e `npm run build` passando.
-  - [x] Artefatos de memória (`CURRENT_STATE`, `DECISION_LOG`, `BACKLOG_FUTURO`, `ARCHIVING_PROTOCOL`) criados conforme v1.2.
-  - [x] `.ai-context` e `.humano` configurados.
-  - [x] `.qwenignore` configurado.
-- **CONTRATOS_DA_ONDA:**
-  - **Segurança:** No-Shell Policy estabelecida no `package.json`.
-  - **Qualidade:** TDD estrito como regra para as próximas fases.
+## Intenção Original
+- **Objetivo:** Transformar o Qwen CLI em um engenheiro autônomo com isolamento físico via Git Worktrees.
+- **Estado Atual:** Fase 1 concluída (Roteamento funcional).
+- **Meta Final:** Ciclo completo Plan-Code-Verify automatizado e seguro.
 
 ---
 
-## 🌊 ONDA 1: NÚCLEO E ISOLAMENTO (Fases 1-3)
-**Status:** PENDENTE ⏳
+## Onda 1 — Núcleo e Isolamento
+> Pré-requisito: Fase 0 concluída
 
-### Fase 1: Intention Router (GF-ROUTER)
-- **Status:** CONCLUÍDO ✅
-- **Pré-requisitos:** Fase 0 concluída.
-- **Objetivo:** Implementar a lógica que distingue comandos técnicos de chat normal.
-- **Critérios de Aceite:**
-  - [x] Implementação de `QwenRouter.ts` utilizando API Qwen 2.5 (mockada nos testes).
-  - [x] Validação robusta de confiança e intenção (Zod).
-  - [x] Cobertura de testes unitários para 13 cenários de intenção e erros (router.test.ts).
-  - [x] Precisão de classificação determinística nos cenários de teste.
-- **CONTRATOS_DA_ONDA:**
-  - **Interface:** `Router.classify(input: string): Promise<Intent>` (Retorno simplificado conforme design).
+### Itens
 
-### Fase 2: Worktree Manager (GF-ISOLATOR)
+| ID | Entregável | Descrição (entregue ou planejada) | Arquivos Impactados | Critério de Aceite | Status |
+|----|------------|-----------------------------------|----------------------|---------------------|--------|
+| W1-01 | Setup Base | Estrutura de pastas, build e testes configurados conforme Protocolo v2.0. | `package.json`, `docs/` | Build e Smoke Test passando | CONCLUÍDO |
+| W1-02 | Intention Router | Roteador implementado com Zod e suíte de 13 testes unitários mockados. | `QwenRouter.ts` | 13/13 testes de roteamento PASS | CONCLUÍDO |
+| W1-03 | Worktree Manager | Gerenciador de Git Worktrees para isolamento físico de tarefas. | `WorktreeManager.ts` | Criar/remover WT via Git CLI | PENDENTE |
+| W1-04 | SafeResolve | Validação de caminhos e escrita atômica contra o Worktree. | `SafeResolve.ts` | Prevenir Path Traversal em testes | PENDENTE |
+
+### Meta da Onda 1
+- **Critério binário:** Capaz de classificar uma tarefa e provisionar um diretório isolado com segurança.
 - **Status:** PENDENTE
-- **Pré-requisitos:** Fase 1 iniciada.
-- **Objetivo:** Gerenciar o ciclo de vida de Git Worktrees para isolamento de tarefas.
-- **Critérios de Aceite:**
-  - [ ] Provisionamento e deprovisionamento de worktrees via `git worktree`.
-  - [ ] Prevenção de conflitos de branch e diretório.
-  - [ ] Testes de integração com Git real.
-- **CONTRATOS_DA_ONDA:**
-  - **Infra:** Proibido deixar diretórios órfãos após falha no provisionamento.
 
-### Fase 3: Segurança e Hardening (SafeResolve)
-- **Status:** PENDENTE
-- **Pré-requisitos:** Fase 2 iniciada.
-- **Objetivo:** Implementar contratos de blindagem contra Path Traversal e garantir escritas atômicas.
-- **Critérios de Aceite:**
-  - [ ] `SafeResolve.ts` validando prefixos contra o worktree root.
-  - [ ] `AtomicWrite` usando padrão `.tmp -> fsync -> rename`.
-  - [ ] Testes de segurança tentando invasão de diretórios (Path Traversal).
-- **CONTRATOS_DA_ONDA:**
-  - **Segurança:** Inviolabilidade do `SafeResolve` em todas as operações de FS.
+### CONTRATOS_DA_ONDA 1
+```
+OUTPUT_SCHEMAS:
+  W1-02: enum ['NORMAL_CHAT', 'DEVELOPMENT_TASK']
+  W1-03: { path: string, branch: string, status: 'active' | 'removed' }
+
+ESCOPO_CONGELADO:
+  - src/core/ports/LLMProvider.ts (Interface estável)
+
+ARQUIVOS_A_DELETAR:
+  - Nenhum
+
+REESCRITAS:
+  - Nenhuma
+
+SPECIALISTS_MVP:
+  - @Router (Classificação)
+  - @Isolator (Provisionamento)
+
+DECISOES_EXTRAS:
+  - Uso de Vitest em vez de Jest para melhor suporte a ESM nativo.
+```
 
 ---
 
-## 🌊 ONDA 2: ORQUESTRAÇÃO E PERSISTÊNCIA (Fases 4-7)
-**Status:** PENDENTE ⏳
+## Onda 2 — Orquestração e Persistência
+> Pré-requisito: Onda 1 concluída
 
-*(Backlog detalhado será expandido conforme o progresso das ondas anteriores)*
+[Backlog detalhado será preenchido após conclusão da Onda 1]
+
+---
+
+## Regras do Backlog
+1. Itens movem de `PENDENTE` para `CONCLUÍDO` apenas após validação com critério binário.
+2. Nenhuma Onda inicia sem a anterior concluída.
+3. `CONTRATOS_DA_ONDA` deve estar confirmado pelo usuário antes de disparar a execução.

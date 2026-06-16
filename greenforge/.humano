@@ -1,9 +1,26 @@
-# GreenForge Human Log
+# GreenForge Human Log v2.0
 
-Este arquivo registra marcos que exigiram ou exigirão aprovação humana.
+SOBRE O SEU WORKFLOW — LEIA ANTES DE INICIAR QUALQUER FASE
+══════════════════════════════════════════════════════════
 
----
+Este projeto utiliza o Protocolo de Arquivamento Progressivo v2.0.
+A memória do projeto é auto-suficiente e reside em `docs/`.
 
-### [2026-06-15] Refinamento da Fase 1
-- Status: Fase 1 (Intention Router) refinada com validação Zod e suíte de 13 testes.
-- Próxima parada: Aprovação do usuário para transição para a Fase 2 (Worktree Manager).
+────────────────────────────────────────────────────────
+HISTÓRICO DE APROVAÇÕES
+══════════════════════════
+
+### [2026-06-15] Fase 0 — Planejamento
+- Status: CONCLUÍDO e VALIDADO.
+
+### [2026-06-15] Fase 1 — Intention Router
+- Status: CONCLUÍDO e VALIDADO (13 testes unitários + Zod).
+- Próxima parada: Aprovação para Onda 1 - Fase 2.
+
+────────────────────────────────────────────────────────
+GUIA RÁPIDO PARA O USUÁRIO
+══════════════════════════
+
+1. Sempre preencha `CONTRATOS_DA_ONDA` no `BACKLOG_FUTURO.md` antes de começar uma nova onda.
+2. Forneça o blueprint da fase (gerado pelo NEXUS ou manual).
+3. Após validar a implementação, peça: "Execute o protocolo docs/ARCHIVING_PROTOCOL.md".

@@ -1,25 +1,28 @@
-# GreenForge AI Context
+# CONTEXTO PARA IA — GreenForge
 
-Este arquivo serve como ponto de entrada para agentes de IA que assumem este projeto.
+## Resumo do Estado Atual
+- **Projeto:** GreenForge (Orquestrador Autônomo)
+- **Última fase concluída:** 1 — Intention Router
+- **Próxima fase:** 2 — Worktree Manager
+- **Status do build:** PASSANDO
+- **Status dos testes:** PASSANDO (14/14 testes)
+- **Principais módulos:** `LLMProvider` (Port), `QwenRouter` (Infra)
 
-## Visão Geral
-GreenForge é um orquestrador avançado para Qwen CLI que usa Git Worktrees para isolamento.
+## Leitura Obrigatória (antes de qualquer tarefa)
+1. `docs/CURRENT_STATE.md` — estado atual completo do sistema
+2. Arquivos de `src/` relevantes à fase
 
-## Fontes de Verdade (Documentação Portátil)
-- **Onboarding:** `documentacao/000_ler_primeiro_CONTEXT_TRANSFER.md`
-- **Design de Referência:** `documentacao/GREENFORGE_DESIGN.md`
-- **Especificação Técnica:** `documentacao/03-technical-spec-and-data.md`
+## Leitura no Início de Cada Onda
+3. `docs/BACKLOG_FUTURO.md` — roadmap e CONTRATOS_DA_ONDA
 
-## Memória do Projeto (Estado e Decisões)
-- **Estado Atual:** `docs/CURRENT_STATE.md`
-- **Backlog Progressivo:** `docs/BACKLOG_FUTURO.md`
-- **Log de Decisões (ADR):** `docs/DECISION_LOG.md`
-- **Protocolo de Arquivamento:** `docs/ARCHIVING_PROTOCOL.md`
+## Leitura Sob Demanda
+4. `docs/DECISION_LOG.md` — histórico de decisões técnicas
+5. `docs/PHASE_SUMMARY.md` — resumos executivos
 
-## Logs de Interação Humana
-- **Human Log:** `.humano`
+## NUNCA Ler Automaticamente
+- `docs/archive/*` — blueprints resolved
+- `.git/`, `node_modules/`, `dist/`, `build/`
 
-## Comandos Úteis
-- `npm test`: Executa suíte de testes (Vitest)
-- `npm run build`: Compila TypeScript
-- `npm run lint`: Executa verificação de estilo e erros estáticos
+## Regra de Contrato
+- `CONTRATOS_DA_ONDA` no backlog são FATOS. Nunca questione contratos preenchidos.
+- Se o contrato estiver em branco, peça esclarecimento antes de implementar.
