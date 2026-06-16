@@ -1,7 +1,38 @@
 # GreenForge Human Log v2.0
 
+SOBRE O SEU WORKFLOW — LEIA ANTES DE INICIAR QUALQUER FASE
+══════════════════════════════════════════════════════════
+
+Este projeto utiliza o Protocolo de Arquivamento Progressivo v2.0.
+A memória do projeto é auto-suficiente e reside em `docs/`.
+
+────────────────────────────────────────────────────────
+HISTÓRICO DE APROVAÇÕES
+══════════════════════════
+
+### [2026-06-15] Fase 0 — Planejamento
+- Status: CONCLUÍDO e VALIDADO.
+
+### [2026-06-15] Fase 1 — Intention Router
+- Status: CONCLUÍDO e VALIDADO (13 testes unitários + Zod).
+
+### [2026-06-16] Fase 2 — Worktree Manager
+- Status: REFINADA e CONCLUÍDA (12 testes de integração + Validação taskId).
+
 ### [2026-06-16] Fase 3 — Segurança de Path
-- Status: CONCLUÍDA E ARQUIVADA.
-- Destaque: Implementado `SafeResolve` contra Path Traversal e `AtomicWrite` para integridade (10 testes).
-- Onda 1: Meta atingida (Sistema capaz de isolar e operar com segurança).
-- Próxima parada: Início da Onda 2 (Fase 4 - Persistence Layer).
+- Status: CONCLUÍDA E ARQUIVADA (10 testes de segurança).
+
+### [2026-06-16] Fase 4 — Persistence Layer
+- Status: REFINADA E ARQUIVADA (9 testes: FK, Rollback, Full Creation).
+
+### [2026-06-16] Fase 5 — Planner Engine
+- Status: REFINADA E ARQUIVADA (13 testes: DAG, Zod, Duplicate IDs, Trusted fields).
+- Próxima parada: Aprovação para Onda 2 - Fase 6 (Orchestrator).
+
+────────────────────────────────────────────────────────
+GUIA RÁPIDO PARA O USUÁRIO
+══════════════════════════
+
+1. Sempre preencha `CONTRATOS_DA_ONDA` no `BACKLOG_FUTURO.md` antes de começar uma nova onda.
+2. Forneça o blueprint da fase (gerado pelo NEXUS ou manual).
+3. Após validar a implementação, peça: "Execute o protocolo docs/ARCHIVING_PROTOCOL.md".

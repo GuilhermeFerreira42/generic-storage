@@ -2,23 +2,23 @@
 
 ## Resumo do Estado Atual
 - **Projeto:** GreenForge (Orquestrador Autônomo)
-- **Última fase concluída:** 3 — Segurança de Path (SafeResolve)
-- **Próxima fase:** 4 — Persistence Layer (SQLite)
+- **Última fase concluída:** 4 — Persistence Layer (Refinada)
+- **Próxima fase:** 5 — Planner Engine
 - **Status do build:** PASSANDO
-- **Status dos testes:** PASSANDO (39/39 testes)
-- **Módulos Críticos:** `WorktreeManager`, `SafeResolve`, `AtomicWrite`
+- **Status dos testes:** PASSANDO (48/48 testes)
+- **Módulos Críticos:** `WorktreeManager`, `SafeResolve`, `SQLiteRepository` (ACID)
 
 ## Leitura Obrigatória
 1. `docs/CURRENT_STATE.md` — estado atual completo do sistema
-2. `src/shared/SafeResolve.ts` — contrato de segurança inviolável
+2. `src/infrastructure/db/SQLiteRepository.ts` — contrato de persistência íntegro
 
 ## Leitura no Início de Onda
-3. `docs/BACKLOG_FUTURO.md` — roadmap Onda 2
+3. `docs/BACKLOG_FUTURO.md` — roadmap Onda 2 e CONTRATOS_DA_ONDA
 
 ## NUNCA Ler Automaticamente
 - `.git/`, `node_modules/`, `dist/`, `build/`
 - `docs/archive/*`
 
 ## Regra de Contrato
-- Use `SafeResolve` em todas as operações de filesystem.
-- Use `AtomicWrite` para persistência de estado crítico.
+- Todas as tabelas devem respeitar `FOREIGN KEY` (ON).
+- Use transações para qualquer operação que envolva mais de um comando SQL.

@@ -1,0 +1,204 @@
+Agora sim: **Fase 4 aprovada**.
+
+A correção ficou boa. Ele ativou `PRAGMA foreign_keys = ON`, adicionou teste para impedir checkpoint órfão, testou rollback de transação, fez `createTask` persistir `planMarkdown` e `subtasksGraph`, fez `saveSubtasksGraph` falhar quando a tarefa não existe, e os três comandos passaram:
+
+```text
+npm test: 48/48 passando
+npm run build: sucesso
+npm run lint: sucesso
+```
+
+Então a situação agora é:
+
+```text
+Fase 0: aprovada
+Fase 1: aprovada
+Fase 2: aprovada
+Fase 3: aprovada
+Fase 4: aprovada
+Onda 1: concluída
+Onda 2: iniciada
+```
+
+Tem só uma observação pequena, não bloqueante: em `createTask`, ele usa `task.planMarkdown || null`. Isso transforma string vazia em `null`. Não é um problema agora, mas mais para frente talvez seja melhor trocar por `task.planMarkdown ?? null`, porque aí só `undefined` e `null` viram `null`, e uma string vazia continua sendo string vazia. Mas eu não travaria a fase por isso.
+
+Agora o próximo passo é a **Fase 5 — Planner Engine**.
+
+Essa fase deve criar o motor que pega um pedido do usuário e transforma em um plano estruturado, com perguntas de clarificação e grafo de subtarefas. Mas, novamente, eu recomendo **não usar LLM real nos testes obrigatórios**. Use mock do `LLMProvider`, como foi feito no Router. Llama 70B e Qwen 342B podem ser usados depois como avaliação manual, mas não dentro de `npm test`.
+
+Antes de começar, vale definir o contrato da Fase 5, porque no backlog ainda está como `[?] PlanSchema`. Eu sugiro este contrato:
+
+```text
+Plan:
+  id: string
+  title: string
+  originalPrompt: string
+  questions: ClarificationQuestion[]
+  subtasksGraph: SubtaskNode[]
+  acceptanceCriteria: string[]
+  risks: string[]
+  createdAt: string
+
+ClarificationQuestion:
+  id: string
+  question: string
+  required: boolean
+
+SubtaskNode:
+  id: string
+  title: string
+  assignedAgent: 'CODER' | 'TESTER' | 'DOCS' | null
+  dependsOn: string[]
+  status: 'PENDING'
+  worktreePath: null
+  artifactOutput: null
+```
+
+E os critérios principais:
+
+```text
+- gerar entre 5 e 7 perguntas de clarificação
+- validar o schema do plano com Zod
+- rejeitar plano com dependência cíclica
+- rejeitar subtarefa que depende de uma subtarefa inexistente
+- gerar GREENFORGE_PLAN.md em markdown
+- usar AtomicWrite para gravar o plano
+- usar SafeResolveForWrite para garantir que o arquivo será escrito dentro da raiz permitida
+```
+
+Você pode mandar este prompt para o executor:
+
+```text
+Fase 4 aprovada.
+
+Comece agora somente a Fase 5: Planner Engine.
+
+Leia primeiro:
+- `.ai-context`
+- `docs/CURRENT_STATE.md`
+- `docs/BACKLOG_FUTURO.md`
+- `docs/DECISION_LOG.md`
+- `documentacao/000_ler_primeiro_CONTEXT_TRANSFER.md`
+- `documentacao/GREENFORGE_DESIGN.md`
+- `documentacao/03-technical-spec-and-data.md`
+- `documentacao/02-functional-requirements.md`
+- `documentacao/09-hardening-deterministic-contracts.md`
+
+Execute apenas a Fase 5.
+Não avance para Fase 6.
+Não implemente Orchestrator completo.
+Não implemente MCP.
+Não implemente DiffLens.
+Não implemente subagentes.
+Não use LLM real nos testes.
+Use TDD estrito: primeiro testes, depois implementação.
+
+CONTRATOS_DA_FASE 5:
+
+Plan:
+  id: string
+  title: string
+  originalPrompt: string
+  questions: ClarificationQuestion[]
+  subtasksGraph: SubtaskNode[]
+  acceptanceCriteria: string[]
+  risks: string[]
+  createdAt: string
+
+ClarificationQuestion:
+  id: string
+  question: string
+  required: boolean
+
+SubtaskNode:
+  id: string
+  title: string
+  assignedAgent: 'CODER' | 'TESTER' | 'DOCS' | null
+  dependsOn: string[]
+  status: 'PENDING'
+  worktreePath: null
+  artifactOutput: null
+
+Regras obrigatórias:
+- O PlannerEngine deve depender de `LLMProvider`, não de API real.
+- Os testes devem usar mock determinístico.
+- O plano deve ser validado com Zod.
+- `questions.length` deve ser entre 5 e 7.
+- O grafo de subtarefas não pode ter ciclos.
+- Nenhuma subtarefa pode depender de ID inexistente.
+- O plano deve poder ser salvo como `GREENFORGE_PLAN.md`.
+- Para escrever o plano, use `SafeResolveForWrite` e `AtomicWrite`.
+- Se o LLM retornar JSON inválido, schema inválido, pergunta insuficiente, dependência cíclica ou subtarefa inválida, o Planner deve falhar de forma controlada.
+- Não escreva fora da raiz permitida.
+- Não use `child_process.exec`.
+- Não use `shell: true`.
+
+Arquivos esperados:
+- `src/core/types/Plan.ts`
+- `src/core/PlannerEngine.ts`
+- `tests/planner.test.ts`
+- se necessário, atualizar `src/core/types/Task.ts` apenas de forma compatível
+- se fizer sentido, criar `docs/phase_5_resumo.md`
+
+Testes mínimos esperados:
+1. gera plano válido com 5 a 7 perguntas
+2. rejeita plano com menos de 5 perguntas
+3. rejeita plano com mais de 7 perguntas
+4. rejeita JSON inválido do LLM
+5. rejeita plano sem subtasksGraph
+6. rejeita subtarefa com dependência inexistente
+7. rejeita dependência cíclica
+8. aceita grafo simples sem dependências
+9. aceita grafo com dependência válida
+10. gera markdown contendo seções de arquitetura, perguntas, subtarefas e testes
+11. escreve `GREENFORGE_PLAN.md` dentro da raiz permitida
+12. bloqueia escrita do plano fora da raiz permitida
+
+Depois rode:
+- `npm test`
+- `npm run build`
+- `npm run lint`
+
+Atualize a documentação viva:
+- `docs/CURRENT_STATE.md`
+- `docs/BACKLOG_FUTURO.md`
+- `docs/DECISION_LOG.md`
+- `.humano`
+- `docs/phase_5_resumo.md`, se fizer sentido
+
+No relatório final, informe:
+- arquivos criados
+- arquivos modificados
+- número de testes adicionados
+- quais validações de plano foram cobertas
+- resultado de `npm test`
+- resultado de `npm run build`
+- resultado de `npm run lint`
+- decisões técnicas tomadas
+- riscos conhecidos
+- confirmação de que parou aguardando aprovação humana
+
+Comece a Fase 5 agora.
+```
+
+Quando ele terminar a Fase 5, traga principalmente:
+
+```text
+src/core/types/Plan.ts
+src/core/PlannerEngine.ts
+tests/planner.test.ts
+docs/CURRENT_STATE.md
+docs/BACKLOG_FUTURO.md
+docs/DECISION_LOG.md
+.humano
+```
+
+E a saída de:
+
+```powershell
+npm test
+npm run build
+npm run lint
+```
+
+Resumo direto: **Fase 4 aprovada. Próximo passo: Fase 5 — Planner Engine com LLM mockado, validação Zod, grafo de subtarefas e escrita segura do GREENFORGE_PLAN.md.**

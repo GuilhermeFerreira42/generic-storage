@@ -1,0 +1,108 @@
+Eu **não aprovaria a Fase 5 ainda**. Ela está bem feita em vários pontos, os testes passam, build e lint passam, mas encontrei um problema importante de segurança e um problema de fidelidade do teste.
+
+O problema principal é este: no `PlannerEngine.savePlan`, ele está salvando o arquivo com este nome:
+
+```ts
+const targetFileName = 'GREENFORGE_[PLAN.md](http://PLAN.md)';
+```
+
+Isso está errado. Esse nome veio por causa da conversão automática do texto colado, que transformou `GREENFORGE_PLAN.md` em link. O arquivo correto deve ser:
+
+```text
+GREENFORGE_PLAN.md
+```
+
+Sem colchetes, sem parênteses, sem `http://PLAN.md`.
+
+Esse erro é importante porque, se continuar assim, o GreenForge não vai gerar o artefato esperado pela documentação. A documentação inteira fala em `GREENFORGE_PLAN.md`. Os testes também estão aceitando o nome errado, então o teste passou, mas passou validando a coisa errada.
+
+O segundo problema é o teste 12. Ele diz que testa o bloqueio de escrita fora da raiz, mas na prática ele não testa o método `savePlan`. Ele criou uma função separada `savePlanInsecure` usando `safeResolveForWrite('../outside.md', tempDir)`. Isso testa o `SafeResolveForWrite`, que já foi testado na Fase 3, mas não testa se o `PlannerEngine.savePlan` está seguro. Como o `savePlan` usa nome fixo, ele não tem como receber `../outside.md`, então esse teste não prova muito sobre o Planner. Não é um bloqueio gigante, mas é um teste meio artificial.
+
+Também tem outro ponto que eu corrigiria: o `generatePlan(taskId, prompt)` recebe um `taskId`, mas o schema aceita qualquer `id` que o LLM devolver. Ou seja, se você chama `generatePlan('task-123', '...')`, mas o LLM responde `"id": "outra-coisa"`, o plano passa. O correto é validar que `plan.id === taskId` e que `plan.originalPrompt === prompt`, ou pelo menos sobrescrever esses campos depois do parse para não confiar no LLM. Como o plano será usado para auditoria, o ID e o prompt original precisam ser confiáveis.
+
+Também seria bom validar IDs duplicados em subtarefas. O algoritmo atual cria um `Set`, mas não verifica se `nodes.length !== ids.size`. Se houver duas subtarefas com o mesmo `id`, isso pode causar comportamento estranho no grafo. Precisa ter teste para subtarefa duplicada.
+
+Então a fase está **quase aprovada**, mas precisa de correção final antes de seguir para Orchestrator.
+
+Mande este prompt para o executor:
+
+```text
+A Fase 5 está quase aprovada, mas ainda não está aprovada.
+
+Não avance para a Fase 6.
+
+Faça uma correção final da Fase 5: Planner Engine.
+
+Problemas encontrados:
+
+1. O arquivo do plano está sendo salvo com nome errado:
+   `GREENFORGE_[PLAN.md](http://PLAN.md)`
+
+   Isso está incorreto. O nome oficial e obrigatório é:
+   `GREENFORGE_PLAN.md`
+
+   Corrija `PlannerEngine.savePlan` e todos os testes/documentações que mencionarem o nome errado.
+
+2. O teste de escrita fora da raiz não testa realmente `PlannerEngine.savePlan`, ele testa apenas `safeResolveForWrite` diretamente. Como `safeResolveForWrite` já foi testado na Fase 3, ajuste os testes da Fase 5 para focarem no comportamento real do Planner.
+   Se `savePlan` usa nome fixo, então o teste deve validar que ele sempre grava `GREENFORGE_PLAN.md` dentro da raiz permitida e nunca aceita nome externo.
+   Se quiser testar tentativa de path externo, crie uma função interna parametrizável ou mantenha isso somente nos testes de SafeResolve, mas não marque como cobertura do Planner.
+
+3. `generatePlan(taskId, prompt)` não deve confiar no LLM para `id` e `originalPrompt`.
+   Corrija de uma destas formas:
+   - após validar o schema, sobrescreva `plan.id = taskId` e `plan.originalPrompt = prompt`, ou
+   - rejeite o plano se `plan.id !== taskId` ou `plan.originalPrompt !== prompt`.
+
+   Minha preferência: sobrescrever esses dois campos com os valores confiáveis recebidos pela função.
+
+4. Adicione teste confirmando que, se o LLM retornar outro `id` ou outro `originalPrompt`, o plano final usa o `taskId` e o `prompt` fornecidos pelo sistema, não os valores do LLM.
+
+5. Adicione validação para IDs duplicados em `subtasksGraph`.
+   Se duas subtarefas tiverem o mesmo `id`, o Planner deve rejeitar o plano.
+
+6. Adicione teste para subtarefas duplicadas.
+
+7. Rode novamente:
+- `npm test`
+- `npm run build`
+- `npm run lint`
+
+8. Atualize a documentação viva:
+- `docs/CURRENT_STATE.md`
+- `docs/BACKLOG_FUTURO.md`
+- `docs/DECISION_LOG.md`
+- `.humano`
+- `docs/phase_5_resumo.md`, se existir
+
+9. Entregue relatório final informando:
+- correção do nome `GREENFORGE_PLAN.md`
+- como `id` e `originalPrompt` são tratados
+- se IDs duplicados em subtarefas são bloqueados
+- total final de testes do Planner
+- resultado de `npm test`
+- resultado de `npm run build`
+- resultado de `npm run lint`
+- confirmação de que parou aguardando aprovação humana
+
+Não implemente Orchestrator, MCP, DiffLens ou subagentes.
+```
+
+Depois traga só estes trechos:
+
+```text
+src/core/PlannerEngine.ts
+tests/planner.test.ts
+docs/CURRENT_STATE.md
+docs/BACKLOG_FUTURO.md
+docs/DECISION_LOG.md
+.humano
+```
+
+E a saída de:
+
+```powershell
+npm test
+npm run build
+npm run lint
+```
+
+Resumo direto: **não aprove a Fase 5 ainda**. Ela está boa, mas precisa corrigir o nome real do `GREENFORGE_PLAN.md`, proteger `id/originalPrompt` contra resposta maliciosa do LLM e bloquear subtarefas duplicadas.

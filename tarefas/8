@@ -1,0 +1,94 @@
+Eu vi os arquivos e o relatório. A Fase 4 está **bem encaminhada**, os testes estão passando, build e lint também, mas eu **não aprovaria oficialmente ainda**. Eu pediria uma correção final pequena, porque a camada de persistência é uma parte crítica do GreenForge. Se ela ficar com uma falha silenciosa agora, isso pode causar problema grande quando entrar Planner, Orchestrator e recuperação de estado.
+
+O principal problema é este: no SQLite, `FOREIGN KEY` normalmente **não é aplicado automaticamente** se você não ativar `PRAGMA foreign_keys = ON`. O schema tem `task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE`, mas se `foreign_keys` não estiver ligado, o banco pode aceitar checkpoint para uma tarefa que nem existe. Isso quebra a ideia de integridade do estado.
+
+Outro ponto: o teste de transação que ele fez só testa o caminho feliz. Ele cria uma tarefa e um checkpoint dentro de uma transação e verifica que funcionou. Mas o teste mais importante de transação é o contrário: “se algo der erro no meio, tudo volta atrás”. Ou seja, precisa testar rollback. Por exemplo: dentro da transação cria uma task, depois força um erro, e depois verifica que a task não ficou salva.
+
+Também tem um detalhe de contrato: `TaskRecord` tem `planMarkdown` e `subtasksGraph`, mas o método `createTask` só insere `id`, `title`, `original_prompt`, `branch_name`, `worktree_path` e `status`. Se alguém chamar `createTask` passando `planMarkdown`, esse valor será ignorado. Isso é uma inconsistência entre tipo e implementação. Pode corrigir de duas formas: ou `createTask` persiste esses campos opcionais, ou a documentação deixa claro que esses campos só são salvos por métodos separados. Eu prefiro que `createTask` já salve `planMarkdown` e `subtasksGraph` se forem fornecidos.
+
+Tem mais um detalhe: `saveSubtasksGraph` não verifica se a task existe. Se você tentar salvar grafo para uma task inexistente, ele roda o update e não reclama. Seria melhor lançar erro se `changes === 0`, igual ele já faz em `updateTaskStatus`.
+
+Então minha decisão é: **Fase 4 quase aprovada, mas ainda precisa de refinamento final**.
+
+Você pode mandar este prompt para o executor:
+
+```text
+A Fase 4 está quase aprovada, mas ainda não está aprovada.
+
+Não avance para a Fase 5.
+
+Faça uma correção final da Fase 4: Persistence Layer.
+
+Problemas encontrados:
+
+1. Ative obrigatoriamente `PRAGMA foreign_keys = ON` no `SQLiteRepository.initialize()`, além do `journal_mode = WAL`.
+   O schema usa `REFERENCES tasks(id) ON DELETE CASCADE`, mas sem `foreign_keys = ON` o SQLite pode não aplicar integridade referencial.
+
+2. Adicione método ou teste para confirmar que foreign keys estão ativas.
+   Critério: tentar inserir checkpoint para uma task inexistente deve falhar.
+
+3. O teste atual de transação só cobre sucesso. Adicione teste de rollback:
+   - iniciar transação
+   - criar uma task
+   - lançar um erro proposital dentro da transação
+   - verificar que a task não foi persistida
+   - verificar que nenhum checkpoint parcial ficou salvo
+
+4. `createTask` recebe um tipo que pode conter `planMarkdown` e `subtasksGraph`, mas hoje ignora esses campos.
+   Corrija para persistir `planMarkdown` e `subtasksGraph` quando forem fornecidos.
+   Adicione teste cobrindo criação de task com `planMarkdown` e `subtasksGraph`.
+
+5. `saveSubtasksGraph` deve lançar erro se a task não existir, assim como `updateTaskStatus` já faz.
+   Adicione teste para esse caso.
+
+6. Se necessário, adicione método `getForeignKeysEnabled()` ou equivalente apenas para teste/diagnóstico.
+
+7. Rode novamente:
+- `npm test`
+- `npm run build`
+- `npm run lint`
+
+8. Atualize a documentação viva:
+- `docs/CURRENT_STATE.md`
+- `docs/BACKLOG_FUTURO.md`
+- `docs/DECISION_LOG.md`
+- `.humano`
+- `docs/phase_4_resumo.md`, se existir
+
+9. Entregue relatório final informando:
+- se `foreign_keys` foi ativado
+- quantos testes de persistência existem agora
+- quais casos novos foram adicionados
+- se rollback foi validado
+- se checkpoint órfão é bloqueado
+- se `createTask` persiste `planMarkdown` e `subtasksGraph`
+- resultado de `npm test`
+- resultado de `npm run build`
+- resultado de `npm run lint`
+- confirmação de que parou aguardando aprovação humana
+
+Não implemente Planner, Orchestrator, MCP, DiffLens ou qualquer item da Fase 5.
+```
+
+Depois dessa correção, traga só estes arquivos:
+
+```text
+src/infrastructure/db/SQLiteRepository.ts
+tests/persistence.test.ts
+docs/CURRENT_STATE.md
+docs/BACKLOG_FUTURO.md
+docs/DECISION_LOG.md
+.humano
+```
+
+E a saída de:
+
+```powershell
+npm test
+npm run build
+npm run lint
+```
+
+Sobre usar LLM real: para a Fase 4 também não precisa. Essa fase é banco de dados, transação e integridade. Tudo deve ser testado localmente com SQLite temporário. O Llama 70B ou Qwen 342B não entram aqui.
+
+Resumo direto: **não aprove a Fase 4 ainda**. Peça essa correção final. Depois disso, se passar, provavelmente a Fase 4 estará aprovada e aí poderemos planejar a Fase 5, que deve ser o Planner Engine.

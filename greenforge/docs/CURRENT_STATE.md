@@ -1,53 +1,52 @@
 # CURRENT_STATE — GreenForge
-> Última atualização: Fase 3 | 2026-06-16
+> Última atualização: Fase 5 | 2026-06-16
 
 ## Arquitetura Ativa
-- **Arquitetura Hexagonal:** Separação entre core (domínio), ports (interfaces) e infraestrutura (LLM, Git, DB).
-- **Orquestração:** Baseada em Intention Router para triagem de prompts.
-- **Isolamento:** Uso de Git Worktrees gerenciados pelo `WorktreeManager`.
-- **Segurança de FS:** Contratos `SafeResolve` (Anti-Path-Traversal) e `AtomicWrite` (Integridade).
+- **Arquitetura Hexagonal:** Core desacoplado via portas.
+- **Orquestração:** Triagem via Router e Planejamento via `PlannerEngine`.
+- **Isolamento:** Sandbox físico via Git Worktrees.
+- **Segurança:** Validação de caminhos (`SafeResolve`) e integridade de escrita (`AtomicWrite`).
+- **Persistência:** SQLite com modo WAL, transações ACID e Foreign Keys ativas.
 
 ## Módulos e Contratos Vigentes
 | Módulo | Arquivo | Contrato Público | Desde |
 |--------|---------|------------------|-------|
 | `LLMProvider` | `src/core/ports/LLMProvider.ts` | `generate(prompt: string): Promise<string>` | Fase 1 |
 | `QwenRouter` | `src/infrastructure/llm/QwenRouter.ts` | `classify(input: string): Promise<Intent>` | Fase 1 |
-| `WorktreeManager` | `src/infrastructure/git/WorktreeManager.ts` | `provision(taskId): Promise<WTInfo>`, `deprovision(taskId): Promise<void>`, `list(): Promise<WTInfo[]>` | Fase 2 |
-| `SafeResolve` | `src/shared/SafeResolve.ts` | `safeResolve(path, root): Promise<string>`, `safeResolveForWrite(path, root): Promise<string>` | Fase 3 |
-| `AtomicWrite` | `src/shared/AtomicWrite.ts` | `atomicWrite(path, content): Promise<void>` | Fase 3 |
+| `WorktreeManager` | `src/infrastructure/git/WorktreeManager.ts` | `provision(taskId)`, `deprovision(taskId)`, `list()` | Fase 2 |
+| `SafeResolve` | `src/shared/SafeResolve.ts` | `safeResolve`, `safeResolveForWrite` | Fase 3 |
+| `AtomicWrite` | `src/shared/AtomicWrite.ts` | `atomicWrite(path, content)` | Fase 3 |
+| `SQLiteRepository` | `src/infrastructure/db/SQLiteRepository.ts` | `createTask`, `getTask`, `updateTaskStatus`, `saveSubtasksGraph`, `runInTransaction` | Fase 4 |
+| `PlannerEngine` | `src/core/PlannerEngine.ts` | `generatePlan(taskId, prompt)`, `renderToMarkdown(plan)`, `savePlan(plan, root)` | Fase 5 |
 
 ## Fluxo Principal
-1. Usuário envia prompt.
-2. `QwenRouter` classifica a intenção.
-3. Se tarefa técnica, `WorktreeManager` provisiona worktree isolado.
-4. Qualquer operação de arquivo subsequente deve usar `SafeResolve` para validar acesso.
-5. Persistência de arquivos críticos deve usar `AtomicWrite`.
+1. Router identifica tarefa técnica.
+2. `PlannerEngine` gera plano estruturado (JSON) validado via Zod.
+3. Plano é verificado contra dependências circulares, IDs duplicados e IDs inexistentes.
+4. Plano é renderizado em markdown e salvo como `GREENFORGE_PLAN.md` no worktree.
+5. Sistema aguarda aprovação (Fase 6).
 
-## Invariantes Globais (nunca violar)
-1. **No-Shell Policy:** Uso exclusivo de `execa` com `shell: false`.
-2. **Fallback Seguro:** Qualquer incerteza no roteamento ou segurança resulta em negação/NORMAL_CHAT.
-3. **Desacoplamento de LLM:** Core independente de APIs de IA específicas.
-4. **TDD Estrito:** Nenhum código sem teste.
-5. **Acesso Restrito:** Escrita permitida apenas dentro do root do worktree autorizado.
-6. **Integridade Atômica:** Escritas críticas nunca devem deixar arquivos parciais/corrompidos.
+## Invariantes Globais
+1. **No-Shell Policy:** `execa` sem shell.
+2. **Fallback Seguro:** Incerteza = `NORMAL_CHAT`.
+3. **Segurança de FS:** Acesso apenas via `SafeResolve`.
+4. **Aciclicidade:** Grafo de subtarefas deve ser um DAG (Directed Acyclic Graph).
+5. **Clarificação Mínima:** Sempre 5-7 perguntas de clarificação por plano.
+6. **Integridade de IDs:** IDs de subtarefas devem ser únicos no grafo.
+7. **Não-Confiança no LLM:** Campos críticos como `id` e `originalPrompt` no plano são sobrescritos pelo sistema.
 
 ## Restrições Técnicas Ativas
 - **Runtime:** Node.js v24.
-- **Threshold Confiança:** 0.7.
-- **Segurança:** Bloqueio de `taskId` "." e navegação de path (`..`, `/`, `\`).
+- **Plan Constraints:** 5-7 perguntas, grafo validado, persistência atômica como `GREENFORGE_PLAN.md`.
 
 ## Testes Obrigatórios
 | Suite | Arquivo | Cobertura Aproximada | Comando |
 |-------|---------|----------------------|---------|
-| Smoke Test | `tests/smoke.test.ts` | 1 teste | `npm test` |
-| Router Test | `tests/router.test.ts` | 13 testes | `npm test` |
-| Worktree Test | `tests/worktree.test.ts` | 15 testes | `npm test` |
-| Security Test | `tests/security.test.ts` | 10 testes | `npm test` |
+| Total Suíte | `tests/*.test.ts` | 61 testes ativos | `npm test` |
+| Planner Test | `tests/planner.test.ts` | 13 testes (Integridade + FS) | `npm test` |
 
 ## Dependências Externas
 | Pacote | Versão | Motivo |
 |--------|--------|--------|
-| `better-sqlite3` | ^11.0.0 | Persistência. |
-| `execa` | ^9.0.0 | Execução segura. |
-| `zod` | ^3.23.0 | Validação. |
-| `vitest` | ^1.6.0 | Testes. |
+| `zod` | ^3.23.0 | Validação de schemas (LLM/Plano). |
+| `better-sqlite3` | ^11.0.0 | Persistência ACID. |
