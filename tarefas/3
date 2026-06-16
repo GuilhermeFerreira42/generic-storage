@@ -1,0 +1,103 @@
+Sim, agora eu **aprovo a Fase 1**. Não preciso ver mais arquivos desta fase por enquanto. O que você trouxe já é suficiente para validar.
+
+O executor corrigiu exatamente os pontos importantes: aumentou os testes para 13 cenários no `router.test.ts`, validou `intention` com Zod, validou `confidence` como número entre `0` e `1`, manteve fallback seguro para `NORMAL_CHAT`, não usou LLM real nos testes, manteve o `LLMProvider` desacoplado e rodou `npm test`, `npm run build` e `npm run lint` com sucesso. Isso está bom.
+
+A Fase 1 agora está aprovada.
+
+Tem só uma observação pequena, mas não bloqueante: no PowerShell os acentos apareceram quebrados, tipo `intenÃ§Ã£o`, `concluÃ­da`, etc. Isso provavelmente é problema de codificação do terminal, não necessariamente dos arquivos. Como não afeta build, teste nem lint, eu não travaria o projeto por isso agora. Mais para frente, se isso aparecer dentro dos arquivos de verdade, a gente corrige com UTF-8. Por enquanto, pode seguir.
+
+Agora o próximo passo é a **Fase 2: Worktree Manager (GF-ISOLATOR)**.
+
+Essa fase é mais perigosa que a Fase 1, porque ela vai mexer com Git real, diretórios temporários, branches e worktrees. Então você precisa mandar o executor trabalhar com bastante cuidado. Ele não deve sair apagando diretórios sem validação, não deve usar `rm -rf`, não deve usar `shell: true`, e os testes devem usar repositórios temporários, nunca o repositório principal de trabalho.
+
+Você pode mandar este prompt para ele:
+
+```text
+Fase 1 aprovada.
+
+Comece agora somente a Fase 2: Worktree Manager (GF-ISOLATOR).
+
+Leia primeiro:
+- `.ai-context`
+- `docs/CURRENT_STATE.md`
+- `docs/BACKLOG_FUTURO.md`
+- `docs/DECISION_LOG.md`
+- `documentacao/000_ler_primeiro_CONTEXT_TRANSFER.md`
+- `documentacao/GREENFORGE_DESIGN.md`
+- `documentacao/03-technical-spec-and-data.md`
+- `documentacao/05-governance-and-security.md`
+- `documentacao/09-hardening-deterministic-contracts.md`
+
+Regras obrigatórias:
+- Execute apenas a Fase 2.
+- Não avance para a Fase 3.
+- Use TDD estrito: primeiro crie os testes, depois implemente.
+- Não implemente SafeResolve completo, AtomicWrite, SQLite, Planner, MCP ou Orchestrator nesta fase.
+- Não use `child_process.exec`.
+- Não use `shell: true`.
+- Use `execa` com array de argumentos e `shell: false`.
+- Os testes devem usar Git real, mas em diretórios temporários criados pelos testes.
+- Nunca rode testes de worktree diretamente no repositório principal.
+- Não use `rm -rf`.
+- O cleanup dos testes deve remover apenas diretórios temporários criados pelo próprio teste.
+- O WorktreeManager deve criar worktrees em caminho controlado, preferencialmente `.git/greenforge-worktrees/<taskId>` ou caminho configurável nos testes.
+- O nome da branch deve seguir o padrão `forge/task-<taskId>`.
+- Se branch ou worktree já existir, deve falhar de forma controlada, sem deixar sujeira.
+- Implemente `provision(taskId)` e `deprovision(taskId)` ou equivalente conforme a documentação.
+- Crie testes para criação, listagem/validação e remoção de worktree.
+- Crie teste para branch duplicada ou taskId duplicado.
+- Garanta compatibilidade com Windows, evitando comandos encadeados com `&&`.
+
+Critérios de aceite da Fase 2:
+- `tests/worktree.test.ts` criado.
+- `src/infrastructure/git/WorktreeManager.ts` criado.
+- Worktree é criado com Git real em repositório temporário.
+- Branch `forge/task-<taskId>` é criada corretamente.
+- `deprovision()` remove o worktree corretamente.
+- Erros de duplicidade são tratados sem corromper o repositório.
+- `npm test` passa.
+- `npm run build` passa.
+- `npm run lint` passa.
+- Documentação viva atualizada:
+  - `docs/CURRENT_STATE.md`
+  - `docs/BACKLOG_FUTURO.md`
+  - `docs/DECISION_LOG.md`
+  - `.humano`
+
+Ao terminar, entregue relatório final em português brasileiro com:
+- arquivos criados
+- arquivos modificados
+- testes adicionados
+- comandos executados
+- resultado de `npm test`
+- resultado de `npm run build`
+- resultado de `npm run lint`
+- riscos encontrados
+- decisões técnicas tomadas
+- confirmação de que parou aguardando aprovação humana
+
+Comece a Fase 2 agora.
+```
+
+Quando ele terminar a Fase 2, traga para mim principalmente estes arquivos:
+
+```text
+greenforge/src/infrastructure/git/WorktreeManager.ts
+greenforge/tests/worktree.test.ts
+greenforge/docs/CURRENT_STATE.md
+greenforge/docs/BACKLOG_FUTURO.md
+greenforge/docs/DECISION_LOG.md
+greenforge/.humano
+```
+
+E traga também a saída de:
+
+```powershell
+npm test
+npm run build
+npm run lint
+```
+
+A Fase 2 vai ser a primeira fase com integração real, então eu vou olhar com mais cuidado. A Fase 1 era lógica pura com mock. A Fase 2 mexe em Git e filesystem, então qualquer erro pode deixar worktree órfão ou branch sobrando. Mas se ele seguir o prompt acima, deve ficar seguro.
+
+Resumo: **Fase 1 aprovada. Próximo passo: mandar executar Fase 2 com cuidado e testes em repositório temporário.**

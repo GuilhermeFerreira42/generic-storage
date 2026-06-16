@@ -2,7 +2,7 @@
 
 ## Intenção Original
 - **Objetivo:** Transformar o Qwen CLI em um engenheiro autônomo com isolamento físico via Git Worktrees.
-- **Estado Atual:** Fase 1 concluída (Roteamento funcional).
+- **Estado Atual:** Fase 2 concluída (Isolamento físico refinado e seguro).
 - **Meta Final:** Ciclo completo Plan-Code-Verify automatizado e seguro.
 
 ---
@@ -16,7 +16,7 @@
 |----|------------|-----------------------------------|----------------------|---------------------|--------|
 | W1-01 | Setup Base | Estrutura de pastas, build e testes configurados conforme Protocolo v2.0. | `package.json`, `docs/` | Build e Smoke Test passando | CONCLUÍDO |
 | W1-02 | Intention Router | Roteador implementado com Zod e suíte de 13 testes unitários mockados. | `QwenRouter.ts` | 13/13 testes de roteamento PASS | CONCLUÍDO |
-| W1-03 | Worktree Manager | Gerenciador de Git Worktrees para isolamento físico de tarefas. | `WorktreeManager.ts` | Criar/remover WT via Git CLI | PENDENTE |
+| W1-03 | Worktree Manager | Gerenciamento seguro de worktrees com validação estrita de `taskId` (rejeita ".", ".." e pontos em extremidades), deprovisionamento com remoção de branch validada e 15 testes de integração. | `WorktreeManager.ts` | Criar/remover WT e branch PASS | CONCLUÍDO |
 | W1-04 | SafeResolve | Validação de caminhos e escrita atômica contra o Worktree. | `SafeResolve.ts` | Prevenir Path Traversal em testes | PENDENTE |
 
 ### Meta da Onda 1
@@ -27,10 +27,11 @@
 ```
 OUTPUT_SCHEMAS:
   W1-02: enum ['NORMAL_CHAT', 'DEVELOPMENT_TASK']
-  W1-03: { path: string, branch: string, status: 'active' | 'removed' }
+  W1-03: { taskId: string, path: string, branch: string }
 
 ESCOPO_CONGELADO:
-  - src/core/ports/LLMProvider.ts (Interface estável)
+  - src/core/ports/LLMProvider.ts
+  - src/infrastructure/llm/QwenRouter.ts
 
 ARQUIVOS_A_DELETAR:
   - Nenhum
@@ -44,6 +45,8 @@ SPECIALISTS_MVP:
 
 DECISOES_EXTRAS:
   - Uso de Vitest em vez de Jest para melhor suporte a ESM nativo.
+  - Normalização de caminhos no WorktreeManager para compatibilidade Windows.
+  - Validação rigorosa de taskId na camada de infraestrutura (WorktreeManager).
 ```
 
 ---

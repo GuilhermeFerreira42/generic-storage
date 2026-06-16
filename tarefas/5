@@ -1,0 +1,63 @@
+Sim, eu vi o suficiente para avaliar, e a Fase 2 ficou **muito melhor** depois do refinamento. O `WorktreeManager` agora valida `taskId`, usa `mkdtemp` nos testes, usa `path.relative` na listagem, remove branch no `deprovision`, e os testes passaram. Isso está bem encaminhado. Mas eu ainda faria **uma microcorreção antes de aprovar oficialmente**, porque encontrei um detalhe pequeno que pode virar problema de segurança/caminho.
+
+O detalhe é este: a validação atual permite o `taskId` igual a `"."`, porque o regex aceita ponto, o tamanho é válido e ele não contém `".."`. Só que `taskId = "."` é perigoso, porque `path.join(this.worktreeRoot, ".")` vira praticamente o próprio diretório raiz dos worktrees, não uma subpasta de tarefa. Ou seja, ele poderia tentar criar um worktree diretamente em `.git/greenforge-worktrees`, em vez de `.git/greenforge-worktrees/<taskId>`. Isso viola a ideia de uma pasta isolada por tarefa.
+
+A solução é simples: o `taskId` não pode ser `"."`, não pode ser `".."`, e idealmente não deve começar nem terminar com ponto. Mas, no mínimo, precisa rejeitar `"."`. Como você já tem testes para `..`, `../../outside`, `abc/def`, `abc\def`, etc., basta adicionar `"."` na lista de inválidos. Isso também resolve outra inconsistência: o `.ai-context` diz que há **27/27 testes**, mas o terminal mostrou **26 testes**. Se ele adicionar o teste do `"."`, provavelmente ficará 27 testes mesmo.
+
+Então eu ainda não diria “Fase 2 aprovada”, mas diria: **Fase 2 está 99% aprovada, falta só essa correção pequena**.
+
+Mande para o executor este comando:
+
+```text
+A Fase 2 está praticamente aprovada, mas falta uma microcorreção antes da aprovação final.
+
+Não avance para a Fase 3.
+
+Corrija estes pontos:
+
+1. A validação de `taskId` ainda permite `taskId = "."`. Isso é perigoso porque `path.join(worktreeRoot, ".")` aponta para a própria raiz dos worktrees, não para uma pasta isolada de tarefa. Atualize `validateTaskId` para rejeitar `"."`.
+
+2. Se possível, também rejeite taskIds que começam ou terminam com ponto, para evitar nomes ambíguos no Windows e no Git. Exemplos inválidos:
+- "."
+- ".task"
+- "task."
+
+3. Adicione esses casos aos testes de taskId inválido em `tests/worktree.test.ts`.
+
+4. Corrija a inconsistência no `.ai-context`: ele diz `27/27 testes`, mas o terminal mostrou `26/26`. Depois de adicionar o novo teste, rode os testes e atualize o número real corretamente.
+
+5. Rode novamente:
+- `npm test`
+- `npm run build`
+- `npm run lint`
+
+6. Atualize a documentação viva se necessário:
+- `.ai-context`
+- `docs/CURRENT_STATE.md`
+- `docs/BACKLOG_FUTURO.md`
+- `docs/DECISION_LOG.md`
+- `.humano`
+
+7. Entregue um relatório curto informando:
+- quais novos taskIds inválidos foram adicionados
+- total final de testes
+- resultado de `npm test`
+- resultado de `npm run build`
+- resultado de `npm run lint`
+- confirmação de que parou aguardando aprovação humana
+
+Não implemente SafeResolve, AtomicWrite ou qualquer item da Fase 3.
+```
+
+Depois disso, você não precisa me trazer tudo de novo. Pode trazer só estas partes:
+
+```text
+validateTaskId em WorktreeManager.ts
+a lista invalidIds em worktree.test.ts
+.ai-context com o número atualizado de testes
+saída de npm test
+saída de npm run build
+saída de npm run lint
+```
+
+Se isso vier certo, eu aprovo a Fase 2 e aí passamos para a Fase 3, que será **SafeResolve + segurança de path**.

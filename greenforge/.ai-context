@@ -2,11 +2,11 @@
 
 ## Resumo do Estado Atual
 - **Projeto:** GreenForge (Orquestrador Autônomo)
-- **Última fase concluída:** 1 — Intention Router
-- **Próxima fase:** 2 — Worktree Manager
+- **Última fase concluída:** 2 — Worktree Manager (Física e Segura)
+- **Próxima fase:** 3 — SafeResolve (Segurança de Path)
 - **Status do build:** PASSANDO
-- **Status dos testes:** PASSANDO (14/14 testes)
-- **Principais módulos:** `LLMProvider` (Port), `QwenRouter` (Infra)
+- **Status dos testes:** PASSANDO (29/29 testes)
+- **Principais módulos:** `LLMProvider` (Port), `QwenRouter` (Infra), `WorktreeManager` (Git)
 
 ## Leitura Obrigatória (antes de qualquer tarefa)
 1. `docs/CURRENT_STATE.md` — estado atual completo do sistema
@@ -17,7 +17,7 @@
 
 ## Leitura Sob Demanda
 4. `docs/DECISION_LOG.md` — histórico de decisões técnicas
-5. `docs/PHASE_SUMMARY.md` — resumos executivos
+5. `docs/phase_N_resumo.md` — resumos executivos de cada fase
 
 ## NUNCA Ler Automaticamente
 - `docs/archive/*` — blueprints resolved

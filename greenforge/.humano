@@ -15,7 +15,11 @@ HISTÓRICO DE APROVAÇÕES
 
 ### [2026-06-15] Fase 1 — Intention Router
 - Status: CONCLUÍDO e VALIDADO (13 testes unitários + Zod).
-- Próxima parada: Aprovação para Onda 1 - Fase 2.
+
+### [2026-06-16] Fase 2 — Worktree Manager
+- Status: CONCLUÍDA E ARQUIVADA (v2.0).
+- Destaque: Validação estrita de taskId e deprovisionamento completo (15 testes).
+- Próxima parada: Aprovação para Onda 1 - Fase 3 (SafeResolve).
 
 ────────────────────────────────────────────────────────
 GUIA RÁPIDO PARA O USUÁRIO

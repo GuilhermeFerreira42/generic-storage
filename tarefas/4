@@ -1,0 +1,102 @@
+Você já trouxe os arquivos principais. Não preciso ver mais nada agora. Com o que você mandou, dá para avaliar bem a Fase 2.
+
+Minha decisão: **eu ainda não aprovaria a Fase 2**. Ela está muito boa e passou nos testes, build e lint, mas encontrei alguns riscos importantes no `WorktreeManager.ts` que eu corrigiria antes de liberar a Fase 3.
+
+O problema principal é que o `taskId` está sendo usado direto para montar caminho e nome de branch. Por exemplo, o código faz algo como `path.join(this.worktreeRoot, taskId)` e cria branch `forge/task-${taskId}`. Se algum dia entrar um `taskId` malicioso, como `../../fora`, `abc/def`, `abc\def`, vazio, com espaço estranho ou com caracteres perigosos, isso pode gerar path estranho, branch inválida ou comportamento inesperado. Mesmo que a Fase 3 seja SafeResolve, o `WorktreeManager` já deveria validar o `taskId`, porque ele mexe com Git e filesystem.
+
+Outro ponto: o método `list()` usa `includes(normalizedRoot)` para decidir se o worktree pertence ao GreenForge. Isso é frágil. O correto seria usar uma comparação de caminho mais segura, tipo `path.relative(...)`, para garantir que o worktree está realmente dentro da raiz gerenciada, não apenas que contém aquele texto em algum pedaço do caminho.
+
+Também vi que no `deprovision()`, se a remoção da branch falhar, ele ignora o erro silenciosamente. Isso pode deixar branch órfã. Para um sistema cujo objetivo é isolamento e limpeza, eu não gosto de erro silencioso. Ele pode tolerar “branch não existe”, mas se a branch existe e não foi removida, isso precisa virar erro ou pelo menos ser reportado.
+
+Outra coisa menor: nos testes, ele usa `Date.now()` para criar diretório temporário. Funciona quase sempre, mas é melhor usar `fs.mkdtemp`, porque evita colisão se dois testes rodarem rápido ou em paralelo.
+
+E mais um detalhe: o `.ai-context` fala em `docs/PHASE_SUMMARY.md`, mas o arquivo criado foi `docs/phase_2_resumo.md`. Isso precisa ficar consistente. Não é grave, mas é documentação viva, então precisa apontar para arquivo real.
+
+Então a Fase 2 está **quase aprovada**, mas eu pediria uma correção final antes.
+
+Você pode mandar este prompt para o executor:
+
+```text
+A Fase 2 está quase aprovada, mas ainda não está aprovada.
+
+Não avance para a Fase 3.
+
+Faça uma correção final da Fase 2: Worktree Manager.
+
+Problemas encontrados:
+
+1. O `WorktreeManager` usa `taskId` diretamente para montar path e branch. Isso é perigoso. Implemente validação de `taskId` antes de usar em qualquer path ou branch.
+   Regras mínimas:
+   - taskId não pode ser vazio.
+   - taskId não pode conter `/` nem `\`.
+   - taskId não pode conter `..`.
+   - taskId deve aceitar apenas letras, números, `_`, `-` e `.`.
+   - taskId deve ter tamanho razoável, por exemplo entre 1 e 80 caracteres.
+   - se for inválido, lançar erro controlado antes de chamar Git.
+
+2. Adicione testes para taskId inválido:
+   - vazio
+   - `../../outside`
+   - `abc/def`
+   - `abc\def`
+   - `..`
+   - `task;rm-rf`
+   Todos devem falhar de forma segura e não devem criar branch nem diretório fora da raiz gerenciada.
+
+3. O método `list()` usa `includes()` para verificar se um path pertence ao `worktreeRoot`. Troque isso por uma verificação segura usando `path.relative()` ou equivalente, garantindo que o path listado está realmente dentro de `this.worktreeRoot`.
+
+4. O `deprovision()` ignora silenciosamente falhas ao remover a branch. Corrija isso. Se a branch existir e não puder ser removida, deve lançar erro ou reportar falha. Não deixe erro silencioso.
+   Adicione teste confirmando que após `deprovision()` a branch `forge/task-<taskId>` foi removida.
+
+5. Troque a criação de diretórios temporários nos testes para usar `fs.mkdtemp` em vez de `Date.now()`, para evitar colisões.
+
+6. Atualize `.ai-context` para remover ou corrigir a referência a `docs/PHASE_SUMMARY.md`, já que o arquivo real criado foi `docs/phase_2_resumo.md`.
+
+7. Não implemente SafeResolve completo, AtomicWrite, SQLite, Planner, MCP ou Orchestrator. Isso ainda pertence a fases futuras.
+
+8. Rode novamente:
+- `npm test`
+- `npm run build`
+- `npm run lint`
+
+9. Atualize a documentação viva:
+- `docs/CURRENT_STATE.md`
+- `docs/BACKLOG_FUTURO.md`
+- `docs/DECISION_LOG.md`
+- `.humano`
+
+10. Entregue relatório final informando:
+- quais validações de taskId foram adicionadas
+- quantos testes existem agora em `worktree.test.ts`
+- se a branch é removida após `deprovision()`
+- se `npm test` passou
+- se `npm run build` passou
+- se `npm run lint` passou
+- confirmação de que parou aguardando aprovação humana
+
+Não avance para a Fase 3.
+```
+
+Sobre o resultado atual: os testes passaram, então a implementação básica funciona. Mas como essa fase mexe com Git e filesystem, eu quero que ela seja mais rígida antes de aprovar. A Fase 2 é a porta de isolamento físico do sistema. Se ela aceitar `taskId` perigoso ou deixar branch órfã, esse erro pode virar dor de cabeça nas próximas fases.
+
+Então, resumo direto: **não aprove ainda**. Peça essa correção final. Depois traga de novo só estes arquivos:
+
+```text
+src/infrastructure/git/WorktreeManager.ts
+tests/worktree.test.ts
+docs/CURRENT_STATE.md
+docs/BACKLOG_FUTURO.md
+docs/DECISION_LOG.md
+.ai-context
+.humano
+```
+
+E a saída de:
+
+```powershell
+npm test
+npm run build
+npm run lint
+```
+
+Se ele corrigir esses pontos, a Fase 2 provavelmente estará aprovada.
