@@ -2,27 +2,23 @@
 
 ## Resumo do Estado Atual
 - **Projeto:** GreenForge (Orquestrador Autônomo)
-- **Última fase concluída:** 2 — Worktree Manager (Física e Segura)
-- **Próxima fase:** 3 — SafeResolve (Segurança de Path)
+- **Última fase concluída:** 3 — Segurança de Path (SafeResolve)
+- **Próxima fase:** 4 — Persistence Layer (SQLite)
 - **Status do build:** PASSANDO
-- **Status dos testes:** PASSANDO (29/29 testes)
-- **Principais módulos:** `LLMProvider` (Port), `QwenRouter` (Infra), `WorktreeManager` (Git)
+- **Status dos testes:** PASSANDO (39/39 testes)
+- **Módulos Críticos:** `WorktreeManager`, `SafeResolve`, `AtomicWrite`
 
-## Leitura Obrigatória (antes de qualquer tarefa)
+## Leitura Obrigatória
 1. `docs/CURRENT_STATE.md` — estado atual completo do sistema
-2. Arquivos de `src/` relevantes à fase
+2. `src/shared/SafeResolve.ts` — contrato de segurança inviolável
 
-## Leitura no Início de Cada Onda
-3. `docs/BACKLOG_FUTURO.md` — roadmap e CONTRATOS_DA_ONDA
-
-## Leitura Sob Demanda
-4. `docs/DECISION_LOG.md` — histórico de decisões técnicas
-5. `docs/phase_N_resumo.md` — resumos executivos de cada fase
+## Leitura no Início de Onda
+3. `docs/BACKLOG_FUTURO.md` — roadmap Onda 2
 
 ## NUNCA Ler Automaticamente
-- `docs/archive/*` — blueprints resolved
 - `.git/`, `node_modules/`, `dist/`, `build/`
+- `docs/archive/*`
 
 ## Regra de Contrato
-- `CONTRATOS_DA_ONDA` no backlog são FATOS. Nunca questione contratos preenchidos.
-- Se o contrato estiver em branco, peça esclarecimento antes de implementar.
+- Use `SafeResolve` em todas as operações de filesystem.
+- Use `AtomicWrite` para persistência de estado crítico.

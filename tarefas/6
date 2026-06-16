@@ -1,0 +1,144 @@
+Sim. Agora eu **aprovo a Fase 2**.
+
+Desta vez os pontos críticos foram corrigidos. O `WorktreeManager` agora valida melhor o `taskId`, bloqueia `"."`, bloqueia nomes começando ou terminando com ponto, bloqueia `..`, `/`, `\`, caracteres perigosos e tamanho excessivo. Os testes subiram para **29/29 passando**, com **15 testes de Worktree**, e `npm test`, `npm run build` e `npm run lint` passaram. A documentação viva também foi atualizada. Então, para mim, a Fase 2 está validada.
+
+Apenas uma observação pequena e não bloqueante: no arquivo que você colou aparece `throw new Error\`...\`` em alguns pontos. Como o build passou, isso não está quebrando agora, mas mais para frente eu preferiria trocar para o formato mais comum `throw new Error(...)`, porque é mais claro. Porém eu **não travaria a aprovação por isso**, porque os testes, build e lint passaram e o comportamento principal foi validado.
+
+Então a situação agora é esta: **Fase 0 aprovada, Fase 1 aprovada, Fase 2 aprovada.** A próxima etapa é a **Fase 3 — SafeResolve + Segurança de Path**, que é uma fase muito importante porque ela protege o sistema contra path traversal, escrita fora do worktree e corrupção de arquivo.
+
+Antes de mandar iniciar a Fase 3, eu recomendo fazer um commit manual agora, porque você tem uma base estável. Algo como:
+
+```powershell
+git add .
+git commit -m "[FASE 2] WORKTREE MANAGER — isolamento físico seguro validado"
+```
+
+Se você não estiver usando Git dentro da pasta `greenforge`, pode pular isso ou inicializar depois. Mas o ideal é salvar esse ponto bom antes de seguir.
+
+Agora você pode mandar este prompt para o executor:
+
+```text
+Fase 2 aprovada.
+
+Comece agora somente a Fase 3: SafeResolve + Segurança de Path.
+
+Leia primeiro:
+- `.ai-context`
+- `docs/CURRENT_STATE.md`
+- `docs/BACKLOG_FUTURO.md`
+- `docs/DECISION_LOG.md`
+- `documentacao/000_ler_primeiro_CONTEXT_TRANSFER.md`
+- `documentacao/GREENFORGE_DESIGN.md`
+- `documentacao/05-governance-and-security.md`
+- `documentacao/09-hardening-deterministic-contracts.md`
+
+Regras obrigatórias:
+- Execute apenas a Fase 3.
+- Não avance para a Fase 4.
+- Use TDD estrito: primeiro crie os testes, depois implemente.
+- Não implemente SQLite, Planner, MCP, Orchestrator, DiffLens ou subagentes nesta fase.
+- Não use `child_process.exec`.
+- Não use `shell: true`.
+- Não use validação insegura baseada apenas em `startsWith`.
+- Não use `path.resolve` como validação final isolada.
+- Use `fs.realpath` e validação segura com `path.relative` ou equivalente.
+- Todo acesso de path deve garantir que o destino real está dentro do `allowedRoot`.
+- Se houver dúvida, falhe de forma segura lançando `SecurityError`.
+
+Objetivo da Fase 3:
+Implementar os contratos básicos de segurança de filesystem:
+1. `SafeResolve`
+2. `AtomicWrite`
+3. testes de segurança contra path traversal e escrita insegura
+
+Arquivos esperados:
+- `src/shared/SafeResolve.ts`
+- `src/shared/AtomicWrite.ts`
+- `tests/security.test.ts`
+- se necessário, `src/shared/errors.ts`
+
+Contratos esperados:
+
+1. SafeResolve:
+- Deve exportar uma função como `safeResolve(inputPath: string, allowedRoot: string): Promise<string>`.
+- Deve resolver o `allowedRoot` com `fs.realpath`.
+- Deve resolver o caminho de entrada de forma segura.
+- Deve impedir `../`, caminhos absolutos fora da raiz e truques de prefixo.
+- Deve impedir escape via symlink, se possível testar no ambiente.
+- Deve lançar `SecurityError` quando o path estiver fora da raiz permitida.
+
+2. Safe resolve para escrita:
+- Se `safeResolve` exigir que o arquivo exista, crie também uma função separada para escrita, por exemplo `safeResolveForWrite(inputPath: string, allowedRoot: string): Promise<string>`.
+- Ela deve validar o diretório pai real com `fs.realpath`.
+- Ela deve permitir criar arquivo novo dentro da raiz permitida.
+- Ela deve bloquear criação fora da raiz permitida.
+
+3. AtomicWrite:
+- Deve escrever usando padrão temporário + fsync + rename.
+- Não deve escrever diretamente no arquivo final.
+- Deve tentar limpar arquivo temporário em caso de erro.
+- Deve funcionar com texto UTF-8.
+
+Testes mínimos esperados:
+- caminho normal dentro da raiz é aceito
+- `../outside.txt` é bloqueado
+- caminho absoluto fora da raiz é bloqueado
+- truque de prefixo é bloqueado, por exemplo raiz `root` e destino em `root-evil`
+- symlink apontando para fora é bloqueado, se o ambiente permitir symlink
+- escrita de arquivo novo dentro da raiz é permitida
+- escrita usando `../` é bloqueada
+- `atomicWrite` grava o conteúdo corretamente
+- `atomicWrite` substitui arquivo existente corretamente
+- arquivo temporário não deve permanecer em caso simples de sucesso
+- erros devem usar `SecurityError` quando forem violações de segurança
+
+Depois rode:
+- `npm test`
+- `npm run build`
+- `npm run lint`
+
+Atualize a documentação viva:
+- `docs/CURRENT_STATE.md`
+- `docs/BACKLOG_FUTURO.md`
+- `docs/DECISION_LOG.md`
+- `.humano`
+- se fizer sentido, crie `docs/phase_3_resumo.md`
+
+No relatório final, informe:
+- arquivos criados
+- arquivos modificados
+- quantos testes foram adicionados
+- quais ataques foram cobertos
+- resultado de `npm test`
+- resultado de `npm run build`
+- resultado de `npm run lint`
+- decisões técnicas tomadas
+- riscos conhecidos
+- confirmação de que parou aguardando aprovação humana
+
+Não implemente nada da Fase 4.
+```
+Sobre LLM real: nesta Fase 3 também **não precisa de LLM real**. Essa fase é segurança de filesystem, então tudo deve ser testado com código local, diretórios temporários e arquivos reais. O Llama 70B ou Qwen 342B podem ser úteis mais tarde para testar qualidade de planejamento ou classificação, mas não agora.
+
+Quando ele terminar a Fase 3, traga principalmente estes arquivos:
+
+```text
+src/shared/SafeResolve.ts
+src/shared/AtomicWrite.ts
+src/shared/errors.ts   se existir
+tests/security.test.ts
+docs/CURRENT_STATE.md
+docs/BACKLOG_FUTURO.md
+docs/DECISION_LOG.md
+.humano
+```
+
+E a saída de:
+
+```powershell
+npm test
+npm run build
+npm run lint
+```
+
+Resumo direto: **Fase 2 aprovada. Próximo passo: Fase 3 — SafeResolve + AtomicWrite + testes de segurança.**

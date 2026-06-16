@@ -8,30 +8,20 @@ Tipos: ADD, MOD, DEL, FREEZE, RULE, CFG, FIX, TECH
 ---
 
 ### Fase 0 — Planejamento
-F0 | ADD | Estrutura de diretórios portátil | Garantir que a documentação acompanhe o código | `greenforge/documentacao/`
-F0 | TECH | Node.js v22+ e TypeScript | Compatibilidade com Qwen CLI e padrões modernos | `package.json`, `tsconfig.json`
-F0 | RULE | No-Shell Policy | Segurança contra injeção de comandos | `package.json`
-F0 | RULE | TDD como regra de desenvolvimento | Garantir qualidade e verificabilidade | `ARCHIVING_PROTOCOL.md`
-F0 | CFG | .qwenignore | Otimizar uso de tokens e contexto de IA | `.qwenignore`
+F0 | ADD | Estrutura de diretórios portátil | Documentação acompanha código | `greenforge/documentacao/`
+F0 | TECH | Node.js v22+ e TypeScript | Compatibilidade e modernidade | `package.json`
 
 ### Fase 1 — Intention Router
-F1 | ADD | Interface LLMProvider | Desacoplar core da infraestrutura de LLM | `src/core/ports/LLMProvider.ts`
-F1 | ADD | QwenRouter com Zod | Validação robusta de contratos de borda com IA | `src/infrastructure/llm/QwenRouter.ts`
-F1 | TECH | Vitest com Mocks determinísticos | Testar lógica de roteamento sem custos de API | `tests/router.test.ts`
-F1 | CFG | Threshold de confiança em 0.7 | Equilíbrio entre precisão e utilidade | `src/infrastructure/llm/QwenRouter.ts`
-F1 | FIX | Validação de tipos de confiança | Evitar crash com retornos malformados do LLM | `src/infrastructure/llm/QwenRouter.ts`
-F1 | RULE | Fallback para NORMAL_CHAT | Segurança operacional em caso de dúvida | `src/infrastructure/llm/QwenRouter.ts`
+F1 | ADD | QwenRouter com Zod | Validação de contratos com LLM | `src/infrastructure/llm/QwenRouter.ts`
 
 ### Fase 2 — Worktree Manager
-F2 | ADD | WorktreeManager | Gerenciar isolamento físico de tarefas | `src/infrastructure/git/WorktreeManager.ts`
-F2 | TECH | Integração com Git Real nos testes | Validar comportamento real do filesystem e git | `tests/worktree.test.ts`
-F2 | CFG | Padrão de path .git/greenforge-worktrees | Organização interna ao diretório .git | `src/infrastructure/git/WorktreeManager.ts`
-F2 | RULE | Uso de path.normalize e path.resolve | Garantir caminhos absolutos e compatibilidade Windows | `src/infrastructure/git/WorktreeManager.ts`
-F2 | FIX | Tratamento de erro com cause | Preservar rastreabilidade de erros de sistema | `src/infrastructure/git/WorktreeManager.ts`
-F2 | RULE | Remoção forçada no deprovision | Evitar bloqueios por arquivos modificados no WT | `src/infrastructure/git/WorktreeManager.ts`
-F2 | RULE | Validação estrita de taskId | Prevenir Path Traversal e nomes de branch inválidos | `src/infrastructure/git/WorktreeManager.ts`
-F2 | TECH | Uso de path.relative para listagem | Garantir que apenas worktrees internos sejam listados | `src/infrastructure/git/WorktreeManager.ts`
-F2 | TECH | mkdtemp nos testes | Evitar colisões em ambientes de execução paralela | `tests/worktree.test.ts`
-F2 | FIX | Bloqueio de taskId "." | Evitar que worktree seja criado na raiz do repositório | `src/infrastructure/git/WorktreeManager.ts`
-F2 | FIX | Bloqueio de taskId com ponto inicial/final | Prevenir nomes ambíguos ou inválidos no Git/Windows | `src/infrastructure/git/WorktreeManager.ts`
-F2 | RULE | Erro explícito na remoção de branch | Garantir limpeza total e evitar branches órfãs | `src/infrastructure/git/WorktreeManager.ts`
+F2 | ADD | WorktreeManager | Isolamento físico de tarefas | `src/infrastructure/git/WorktreeManager.ts`
+F2 | RULE | Validação estrita de taskId | Prevenir Path Traversal e nomes inválidos | `src/infrastructure/git/WorktreeManager.ts`
+
+### Fase 3 — Segurança de Path
+F3 | ADD | SecurityError | Erro tipado para violações de segurança | `src/shared/errors.ts`
+F3 | ADD | SafeResolve | Prevenir Path Traversal via realpath + relative validation | `src/shared/SafeResolve.ts`
+F3 | ADD | AtomicWrite | Garantir integridade de arquivos críticos via Temp-Sync-Rename | `src/shared/AtomicWrite.ts`
+F3 | RULE | Inviolabilidade do SafeResolve | Todas as operações de FS devem validar o path | `src/shared/SafeResolve.ts`
+F3 | TECH | Sync de handle no AtomicWrite | Garantir que o dado atingiu o disco antes do rename | `src/shared/AtomicWrite.ts`
+F3 | TECH | Testes de segurança com mkdtemp | Evitar colisões e vazamento de permissões | `tests/security.test.ts`

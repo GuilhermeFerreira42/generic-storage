@@ -1,11 +1,11 @@
 # CURRENT_STATE — GreenForge
-> Última atualização: Fase 2 | 2026-06-16
+> Última atualização: Fase 3 | 2026-06-16
 
 ## Arquitetura Ativa
 - **Arquitetura Hexagonal:** Separação entre core (domínio), ports (interfaces) e infraestrutura (LLM, Git, DB).
 - **Orquestração:** Baseada em Intention Router para triagem de prompts.
-- **Isolamento:** Uso de Git Worktrees gerenciados pelo `WorktreeManager` com validação rigorosa de entrada.
-- **Validação:** Contratos de borda validados com Zod (LLM) e Regex (FS).
+- **Isolamento:** Uso de Git Worktrees gerenciados pelo `WorktreeManager`.
+- **Segurança de FS:** Contratos `SafeResolve` (Anti-Path-Traversal) e `AtomicWrite` (Integridade).
 
 ## Módulos e Contratos Vigentes
 | Módulo | Arquivo | Contrato Público | Desde |
@@ -13,40 +13,41 @@
 | `LLMProvider` | `src/core/ports/LLMProvider.ts` | `generate(prompt: string): Promise<string>` | Fase 1 |
 | `QwenRouter` | `src/infrastructure/llm/QwenRouter.ts` | `classify(input: string): Promise<Intent>` | Fase 1 |
 | `WorktreeManager` | `src/infrastructure/git/WorktreeManager.ts` | `provision(taskId): Promise<WTInfo>`, `deprovision(taskId): Promise<void>`, `list(): Promise<WTInfo[]>` | Fase 2 |
+| `SafeResolve` | `src/shared/SafeResolve.ts` | `safeResolve(path, root): Promise<string>`, `safeResolveForWrite(path, root): Promise<string>` | Fase 3 |
+| `AtomicWrite` | `src/shared/AtomicWrite.ts` | `atomicWrite(path, content): Promise<void>` | Fase 3 |
 
 ## Fluxo Principal
-1. Usuário envia prompt raw.
-2. `QwenRouter` classifica a intenção via LLM.
-3. Se for uma tarefa técnica, `WorktreeManager` valida o `taskId` e provisiona um diretório isolado via `git worktree`.
-4. A tarefa é executada dentro do sandbox físico.
-5. Após conclusão, o worktree e a branch são removidos via `deprovision`.
+1. Usuário envia prompt.
+2. `QwenRouter` classifica a intenção.
+3. Se tarefa técnica, `WorktreeManager` provisiona worktree isolado.
+4. Qualquer operação de arquivo subsequente deve usar `SafeResolve` para validar acesso.
+5. Persistência de arquivos críticos deve usar `AtomicWrite`.
 
 ## Invariantes Globais (nunca violar)
-1. **No-Shell Policy:** Uso exclusivo de `execa` com `shell: false` e arrays de argumentos.
-2. **Fallback Seguro:** Qualquer incerteza no roteamento deve resultar em `NORMAL_CHAT`.
-3. **Desacoplamento de LLM:** O Core nunca deve depender de uma implementação específica de API de IA.
-4. **TDD Estrito:** Nenhum código de produção sem teste correspondente.
-5. **Validação na Borda:** Todo dado externo (API, Usuário, taskId) deve ser validado no ponto de entrada.
-6. **Isolamento Físico:** Nenhuma tarefa de desenvolvimento deve ser executada diretamente na branch de trabalho principal.
+1. **No-Shell Policy:** Uso exclusivo de `execa` com `shell: false`.
+2. **Fallback Seguro:** Qualquer incerteza no roteamento ou segurança resulta em negação/NORMAL_CHAT.
+3. **Desacoplamento de LLM:** Core independente de APIs de IA específicas.
+4. **TDD Estrito:** Nenhum código sem teste.
+5. **Acesso Restrito:** Escrita permitida apenas dentro do root do worktree autorizado.
+6. **Integridade Atômica:** Escritas críticas nunca devem deixar arquivos parciais/corrompidos.
 
 ## Restrições Técnicas Ativas
 - **Runtime:** Node.js v24.
-- **Threshold de Confiança:** 0.7.
-- **Padrão de Branch:** `forge/task-<taskId>`.
-- **Raiz de Worktrees:** `.git/greenforge-worktrees/`.
-- **Validação taskId:** 1-80 caracteres, alfanumérico + `._-`, sem `/ \ ..`, não pode ser `.` nem começar/terminar com ponto.
+- **Threshold Confiança:** 0.7.
+- **Segurança:** Bloqueio de `taskId` "." e navegação de path (`..`, `/`, `\`).
 
 ## Testes Obrigatórios
 | Suite | Arquivo | Cobertura Aproximada | Comando |
 |-------|---------|----------------------|---------|
-| Smoke Test | `tests/smoke.test.ts` | 1 teste (Integridade) | `npm test` |
-| Router Test | `tests/router.test.ts` | 13 testes (Unitário) | `npm test` |
-| Worktree Test | `tests/worktree.test.ts` | 15 testes (Integração + Validação) | `npm test` |
+| Smoke Test | `tests/smoke.test.ts` | 1 teste | `npm test` |
+| Router Test | `tests/router.test.ts` | 13 testes | `npm test` |
+| Worktree Test | `tests/worktree.test.ts` | 15 testes | `npm test` |
+| Security Test | `tests/security.test.ts` | 10 testes | `npm test` |
 
 ## Dependências Externas
 | Pacote | Versão | Motivo |
 |--------|--------|--------|
-| `better-sqlite3` | ^11.0.0 | Persistência determinística rápida. |
-| `execa` | ^9.0.0 | Execução segura de processos sem shell. |
-| `zod` | ^3.23.0 | Validação de schemas e contratos. |
-| `vitest` | ^1.6.0 | Framework de testes rápido e compatível com ESM. |
+| `better-sqlite3` | ^11.0.0 | Persistência. |
+| `execa` | ^9.0.0 | Execução segura. |
+| `zod` | ^3.23.0 | Validação. |
+| `vitest` | ^1.6.0 | Testes. |

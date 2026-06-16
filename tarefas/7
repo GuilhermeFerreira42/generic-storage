@@ -1,0 +1,188 @@
+Sim, agora eu **aprovo a Fase 3**.
+
+A Fase 3 cumpriu o objetivo principal: `SafeResolve`, `safeResolveForWrite`, `AtomicWrite` e `SecurityError` foram criados, os ataques principais foram testados, `npm test` passou com **39/39**, `npm run build` passou e `npm run lint` passou. A documentação viva também foi atualizada e a **Onda 1 foi encerrada**. Então, do ponto de vista do fluxo, está aprovado.
+
+Só deixo duas observações pequenas, mas **não bloqueantes**. A primeira é que em alguns pontos aparece o estilo `throw new SecurityError\`mensagem\``. Como o build e os testes passaram, isso não está quebrando agora, mas eu preferiria no futuro trocar para o formato mais comum `throw new SecurityError("mensagem")`, porque fica mais claro para manutenção. A segunda é que o `AtomicWrite` ainda não simula crash real no meio da escrita, mas isso pode ficar para uma fase de resiliência mais à frente. Para a Fase 3, o contrato básico está bom.
+
+Então a situação atual é:
+
+```text
+Fase 0: aprovada
+Fase 1: aprovada
+Fase 2: aprovada
+Fase 3: aprovada
+Onda 1: concluída
+```
+
+Agora o próximo passo é começar a **Onda 2**. Mas antes de mandar o executor sair implementando, tem um detalhe importante do seu próprio protocolo: como estamos começando uma nova onda, é bom definir claramente os `CONTRATOS_DA_ONDA 2`. Isso evita que a IA fique inventando regra no meio do caminho.
+
+A próxima fase recomendada, pelo backlog atual, é:
+
+```text
+Fase 4 — Persistence Layer
+```
+
+Ou seja, implementar a camada SQLite que vai guardar tarefas, status, checkpoints e talvez subtasks graph. Essa fase ainda **não deve implementar Planner, Orchestrator, MCP, DiffLens ou subagentes**. Ela deve só cuidar do banco e dos testes de persistência.
+
+Eu recomendo que você faça um commit agora, porque a Onda 1 está fechada:
+
+```powershell
+git add .
+git commit -m "[ONDA 1] NÚCLEO E ISOLAMENTO — router, worktree e segurança de path validados"
+```
+
+Se você ainda não iniciou Git dentro da pasta `greenforge`, pode fazer:
+
+```powershell
+git init
+git add .
+git commit -m "[ONDA 1] NÚCLEO E ISOLAMENTO — router, worktree e segurança de path validados"
+```
+
+Agora, para iniciar a Fase 4, você pode mandar este prompt para o executor:
+
+```text
+Onda 1 aprovada e concluída.
+
+Comece agora somente a Onda 2 — Fase 4: Persistence Layer.
+
+Antes de implementar, leia:
+- `.ai-context`
+- `docs/CURRENT_STATE.md`
+- `docs/BACKLOG_FUTURO.md`
+- `docs/DECISION_LOG.md`
+- `documentacao/000_ler_primeiro_CONTEXT_TRANSFER.md`
+- `documentacao/GREENFORGE_DESIGN.md`
+- `documentacao/03-technical-spec-and-data.md`
+- `documentacao/05-governance-and-security.md`
+- `documentacao/09-hardening-deterministic-contracts.md`
+
+CONTRATOS_DA_ONDA 2 confirmados pelo usuário:
+
+OUTPUT_SCHEMAS:
+  W2-01:
+    TaskRecord:
+      id: string
+      title: string
+      originalPrompt: string
+      branchName: string
+      worktreePath: string
+      status: TaskStatus
+      planMarkdown?: string | null
+      subtasksGraph?: SubtaskNode[] | null
+      createdAt: string
+      updatedAt: string
+
+    CheckpointRecord:
+      id: number
+      taskId: string
+      phase: string
+      metadata: object | null
+      createdAt: string
+
+ESCOPO_CONGELADO:
+  - src/core/ports/LLMProvider.ts
+  - src/infrastructure/llm/QwenRouter.ts
+  - src/infrastructure/git/WorktreeManager.ts
+  - src/shared/SafeResolve.ts
+  - src/shared/AtomicWrite.ts
+
+ARQUIVOS_A_DELETAR:
+  - Nenhum
+
+REESCRITAS:
+  - Nenhuma. A Fase 4 deve ser incremental.
+
+DECISOES_EXTRAS:
+  - Usar SQLite via better-sqlite3.
+  - Ativar WAL Mode obrigatoriamente.
+  - Usar transações para operações que alteram estado.
+  - Usar banco temporário nos testes.
+  - Não usar banco real do usuário nos testes.
+  - Não implementar Planner, Orchestrator, MCP ou subagentes nesta fase.
+
+Objetivo da Fase 4:
+Implementar a camada de persistência SQLite do GreenForge.
+
+Arquivos esperados:
+- `src/infrastructure/db/SQLiteRepository.ts`
+- se necessário: `src/core/types/Task.ts`
+- se necessário: `src/core/types/Checkpoint.ts`
+- `tests/persistence.test.ts` ou `tests/handoff.test.ts`
+
+Regras obrigatórias:
+- Execute apenas a Fase 4.
+- Use TDD estrito: primeiro testes, depois implementação.
+- Não avance para Fase 5.
+- Não implemente Planner.
+- Não implemente Orchestrator.
+- Não implemente MCP.
+- Não implemente DiffLens.
+- Não implemente subagentes.
+- Não use `child_process.exec`.
+- Não use `shell: true`.
+- Não escreva banco fora de diretório temporário nos testes.
+- Não use fallback silencioso se o banco falhar.
+
+Critérios mínimos de aceite:
+- SQLiteRepository inicializa o banco.
+- PRAGMA journal_mode retorna WAL.
+- Tabela `tasks` é criada conforme documentação.
+- Tabela `checkpoints` é criada conforme documentação.
+- `createTask` cria tarefa.
+- `getTask` recupera tarefa.
+- `updateTaskStatus` altera status.
+- `saveSubtasksGraph` salva grafo de subtarefas como JSON.
+- `getSubtasksGraph` recupera o grafo corretamente.
+- `addCheckpoint` registra checkpoint.
+- Operações críticas usam transação.
+- Status inválido deve falhar.
+- Testes usam banco temporário e limpam depois.
+- `npm test` passa.
+- `npm run build` passa.
+- `npm run lint` passa.
+
+Depois atualize a documentação viva:
+- `docs/CURRENT_STATE.md`
+- `docs/BACKLOG_FUTURO.md`
+- `docs/DECISION_LOG.md`
+- `.humano`
+- criar `docs/phase_4_resumo.md` se fizer sentido
+
+No relatório final, informe:
+- arquivos criados
+- arquivos modificados
+- número de testes adicionados
+- quais operações SQLite foram cobertas
+- resultado de `npm test`
+- resultado de `npm run build`
+- resultado de `npm run lint`
+- decisões técnicas tomadas
+- riscos conhecidos
+- confirmação de que parou aguardando aprovação humana
+
+Comece a Fase 4 agora.
+```
+
+Quando ele terminar a Fase 4, traga para mim principalmente:
+
+```text
+src/infrastructure/db/SQLiteRepository.ts
+src/core/types/Task.ts        se existir
+src/core/types/Checkpoint.ts  se existir
+tests/persistence.test.ts     ou tests/handoff.test.ts
+docs/CURRENT_STATE.md
+docs/BACKLOG_FUTURO.md
+docs/DECISION_LOG.md
+.humano
+```
+
+E também a saída de:
+
+```powershell
+npm test
+npm run build
+npm run lint
+```
+
+Resumo direto: **Fase 3 aprovada. Onda 1 concluída. Próximo passo: Fase 4 — Persistence Layer com SQLite, WAL, schema, CRUD e testes temporários.**
