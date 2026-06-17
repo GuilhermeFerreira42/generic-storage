@@ -1,0 +1,158 @@
+Sim, agora está bom. **Fase 8 aprovada.**
+
+Desta vez você mandou o arquivo essencial, `BaseAgent.ts`, e ele confirma o que faltava: a validação de contexto está centralizada, `allowedTools` é aplicado dentro de `callTool`, os agentes validam o resultado com `AgentResultSchema` antes de retornar, e o `ReviewerAgent` passou a validar o conteúdo da revisão com Zod em vez de confiar em cast simples.
+
+Também vi que os testes foram ajustados para cobrir o fluxo real: `CoderAgent` falha se `edit_file` não estiver permitido, `TesterAgent` falha se `run_test` não estiver permitido, e `ReviewerAgent` falha se `review_code` não estiver permitido. Isso era exatamente o ponto importante.
+
+Então a situação agora é:
+
+```text
+Fase 0: aprovada
+Fase 1: aprovada
+Fase 2: aprovada
+Fase 3: aprovada
+Fase 4: aprovada
+Fase 5: aprovada
+Fase 6: aprovada
+Fase 7: aprovada
+Fase 8: aprovada
+```
+
+A próxima fase é:
+
+```text
+Fase 9 — Join Gate / Consolidação de Artefatos
+```
+
+Essa fase deve juntar os resultados dos agentes e verificar se todos os artefatos necessários existem antes de permitir a transição para revisão/consolidação. Como vocês já têm `AgentResult`, `AgentArtifact`, `SQLiteRepository`, `Orchestrator` e `SubtaskNode`, agora faz sentido criar o componente que garante: “todos os agentes terminaram, todos os artefatos estão presentes, nada está faltando, então pode seguir”.
+
+Você pode mandar este prompt para o executor:
+
+```text
+Fase 8 aprovada.
+
+Comece agora somente a Onda 3 — Fase 9: Join Gate / Consolidação de Artefatos.
+
+Leia primeiro:
+- `.ai-context`
+- `docs/CURRENT_STATE.md`
+- `docs/BACKLOG_FUTURO.md`
+- `docs/DECISION_LOG.md`
+- `documentacao/000_ler_primeiro_CONTEXT_TRANSFER.md`
+- `documentacao/GREENFORGE_DESIGN.md`
+- `documentacao/06-api-and-extensibility.md`
+- `documentacao/03-technical-spec-and-data.md`
+
+Execute apenas a Fase 9.
+Não avance para DiffLens.
+Não implemente MCP Server real.
+Não implemente integração completa com Qwen CLI.
+Não implemente Verifier real ainda.
+Use TDD estrito: primeiro testes, depois implementação.
+
+Objetivo da Fase 9:
+Implementar o Join Gate, responsável por validar e consolidar os resultados produzidos por múltiplos agentes antes de permitir que a tarefa avance para REVIEWING.
+
+CONTRATOS_DA_FASE 9:
+
+JoinInput:
+  taskId: string
+  subtasksGraph: SubtaskNode[]
+  agentResults: AgentResult[]
+
+JoinResult:
+  ok: boolean
+  taskId: string
+  artifacts: AgentArtifact[]
+  missingArtifacts: string[]
+  failedSubtasks: string[]
+  errors: JoinError[]
+
+JoinError:
+  code: string
+  message: string
+  retryable: boolean
+
+Regras obrigatórias:
+- O Join Gate deve falhar se qualquer subtarefa estiver com status diferente de DONE.
+- O Join Gate deve falhar se alguma subtarefa não tiver artifactOutput.
+- O Join Gate deve falhar se algum AgentResult estiver com status FAILED.
+- O Join Gate deve consolidar todos os AgentArtifact em uma lista única.
+- O Join Gate deve detectar artefatos duplicados se fizer sentido.
+- O Join Gate não deve fazer merge real de código nesta fase.
+- O Join Gate não deve chamar Git real nesta fase.
+- O Join Gate não deve chamar MCP real nesta fase.
+- O Join Gate não deve modificar WorktreeManager, Orchestrator, SQLiteRepository, PlannerEngine ou agentes já aprovados, exceto se for estritamente necessário e compatível.
+- O Join Gate deve ser testado com dados mockados/determinísticos.
+
+Arquivos esperados:
+- `src/core/JoinGate.ts` ou `src/core/Joiner.ts`
+- `src/core/types/Join.ts`
+- `tests/join-gate.test.ts`
+- `docs/phase_9_resumo.md`, se fizer sentido
+
+Testes mínimos esperados:
+1. retorna ok=true quando todas subtarefas estão DONE e todos artifacts existem.
+2. falha se uma subtarefa está PENDING.
+3. falha se uma subtarefa está RUNNING.
+4. falha se uma subtarefa está FAILED.
+5. falha se artifactOutput está null.
+6. falha se algum AgentResult tem status FAILED.
+7. consolida artifacts de CoderAgent, TesterAgent e ReviewerAgent.
+8. preserva metadados dos artifacts.
+9. retorna failedSubtasks corretamente.
+10. retorna missingArtifacts corretamente.
+11. retorna erros estruturados com retryable boolean.
+12. não chama Git real.
+13. não chama MCP real.
+14. valida schema de JoinResult, se usar Zod.
+
+Depois rode:
+- `npm test`
+- `npm run build`
+- `npm run lint`
+
+Atualize a documentação viva:
+- `docs/CURRENT_STATE.md`
+- `docs/BACKLOG_FUTURO.md`
+- `docs/DECISION_LOG.md`
+- `.humano`
+- `docs/phase_9_resumo.md`, se fizer sentido
+
+No relatório final, informe:
+- arquivos criados
+- arquivos modificados
+- número de testes adicionados
+- como o Join Gate valida subtarefas
+- como consolida artifacts
+- quais falhas são bloqueadas
+- resultado de `npm test`
+- resultado de `npm run build`
+- resultado de `npm run lint`
+- riscos conhecidos
+- confirmação de que parou aguardando aprovação humana
+
+Não avance para a próxima fase.
+```
+
+Quando ele terminar a Fase 9, traga para mim:
+
+```text
+src/core/JoinGate.ts ou src/core/Joiner.ts
+src/core/types/Join.ts
+tests/join-gate.test.ts
+docs/CURRENT_STATE.md
+docs/BACKLOG_FUTURO.md
+docs/DECISION_LOG.md
+.humano
+```
+
+E também:
+
+```powershell
+npm test
+npm run build
+npm run lint
+```
+
+Resumo direto: **Fase 8 aprovada. Próximo passo: Fase 9 — Join Gate / Consolidação de Artefatos.**
