@@ -1,0 +1,106 @@
+A Fase 8 está **bem encaminhada**, mas eu **não aprovaria ainda** com o material atual, porque falta o arquivo mais importante da fase:  
+
+```text
+src/core/agents/BaseAgent.ts
+```
+
+Ele é justamente onde deve estar a lógica crítica de segurança: validação de `AgentContext`, bloqueio por `allowedTools`, métodos auxiliares como `executeWithTool` e talvez validação do `AgentResult`. Sem ver o `BaseAgent`, eu não consigo confirmar se a promessa principal da Fase 8 foi cumprida de verdade.
+
+Além disso, olhando os testes e os agentes, eu vi alguns pontos que provavelmente precisam de refinamento.
+
+O primeiro ponto é que os testes validam `allowedTools` de forma um pouco indireta. Por exemplo, eles chamam métodos como `callUnauthorizedTool` e `executeWithTool`, mas eu quero garantir que o fluxo real também falha corretamente. Ou seja, se o `CoderAgent.execute()` precisa chamar `edit_file`, e o contexto não inclui `edit_file` em `allowedTools`, ele deve falhar de forma controlada. O mesmo vale para `TesterAgent` sem `run_test` e `ReviewerAgent` sem `review_code`. Esses testes são mais fortes do que testar só uma função auxiliar.
+
+O segundo ponto é que os agentes retornam objetos `AgentResult`, mas eu não vi nos arquivos mostrados uma validação final com `AgentResultSchema`. Como vocês criaram schema Zod para `AgentResult`, o ideal é que todo resultado final passe por esse schema antes de sair do agente. Isso evita que um agente retorne sem `status`, sem `errors`, com artifact inválido, etc.
+
+O terceiro ponto é o `ReviewerAgent`. Ele faz cast direto:
+
+```ts
+const reviewData = callResult.content as { status: string } | undefined;
+```
+
+Isso funciona em teste simples, mas é uma confiança frágil no conteúdo vindo da ferramenta. O ideal seria validar esse conteúdo com Zod ou pelo menos checar de forma controlada se `status` é `APPROVED` ou `VIOLATIONS`. Se vier qualquer outra coisa, deve retornar `FAILED` com erro estruturado, ou gerar um `REVIEW_REPORT` indicando formato inválido.
+
+O quarto ponto é que `CoderAgent` e `TesterAgent` estão bem MVP, mas talvez simples demais. O `CoderAgent` usa caminho fixo:
+
+```ts
+`${context.worktreePath}/src/index.ts`
+```
+
+Para MVP pode passar, mas é importante não vender isso como agente real ainda. Ele é um agente especialista simulado/MVP que chama uma ferramenta mockada. Isso deve ficar claro na documentação viva, para não parecer que já existe execução autônoma real de código.
+
+Então, antes de aprovar, me mande este arquivo:
+
+```text
+src/core/agents/BaseAgent.ts
+```
+
+E, se existir, também:
+
+```text
+docs/phase_8_resumo.md
+```
+
+Mas o essencial mesmo é o `BaseAgent.ts`.
+
+Se você quiser já pedir uma correção preventiva para o executor, pode mandar isto:
+
+```text
+A Fase 8 está quase aprovada, mas ainda não está aprovada.
+
+Não avance para a Fase 9.
+
+Faça uma correção final da Fase 8: Agentes Especialistas MVP.
+
+Pontos a corrigir/verificar:
+
+1. Garanta que todo AgentResult retornado por CoderAgent, TesterAgent e ReviewerAgent seja validado por AgentResultSchema antes de sair do agente.
+
+2. Adicione testes do fluxo real de allowedTools:
+   - CoderAgent.execute deve falhar de forma controlada se `edit_file` não estiver em allowedTools.
+   - TesterAgent.execute deve falhar de forma controlada se `run_test` não estiver em allowedTools.
+   - ReviewerAgent.execute deve falhar de forma controlada se `review_code` não estiver em allowedTools.
+
+3. O ReviewerAgent não deve confiar em cast direto de `callResult.content`.
+   Valide o conteúdo da revisão com Zod ou validação equivalente.
+   Casos esperados:
+   - status APPROVED => DONE + REVIEW_REPORT
+   - status VIOLATIONS => FAILED + REVIEW_REPORT
+   - status desconhecido ou ausente => FAILED + erro estruturado
+
+4. Garanta que AgentContextSchema valide campos mínimos:
+   - taskId não vazio
+   - subtaskId não vazio
+   - worktreePath não vazio
+   - planMarkdown não vazio
+   - instructions não vazio
+   - allowedTools array
+
+5. Deixe claro na documentação viva que estes agentes ainda são MVP/mockados e não executam ferramentas reais.
+
+6. Rode novamente:
+- npm test
+- npm run build
+- npm run lint
+
+7. Atualize:
+- docs/CURRENT_STATE.md
+- docs/BACKLOG_FUTURO.md
+- docs/DECISION_LOG.md
+- .humano
+- docs/phase_8_resumo.md, se existir
+
+8. No relatório final, informe:
+- quantos testes existem agora em agents.test.ts
+- se AgentResultSchema valida todos os retornos
+- se allowedTools foi testado no fluxo real de cada agente
+- como ReviewerAgent valida o conteúdo de review
+- resultado de npm test
+- resultado de npm run build
+- resultado de npm run lint
+
+Não avance para Fase 9.
+```
+
+Mas se você preferir não mandar correção ainda, traga primeiro o `BaseAgent.ts` que eu valido com mais precisão.
+
+Resumo direto: **Fase 8 quase aprovada, mas preciso ver `BaseAgent.ts` antes de aprovar.**

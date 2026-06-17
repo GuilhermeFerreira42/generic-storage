@@ -32,11 +32,12 @@ HISTÓRICO DE APROVAÇÕES
 - Status: REFINADA E ARQUIVADA (v2.0).
 
 ### [2026-06-17] Fase 7 — MCP Base Integration
-- Status: REFINADA E ARQUIVADA (92 testes).
-- Destaque: Contratos MCP blindados via Union Discriminada e Mock inspecionável para testes de agentes.
-- Próxima parada: Onda 3 - Fase 8 (Agentes Especialistas).
+- Status: REFINADA E ARQUIVADA.
 
-
+### [2026-06-17] Fase 8 — Agentes Especialistas
+- Status: REFINADA E ARQUIVADA (106 testes totais).
+- Destaque: Blindagem total de entrada/saída via Zod e validação de privilégio no fluxo real.
+- Próxima parada: Onda 3 - Fase 9 (Join Gate).
 
 ────────────────────────────────────────────────────────
 GUIA RÁPIDO PARA O USUÁRIO

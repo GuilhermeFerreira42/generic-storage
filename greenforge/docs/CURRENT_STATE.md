@@ -1,11 +1,12 @@
 # CURRENT_STATE — GreenForge
-> Última atualização: Fase 7 | 2026-06-17
+> Última atualização: Fase 8 | 2026-06-17
 
 ## Arquitetura Ativa
 - **Arquitetura Hexagonal:** Desacoplamento total via portas e adaptadores.
 - **Orquestração:** Máquina de estados blindada e auditável.
 - **Isolamento:** Sandbox físico via Git Worktrees.
-- **Integração Externa:** Camada base para Model Context Protocol (MCP) com contratos estritos.
+- **Integração Externa:** Camada MCP com contratos estritos.
+- **Execução Especializada:** Agentes @Coder, @Tester e @Reviewer operando via MCP em modo MVP.
 
 ## Módulos e Contratos Vigentes
 | Módulo | Arquivo | Contrato Público | Desde |
@@ -15,38 +16,40 @@
 | `WorktreeManager` | `src/infrastructure/git/WorktreeManager.ts` | `provision(taskId)`, `deprovision(taskId)`, `list()` | Fase 2 |
 | `SafeResolve` | `src/shared/SafeResolve.ts` | `safeResolve`, `safeResolveForWrite` | Fase 3 |
 | `AtomicWrite` | `src/shared/AtomicWrite.ts` | `atomicWrite(path, content)` | Fase 3 |
-| `SQLiteRepository` | `src/infrastructure/db/SQLiteRepository.ts` | `createTask`, `getTask`, `updateTaskStatus`, `saveSubtasksGraph`, `runInTransaction` | Fase 4 |
+| `SQLiteRepository` | `src/infrastructure/db/SQLiteRepository.ts` | `createTask`, `getTask`, `updateTaskStatus`, `runInTransaction` | Fase 4 |
 | `PlannerEngine` | `src/core/PlannerEngine.ts` | `generatePlan(taskId, prompt)`, `savePlan(plan, root)` | Fase 5 |
 | `Orchestrator` | `src/core/Orchestrator.ts` | `trigger(taskId, event): Promise<void>` | Fase 6 |
-| `McpClientPort` | `src/core/ports/McpClientPort.ts` | `listTools(): Promise<McpTool[]>`, `callTool(name, input): Promise<McpCallResult>` | Fase 7 |
+| `McpClientPort` | `src/core/ports/McpClientPort.ts` | `listTools()`, `callTool(name, input)` | Fase 7 |
+| `BaseAgent` | `src/core/agents/BaseAgent.ts` | `execute(context): Promise<AgentResult>` | Fase 8 |
 
 ## Fluxo Principal
 1. Router identifica tarefa técnica.
 2. `PlannerEngine` gera plano auditável.
 3. Usuário aprova plano.
-4. `Orchestrator` gerencia execução (paralela ou sequencial).
-5. Agentes especialistas (Fase 8) utilizam o `McpClientPort` para executar ferramentas externas validadas.
+4. `Orchestrator` delega subtarefas aos agentes especialistas (@Coder, @Tester, @Reviewer).
+5. Agentes executam ferramentas via `McpClientPort` em seus respectivos worktrees (Mocks em MVP).
+6. Resultados são consolidados e validados por schema.
 
 ## Invariantes Globais
 1. **No-Shell Policy:** `execa` sem shell.
 2. **Fallback Seguro:** Incerteza = `NORMAL_CHAT`.
 3. **Segurança de FS:** Acesso apenas via `SafeResolve`.
-4. **Desacoplamento de SDK:** Core não depende de SDKs externos.
-5. **Erros Estruturados:** Todas as falhas de MCP devem retornar `retryable: boolean`.
-6. **Contratos Estritos:** Respostas de ferramentas externas são validadas contra schemas rigorosos para evitar estados contraditórios.
+4. **Privilégio Mínimo:** Agentes bloqueados de chamar ferramentas fora de `allowedTools` no fluxo real.
+5. **Resultados Blindados:** Todos os resultados de agentes são validados via Zod antes do retorno.
 
 ## Restrições Técnicas Ativas
 - **Runtime:** Node.js v24.
-- **MCP Validation:** Uso de Unions Discriminadas e Schemas Estritos (Zod).
+- **Agent Validation:** Uso de Zod para validar `AgentContext` (campos não vazios) e `AgentResult`.
+- **Review Validation:** `ReviewerAgent` valida conteúdo da ferramenta contra schema de revisão.
 
 ## Testes Obrigatórios
 | Suite | Arquivo | Cobertura Aproximada | Comando |
 |-------|---------|----------------------|---------|
-| Total Suíte | `tests/*.test.ts` | 92 testes ativos | `npm test` |
-| MCP Client | `tests/mcp.test.ts` | 9 testes (Contratos/Inspeção) | `npm test` |
+| Total Suíte | `tests/*.test.ts` | 106 testes ativos | `npm test` |
+| Agents MVP | `tests/agents.test.ts` | 14 testes (Agentes + Regras de Fluxo Real) | `npm test` |
 
 ## Dependências Externas
 | Pacote | Versão | Motivo |
 |--------|--------|--------|
-| `zod` | ^3.23.0 | Validação de schemas e contratos estritos. |
-| `better-sqlite3` | ^11.0.0 | Persistência transacional. |
+| `zod` | ^3.23.0 | Validação de contratos e schemas de agentes. |
+| `better-sqlite3` | ^11.0.0 | Persistência. |

@@ -47,7 +47,7 @@ export class MockMcpClient implements McpClientPort {
   }
 
   async listTools(): Promise<McpTool[]> {
-    return this.tools;
+    return [...this.tools];
   }
 
   async callTool(name: string, input: Record<string, unknown>): Promise<McpCallResult> {

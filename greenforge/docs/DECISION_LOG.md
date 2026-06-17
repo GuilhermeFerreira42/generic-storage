@@ -27,20 +27,14 @@ F5 | ADD | PlannerEngine | Motor de planos estruturados | `src/core/PlannerEngin
 
 ### Fase 6 — Orchestrator
 F6 | ADD | Orchestrator | Gestão centralizada via máquina de estados | `src/core/Orchestrator.ts`
-F6 | RULE | Estados Terminais Imutáveis | Bloquear transições de COMPLETED/FAILED | `src/core/Orchestrator.ts`
-F6 | RULE | Rollback Atômico | Garantir consistência entre status e checkpoints via transações | `src/core/Orchestrator.ts`
-F6 | TECH | Prova de Rollback nos Testes | Validação empírica de atomicidade via Spy Mocks | `tests/orchestrator.test.ts`
-F6 | MOD | Auditoria de Plano | Registro obrigatório de checkpoints para PLAN_GENERATED e APPROVE_PLAN | `src/core/Orchestrator.ts`
-F6 | FIX | Tipagem de Metadata | Uso de Record<string, unknown> para eliminar warnings de linter | `src/core/Orchestrator.ts`
 
 ### Fase 7 — MCP Base Integration
 F7 | ADD | McpClientPort | Interface de porta para desacoplar o core do SDK oficial do MCP | `src/core/ports/McpClientPort.ts`
-F7 | ADD | MockMcpClient | Implementação de testes determinística para simular servidores MCP | `src/infrastructure/mcp/MockMcpClient.ts`
-F7 | TECH | Tipagem Unknown no MCP | Substituição de `any` por `unknown` em argumentos e conteúdos para maior segurança de tipos | `src/core/types/Mcp.ts`
-F7 | RULE | Resiliência via retryable | Obrigatoriedade do campo `retryable` em erros de MCP para guiar o orquestrador | `src/core/types/Mcp.ts`
-F7 | TECH | Validação de Resposta Mock | Uso de Zod interno no Mock para garantir que as simulações sigam o contrato estrutural | `src/infrastructure/mcp/MockMcpClient.ts`
-F7 | RULE | Contratos MCP Estritos | Uso de Zod Discriminated Unions e .strict() para impedir estados contraditórios (ex: ok: true com erro) | `src/core/types/Mcp.ts`
-F7 | TECH | Mock Inspecionável | Adicionado histórico de chamadas ao Mock para auditoria em testes de agentes | `src/infrastructure/mcp/MockMcpClient.ts`
-F7 | RULE | Validação de Ferramentas | setTools agora valida o schema das ferramentas antes de aceitá-las no Mock | `src/infrastructure/mcp/MockMcpClient.ts`
 
-
+### Fase 8 — Agentes Especialistas
+F8 | ADD | Specialist Agents (@Coder, @Tester, @Reviewer) | Decompor execução em papéis técnicos específicos | `src/core/agents/`
+F8 | ADD | BaseAgent | Centralizar validações de privilégio e contexto | `src/core/agents/BaseAgent.ts`
+F8 | RULE | Privilégio Mínimo no Fluxo Real | Bloqueio de ferramentas validado no método `execute` dos agentes | `src/core/agents/BaseAgent.ts`
+F8 | RULE | Validação de Saída Zod | Todo `AgentResult` é validado antes de ser retornado pelo agente | `src/core/agents/BaseAgent.ts`
+F8 | TECH | Validação de Conteúdo de Review | `ReviewerAgent` valida o JSON de retorno da ferramenta de revisão | `src/core/agents/ReviewerAgent.ts`
+F8 | CFG | Contexto Estrito | `AgentContextSchema` exige campos não vazios para segurança de auditoria | `src/core/types/Agent.ts`

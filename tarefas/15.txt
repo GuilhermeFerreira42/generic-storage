@@ -1,0 +1,210 @@
+Sim, agora eu **aprovo a Fase 7**.
+
+A correção ficou boa. O `McpCallResult` agora está mais seguro com `discriminatedUnion` e `.strict()`, o `MockMcpClient` ficou inspecionável com `getCalls()` e `clearCalls()`, `setTools()` valida ferramentas, respostas contraditórias são bloqueadas, e a suíte passou:
+
+```text
+npm test: 92/92 passando
+npm run build: sucesso
+npm run lint: sucesso
+```
+
+Então a situação atual é:
+
+```text
+Fase 0: aprovada
+Fase 1: aprovada
+Fase 2: aprovada
+Fase 3: aprovada
+Fase 4: aprovada
+Fase 5: aprovada
+Fase 6: aprovada
+Fase 7: aprovada
+Onda 1: concluída
+Onda 2: concluída
+Onda 3: iniciada
+```
+
+Apenas uma observação pequena, **não bloqueante**: no futuro talvez seja melhor o `listTools()` retornar uma cópia da lista, tipo `return [...this.tools]`, para evitar que alguém modifique o array interno por referência. Mas isso não precisa travar a Fase 7.
+
+Agora o próximo passo é a **Fase 8 — Agentes Especialistas**.
+
+Essa fase deve criar os agentes MVP, mas ainda com cuidado. Eu recomendo **não implementar agentes “autônomos reais” ainda**. A Fase 8 deve criar a base dos agentes usando `McpClientPort`, com testes determinísticos. Ou seja, agentes que sabem chamar ferramentas MCP mockadas, retornar resultado estruturado, falhar de forma controlada e registrar o que fizeram.
+
+Sugestão de escopo da Fase 8:
+
+```text
+@CoderAgent
+@TesterAgent
+@ReviewerAgent
+AgentResult
+AgentContext
+Agent interfaces
+Testes com MockMcpClient
+```
+
+Pode mandar este prompt para o executor:
+
+```text
+Fase 7 aprovada.
+
+Comece agora somente a Onda 3 — Fase 8: Agentes Especialistas MVP.
+
+Leia primeiro:
+- `.ai-context`
+- `docs/CURRENT_STATE.md`
+- `docs/BACKLOG_FUTURO.md`
+- `docs/DECISION_LOG.md`
+- `documentacao/000_ler_primeiro_CONTEXT_TRANSFER.md`
+- `documentacao/GREENFORGE_DESIGN.md`
+- `documentacao/06-api-and-extensibility.md`
+- `documentacao/05-governance-and-security.md`
+- `documentacao/09-hardening-deterministic-contracts.md`
+
+Execute apenas a Fase 8.
+Não avance para Join Gate.
+Não implemente DiffLens.
+Não implemente MCP Server real.
+Não implemente integração completa com Qwen CLI.
+Não execute ferramentas reais.
+Não chame LLM real.
+Use TDD estrito: primeiro testes, depois implementação.
+
+Objetivo da Fase 8:
+Implementar agentes especialistas MVP que consomem `McpClientPort` de forma desacoplada e retornam resultados estruturados.
+
+CONTRATOS_DA_FASE 8:
+
+AgentRole:
+- CODER
+- TESTER
+- REVIEWER
+
+AgentContext:
+  taskId: string
+  subtaskId: string
+  worktreePath: string
+  planMarkdown: string
+  instructions: string
+  allowedTools: string[]
+
+AgentResult:
+  agent: AgentRole
+  taskId: string
+  subtaskId: string
+  status: 'DONE' | 'FAILED'
+  summary: string
+  artifacts: AgentArtifact[]
+  errors: AgentError[]
+
+AgentArtifact:
+  type: 'DIFF' | 'TEST_REPORT' | 'REVIEW_REPORT' | 'DOCS' | 'LINT_REPORT'
+  path: string
+  hash?: string | null
+  content?: unknown
+
+AgentError:
+  code: string
+  message: string
+  retryable: boolean
+
+Agentes esperados:
+1. `CoderAgent`
+   - Usa `McpClientPort` para chamar ferramenta de escrita/edição simulada.
+   - Retorna `AgentResult` com artifact tipo `DIFF` quando sucesso.
+   - Retorna `FAILED` com erro estruturado quando a ferramenta falha.
+
+2. `TesterAgent`
+   - Usa `McpClientPort` para chamar ferramenta simulada de teste.
+   - Retorna artifact tipo `TEST_REPORT`.
+   - Se a ferramenta retornar erro retryable, o AgentError deve preservar `retryable`.
+
+3. `ReviewerAgent`
+   - Usa `McpClientPort` para chamar ferramenta simulada de revisão.
+   - Retorna artifact tipo `REVIEW_REPORT`.
+   - Deve detectar resultado aprovado ou violações em formato estruturado.
+
+Regras obrigatórias:
+- Core dos agentes deve depender apenas de `McpClientPort`, não de SDK MCP real.
+- Testes devem usar `MockMcpClient`.
+- Usar `getCalls()` do MockMcpClient para provar que o agente chamou a ferramenta correta com argumentos corretos.
+- Validar entradas dos agentes com Zod ou validação equivalente.
+- Não usar `child_process.exec`.
+- Não usar `shell: true`.
+- Não modificar `WorktreeManager`, `SafeResolve`, `AtomicWrite`, `SQLiteRepository`, `PlannerEngine`, `Orchestrator` ou `McpClientPort`, exceto se for estritamente necessário e compatível.
+- Não executar ferramentas reais em `npm test`.
+
+Arquivos esperados:
+- `src/core/types/Agent.ts`
+- `src/core/agents/CoderAgent.ts`
+- `src/core/agents/TesterAgent.ts`
+- `src/core/agents/ReviewerAgent.ts`
+- `tests/agents.test.ts`
+- `docs/phase_8_resumo.md`, se fizer sentido
+
+Testes mínimos esperados:
+1. CoderAgent chama a ferramenta correta via McpClientPort.
+2. CoderAgent retorna DONE com artifact DIFF em sucesso.
+3. CoderAgent retorna FAILED com AgentError em falha.
+4. TesterAgent chama ferramenta de teste via McpClientPort.
+5. TesterAgent retorna TEST_REPORT em sucesso.
+6. TesterAgent preserva retryable quando ferramenta falha.
+7. ReviewerAgent chama ferramenta de revisão via McpClientPort.
+8. ReviewerAgent retorna REVIEW_REPORT aprovado em sucesso.
+9. ReviewerAgent retorna REVIEW_REPORT com violações quando houver problemas.
+10. AgentContext inválido é rejeitado.
+11. allowedTools deve limitar quais ferramentas o agente pode chamar.
+12. Agente não pode chamar ferramenta fora de allowedTools.
+13. Todos os agentes usam apenas MockMcpClient nos testes.
+14. Nenhuma chamada de rede ou servidor MCP real acontece nos testes.
+
+Depois rode:
+- `npm test`
+- `npm run build`
+- `npm run lint`
+
+Atualize a documentação viva:
+- `docs/CURRENT_STATE.md`
+- `docs/BACKLOG_FUTURO.md`
+- `docs/DECISION_LOG.md`
+- `.humano`
+- `docs/phase_8_resumo.md`, se fizer sentido
+
+No relatório final, informe:
+- arquivos criados
+- arquivos modificados
+- número de testes adicionados
+- quais agentes foram implementados
+- quais ferramentas MCP mockadas foram chamadas
+- como allowedTools foi validado
+- resultado de `npm test`
+- resultado de `npm run build`
+- resultado de `npm run lint`
+- riscos conhecidos
+- confirmação de que parou aguardando aprovação humana
+
+Não avance para Fase 9.
+```
+
+Quando ele terminar a Fase 8, traga para mim:
+
+```text
+src/core/types/Agent.ts
+src/core/agents/CoderAgent.ts
+src/core/agents/TesterAgent.ts
+src/core/agents/ReviewerAgent.ts
+tests/agents.test.ts
+docs/CURRENT_STATE.md
+docs/BACKLOG_FUTURO.md
+docs/DECISION_LOG.md
+.humano
+```
+
+E também:
+
+```powershell
+npm test
+npm run build
+npm run lint
+```
+
+Resumo direto: **Fase 7 aprovada. Próximo passo: Fase 8 — Agentes Especialistas MVP com MockMcpClient, sem ferramentas reais ainda.**
