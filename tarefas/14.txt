@@ -1,0 +1,106 @@
+A Fase 7 está **quase aprovada**, mas eu ainda faria uma correção pequena antes de liberar a Fase 8.
+
+A base está boa: foram criados `McpClientPort`, `Mcp.ts`, `MockMcpClient`, `mcp.test.ts`, a suíte passou com **91 testes**, build e lint passaram, e a documentação viva foi atualizada. A decisão de manter o core desacoplado do SDK real está correta. Para uma Fase 7 base, isso faz sentido.
+
+Mas encontrei três pontos que eu corrigiria.
+
+O primeiro é que o `MockMcpClient` tem esta linha:
+
+```ts
+if (!args) { /* dummy */ }
+```
+
+Isso é um sinal de que o parâmetro `args` só está ali para satisfazer o linter. É melhor remover esse dummy de forma limpa. Como `args` faz parte do contrato, o mock pode guardar o último input recebido, ou validar que `args` é objeto, ou usar `_args` se a configuração permitir. O ideal é adicionar capacidade de inspeção, como `getCalls()`, porque isso ajuda os próximos testes de agentes. Assim, na Fase 8, dá para verificar se o agente chamou a ferramenta correta com os argumentos corretos.
+
+O segundo ponto é que `setTools` não valida o schema das ferramentas. Se passar uma ferramenta malformada, o mock aceita. A Fase 7 diz que valida contratos MCP, então eu esperaria validação também em `setTools`, ou pelo menos um teste que garanta que tool sem `name` não entra.
+
+O terceiro ponto é que `McpCallResult` permite estados contraditórios, como `{ ok: true, error: {...} }` ou `{ ok: false, content: {...} }`. O Zod atual só verifica campos opcionais, mas não garante a relação correta entre `ok`, `content` e `error`. O ideal é um contrato discriminado: se `ok: true`, pode ter `content` e não deve ter `error`; se `ok: false`, deve ter `error` com `retryable`. Isso vai evitar problemas quando os agentes começarem a depender dessa resposta.
+
+Então eu não aprovaria ainda, mas é uma correção bem pequena. Mande isto para o executor:
+
+```text
+A Fase 7 está quase aprovada, mas ainda não está aprovada.
+
+Não avance para a Fase 8.
+Não implemente agentes especialistas ainda.
+
+Faça uma correção final da Fase 7: MCP Client Base.
+
+Problemas encontrados:
+
+1. Remova o dummy `if (!args) { /* dummy */ }` do `MockMcpClient`.
+   Em vez disso, faça o mock registrar chamadas realizadas.
+   Adicione métodos úteis para teste:
+   - `getCalls(): Array<{ name: string; input: Record<string, unknown> }>`
+   - `clearCalls(): void`
+
+2. Atualize `callTool(name, input)` para registrar toda chamada recebida antes de retornar resultado.
+
+3. Adicione testes garantindo:
+   - ao chamar uma ferramenta, `getCalls()` registra `name` e `input`
+   - `clearCalls()` limpa o histórico
+
+4. Valide o schema das tools em `setTools`.
+   Uma ferramenta deve ter pelo menos:
+   - `name: string` não vazio
+   - `description?: string`
+   - `inputSchema?: Record<string, unknown>`
+
+5. Adicione teste para rejeitar ferramenta malformada, por exemplo tool sem `name` ou com `name` vazio.
+
+6. Corrija o schema de `McpCallResult` para impedir estados contraditórios:
+   - Se `ok: true`, não deve haver `error`.
+   - Se `ok: false`, deve haver `error`.
+   - Se `ok: false`, `error.retryable` deve ser boolean.
+   - Se `ok: false`, `content` não deve ser obrigatório e preferencialmente não deve ser usado.
+
+7. Adicione testes para respostas contraditórias:
+   - `{ ok: true, error: {...} }` deve virar `MALFORMED_RESPONSE`
+   - `{ ok: false }` sem error deve virar `MALFORMED_RESPONSE`
+   - `{ ok: false, error: { retryable: "yes" } }` deve virar `MALFORMED_RESPONSE`
+
+8. Rode novamente:
+- `npm test`
+- `npm run build`
+- `npm run lint`
+
+9. Atualize a documentação viva:
+- `docs/CURRENT_STATE.md`
+- `docs/BACKLOG_FUTURO.md`
+- `docs/DECISION_LOG.md`
+- `.humano`
+- `docs/phase_7_resumo.md`, se existir
+
+10. Entregue relatório final informando:
+- quantos testes MCP existem agora
+- quais validações de schema MCP foram adicionadas
+- se o mock agora registra chamadas
+- resultado de `npm test`
+- resultado de `npm run build`
+- resultado de `npm run lint`
+- confirmação de que parou aguardando aprovação humana
+
+Não avance para a Fase 8.
+```
+
+Depois disso, traga só estes arquivos:
+
+```text
+src/core/types/Mcp.ts
+src/infrastructure/mcp/MockMcpClient.ts
+tests/mcp.test.ts
+docs/CURRENT_STATE.md
+docs/BACKLOG_FUTURO.md
+docs/DECISION_LOG.md
+.humano
+```
+
+E a saída de:
+
+```powershell
+npm test
+npm run build
+npm run lint
+```
+
+Resumo: **Fase 7 quase aprovada, mas falta blindar melhor o contrato MCP antes da Fase 8.**

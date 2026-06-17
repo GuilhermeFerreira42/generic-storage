@@ -2,23 +2,24 @@
 
 ## Resumo do Estado Atual
 - **Projeto:** GreenForge (Orquestrador Autônomo)
-- **Última fase concluída:** 4 — Persistence Layer (Refinada)
-- **Próxima fase:** 5 — Planner Engine
+- **Última fase concluída:** 7 — MCP Base Integration
+- **Próxima fase:** 8 — Agentes Especialistas
 - **Status do build:** PASSANDO
-- **Status dos testes:** PASSANDO (48/48 testes)
-- **Módulos Críticos:** `WorktreeManager`, `SafeResolve`, `SQLiteRepository` (ACID)
+- **Status dos testes:** PASSANDO (91/91 testes)
+- **Módulos Críticos:** `Orchestrator`, `SQLiteRepository`, `McpClientPort`
 
 ## Leitura Obrigatória
 1. `docs/CURRENT_STATE.md` — estado atual completo do sistema
-2. `src/infrastructure/db/SQLiteRepository.ts` — contrato de persistência íntegro
+2. `src/core/ports/McpClientPort.ts` — contrato de integração externa
 
 ## Leitura no Início de Onda
-3. `docs/BACKLOG_FUTURO.md` — roadmap Onda 2 e CONTRATOS_DA_ONDA
+3. `docs/BACKLOG_FUTURO.md` — roadmap Onda 3 e CONTRATOS_DA_ONDA
 
 ## NUNCA Ler Automaticamente
 - `.git/`, `node_modules/`, `dist/`, `build/`
 - `docs/archive/*`
 
 ## Regra de Contrato
-- Todas as tabelas devem respeitar `FOREIGN KEY` (ON).
-- Use transações para qualquer operação que envolva mais de um comando SQL.
+- Todas as interações com ferramentas externas devem passar por `McpClientPort`.
+- Erros de MCP devem ser tratados usando a flag `retryable`.
+

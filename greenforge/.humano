@@ -30,8 +30,13 @@ HISTÓRICO DE APROVAÇÕES
 
 ### [2026-06-16] Fase 6 — Orchestrator
 - Status: REFINADA E ARQUIVADA (v2.0).
-- Destaque: Estados terminais blindados, rollback comprovado (22 testes).
-- Próxima parada: Onda 3 - Fase 7 (MCP Client).
+
+### [2026-06-17] Fase 7 — MCP Base Integration
+- Status: REFINADA E ARQUIVADA (92 testes).
+- Destaque: Contratos MCP blindados via Union Discriminada e Mock inspecionável para testes de agentes.
+- Próxima parada: Onda 3 - Fase 8 (Agentes Especialistas).
+
+
 
 ────────────────────────────────────────────────────────
 GUIA RÁPIDO PARA O USUÁRIO
