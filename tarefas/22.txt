@@ -1,0 +1,175 @@
+Agora sim, **Fase 10 aprovada**.
+
+O ponto decisivo foi este trecho:
+
+```text
+===== Verificando ocorrências malformadas =====
+```
+
+E não apareceu nenhuma ocorrência. Isso indica que o arquivo real provavelmente está correto, e o que aparece como:
+
+```text
+GREENFORGE_[AUDIT.md](http://AUDIT.md)
+```
+
+é efeito do copiador/chat transformando `GREENFORGE_AUDIT.md` em link visual. Como a busca por padrões malformados voltou vazia, e a suíte passou com `133` testes, build e lint, considero a fase validada.
+
+Situação atual:
+
+```text
+Fase 0: aprovada
+Fase 1: aprovada
+Fase 2: aprovada
+Fase 3: aprovada
+Fase 4: aprovada
+Fase 5: aprovada
+Fase 6: aprovada
+Fase 7: aprovada
+Fase 8: aprovada
+Fase 9: aprovada
+Fase 10: aprovada
+```
+
+Próxima fase:
+
+```text
+Fase 11 — Verifier
+```
+
+O objetivo da Fase 11 deve ser criar o componente que dá o veredito final técnico: ele recebe o relatório do DiffLens, os resultados do JoinGate, talvez status de testes/lint, e decide se a tarefa pode ser considerada aprovada, bloqueada ou precisa de retry.
+
+Você pode mandar este prompt para o executor:
+
+```text
+Fase 10 aprovada.
+
+Comece agora somente a Onda 4 — Fase 11: Verifier.
+
+Leia primeiro:
+- `.ai-context`
+- `docs/CURRENT_STATE.md`
+- `docs/BACKLOG_FUTURO.md`
+- `docs/DECISION_LOG.md`
+- `documentacao/000_ler_primeiro_CONTEXT_TRANSFER.md`
+- `documentacao/GREENFORGE_DESIGN.md`
+- `documentacao/03-technical-spec-and-data.md`
+- `documentacao/05-governance-and-security.md`
+
+Execute apenas a Fase 11.
+Não implemente Qwen CLI integration.
+Não implemente MCP Server real.
+Não implemente empacotamento.
+Não avance para Fase 12.
+Use TDD estrito: primeiro testes, depois implementação.
+
+Objetivo da Fase 11:
+Implementar o Verifier, responsável por consolidar sinais técnicos e produzir um veredito final estruturado da tarefa.
+
+CONTRATOS_DA_FASE 11:
+
+VerificationInput:
+  taskId: string
+  diffReport: DiffReport
+  joinResult: JoinResult
+  testResult?: CommandCheckResult
+  lintResult?: CommandCheckResult
+
+CommandCheckResult:
+  command: string
+  exitCode: number
+  stdout?: string
+  stderr?: string
+  durationMs?: number
+
+VerificationResult:
+  taskId: string
+  status: 'APPROVED' | 'BLOCKED' | 'RETRYABLE'
+  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH'
+  reasons: string[]
+  retryable: boolean
+  createdAt: string
+
+Regras obrigatórias:
+- Verifier deve validar entrada e saída com Zod.
+- Se JoinResult.ok for false, status deve ser BLOCKED ou RETRYABLE conforme erros.
+- Se DiffReport.riskLevel for HIGH, status deve ser BLOCKED.
+- Se DiffReport.planAlignment for DIVERGED, status deve ser BLOCKED.
+- Se testResult.exitCode != 0, status deve ser RETRYABLE se o erro for técnico recuperável.
+- Se lintResult.exitCode != 0, status deve ser RETRYABLE.
+- Se tudo estiver limpo, status deve ser APPROVED.
+- Não executar comandos reais nesta fase.
+- Não chamar Git real.
+- Não chamar MCP real.
+- Não chamar LLM real.
+- Não modificar Orchestrator, DiffLens, JoinGate, agentes ou SQLiteRepository, exceto se for estritamente necessário e compatível.
+
+Arquivos esperados:
+- `src/core/Verifier.ts`
+- `src/core/types/Verifier.ts`
+- `tests/verifier.test.ts`
+- `docs/phase_11_resumo.md`, se fizer sentido
+
+Testes mínimos esperados:
+1. aprova quando JoinResult ok, DiffReport LOW/ALIGNED, test e lint exitCode 0.
+2. bloqueia quando JoinResult.ok é false com erro não retryable.
+3. retorna RETRYABLE quando JoinResult.ok é false com erro retryable.
+4. bloqueia quando DiffReport.riskLevel é HIGH.
+5. bloqueia quando DiffReport.planAlignment é DIVERGED.
+6. retorna RETRYABLE quando testResult.exitCode é diferente de 0.
+7. retorna RETRYABLE quando lintResult.exitCode é diferente de 0.
+8. agrega reasons explicando cada bloqueio.
+9. valida VerificationInput com Zod.
+10. valida VerificationResult com Zod.
+11. não executa comando real.
+12. não chama MCP real.
+13. não chama Git real.
+14. preserva taskId no resultado.
+15. gera createdAt válido.
+
+Depois rode:
+- `npm test`
+- `npm run build`
+- `npm run lint`
+
+Atualize a documentação viva:
+- `docs/CURRENT_STATE.md`
+- `docs/BACKLOG_FUTURO.md`
+- `docs/DECISION_LOG.md`
+- `.humano`
+- `docs/phase_11_resumo.md`, se fizer sentido
+
+No relatório final, informe:
+- arquivos criados
+- arquivos modificados
+- número de testes adicionados
+- regras de aprovação/bloqueio implementadas
+- resultado de `npm test`
+- resultado de `npm run build`
+- resultado de `npm run lint`
+- riscos conhecidos
+- confirmação de que parou aguardando aprovação humana
+
+Não avance para a próxima fase.
+```
+
+Quando ele terminar a Fase 11, traga:
+
+```text
+src/core/Verifier.ts
+src/core/types/Verifier.ts
+tests/verifier.test.ts
+docs/CURRENT_STATE.md
+docs/BACKLOG_FUTURO.md
+docs/DECISION_LOG.md
+.humano
+```
+
+E também:
+
+```powershell
+npm test
+npm run build
+npm run lint
+```
+
+Resumo direto: **Fase 10 aprovada. Próximo passo: Fase 11 — Verifier.**

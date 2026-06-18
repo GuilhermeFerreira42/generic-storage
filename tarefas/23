@@ -1,0 +1,122 @@
+A Fase 11 está **muito boa**, mas eu **não aprovaria ainda**. Falta uma blindagem pequena, mas importante.
+
+Os testes passaram, build passou e lint passou:
+
+```text
+npm test: 148/148 passando
+npm run build: sucesso
+npm run lint: sucesso
+```
+
+A implementação geral do `Verifier` está correta: ele valida input/output com Zod, bloqueia `HIGH`, bloqueia `DIVERGED`, transforma falhas de teste/lint em `RETRYABLE`, respeita prioridade `BLOCKED > RETRYABLE > APPROVED`, e não chama Git/MCP/LLM/processos reais.
+
+Mas encontrei um risco importante: o `Verifier` não valida se todos os objetos pertencem à **mesma task**.
+
+Hoje ele recebe:
+
+```ts
+taskId: string
+diffReport: DiffReport
+joinResult: JoinResult
+```
+
+Mas ele não confere se:
+
+```ts
+input.taskId === input.diffReport.taskId
+input.taskId === input.joinResult.taskId
+```
+
+Isso é perigoso. Imagine o Verifier recebendo `taskId = "task-A"`, mas o `DiffReport` de `"task-B"` e o `JoinResult` de `"task-C"`. Ele poderia aprovar a tarefa errada com dados de outra tarefa. Para um componente de veredito final, isso precisa ser bloqueado.
+
+Também seria bom reforçar no schema/teste que:
+
+```text
+APPROVED => retryable false
+BLOCKED => retryable false
+RETRYABLE => retryable true
+```
+
+O código já faz isso, mas um teste explícito deixa o contrato protegido.
+
+Além disso, a documentação viva precisa de ajuste pequeno: o `CURRENT_STATE.md` já lista o Verifier como módulo, mas o “Fluxo Principal” ainda para no DiffLens. Ele deve incluir o Verifier como etapa final de decisão.
+
+Então mande este prompt para o executor:
+
+```text
+A Fase 11 está quase aprovada, mas ainda não está aprovada.
+
+Não avance para a Fase 12.
+Não implemente Qwen Integration.
+Não implemente empacotamento.
+Não altere escopo funcional fora do Verifier.
+
+Faça uma correção final cirúrgica da Fase 11: Verifier.
+
+Problemas encontrados:
+
+1. O Verifier não valida consistência de taskId entre:
+   - input.taskId
+   - input.diffReport.taskId
+   - input.joinResult.taskId
+
+   Corrija isso. Se qualquer um for diferente, o Verifier deve retornar ou lançar erro controlado. Preferência: lançar erro de validação antes de produzir VerificationResult.
+
+2. Adicione testes:
+   - diffReport.taskId diferente de input.taskId deve falhar.
+   - joinResult.taskId diferente de input.taskId deve falhar.
+   - diffReport.taskId e joinResult.taskId iguais ao input.taskId deve passar.
+
+3. Adicione testes explícitos para consistência de retryable:
+   - status APPROVED deve ter retryable false.
+   - status BLOCKED deve ter retryable false.
+   - status RETRYABLE deve ter retryable true.
+
+4. Se possível, fortaleça o schema:
+   - durationMs deve ser número não negativo, se presente.
+   - createdAt do VerificationResult deve ser string datetime válida, se isso não quebrar o padrão atual.
+
+5. Atualize a documentação viva:
+   - docs/CURRENT_STATE.md: incluir Verifier no Fluxo Principal após DiffLens.
+   - docs/BACKLOG_FUTURO.md: garantir que o Estado Atual reflita Fase 11 concluída/refinada.
+   - docs/DECISION_LOG.md: registrar regra de consistência de taskId.
+   - .humano: atualizar Fase 11 como refinada, aguardando aprovação humana.
+
+6. Rode novamente:
+- npm test
+- npm run build
+- npm run lint
+
+7. No relatório final, informe:
+- quantos testes existem agora em verifier.test.ts
+- se taskId consistency foi validada
+- se retryable consistency foi validada
+- resultado de npm test
+- resultado de npm run build
+- resultado de npm run lint
+- confirmação de que parou aguardando aprovação humana
+
+Não avance para a Fase 12.
+```
+
+Depois traga só:
+
+```text
+src/core/Verifier.ts
+src/core/types/Verifier.ts
+tests/verifier.test.ts
+docs/CURRENT_STATE.md
+docs/BACKLOG_FUTURO.md
+docs/DECISION_LOG.md
+.humano
+```
+
+E a saída de:
+
+```powershell
+npm test
+npm run build
+npm run lint
+```
+
+Resumo direto: **Fase 11 quase aprovada, mas precisa validar consistência de taskId antes de ser confiável como veredito final.**

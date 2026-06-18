@@ -1,5 +1,5 @@
 # CURRENT_STATE — GreenForge
-> Última atualização: Fase 10 | 2026-06-18
+> Última atualização: Fase 11 | 2026-06-18
 
 ## Arquitetura Ativa
 - **Arquitetura Hexagonal:** Desacoplamento total via portas e adaptadores.
@@ -23,6 +23,7 @@
 | `BaseAgent` | `src/core/agents/BaseAgent.ts` | `execute(context): Promise<AgentResult>` | Fase 8 |
 | `JoinGate` | `src/core/JoinGate.ts` | `join(input: JoinInput): Promise<JoinResult>` | Fase 9 |
 | `DiffLens` | `src/core/DiffLens.ts` | `generateReport(taskId, artifacts)`, `renderMarkdown(report)`, `saveAuditReport(report, root)` | Fase 10 |
+| `Verifier` | `src/core/Verifier.ts` | `verify(input: VerificationInput): Promise<VerificationResult>` | Fase 11 |
 
 ## Fluxo Principal
 1. Router identifica tarefa técnica.
@@ -31,6 +32,7 @@
 4. Agentes executam ferramentas via MCP nos Worktrees.
 5. `JoinGate` valida e consolida os artefatos.
 6. **DiffLens Engine** analisa artefatos, valida conteúdos de revisão e gera o relatório oficial `GREENFORGE_AUDIT.md`.
+7. **Verifier** consolida todos os sinais técnicos, valida a consistência do identificador da tarefa e gera o veredito final estruturado (`APPROVED` | `BLOCKED` | `RETRYABLE`).
 
 ## Invariantes Globais
 1. **No-Shell Policy:** `execa` sem shell.
@@ -46,8 +48,9 @@
 ## Testes Obrigatórios
 | Suite | Arquivo | Cobertura Aproximada | Comando |
 |-------|---------|----------------------|---------|
-| Total Suíte | `tests/*.test.ts` | 133 testes ativos | `npm test` |
+| Total Suíte | `tests/*.test.ts` | 148 testes ativos | `npm test` |
 | DiffLens | `tests/difflens.test.ts` | 13 testes (Refinados) | `npm test` |
+| Verifier | `tests/verifier.test.ts` | 15 testes (Unitários) | `npm test` |
 
 ## Dependências Externas
 | Pacote | Versão | Motivo |

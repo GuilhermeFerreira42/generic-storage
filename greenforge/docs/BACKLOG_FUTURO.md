@@ -2,7 +2,7 @@
 
 ## Intenção Original
 - **Objetivo:** Transformar o Qwen CLI em um engenheiro autônomo com isolamento físico e auditoria visual de mudanças.
-- **Estado Atual:** Fase 10 refinada (DiffLens Engine com contratos blindados).
+- **Estado Atual:** Fase 11 refinada (Verifier com consistência de taskId e schemas fortalecidos).
 
 ---
 
@@ -29,7 +29,7 @@
 | ID | Entregável | Descrição (entregue ou planejada) | Arquivos Impactados | Critério de Aceite | Status |
 |----|------------|-----------------------------------|----------------------|---------------------|--------|
 | W4-01 | DiffLens Engine | Motor de auditoria refinado com validação de revisões, análise de risco e relatório Markdown `GREENFORGE_AUDIT.md`. | `DiffLens.ts` | 13/13 testes PASS | CONCLUÍDO |
-| W4-02 | Verifier (Fase 11) | Componente final de aceitação que consolida o veredito humano e automatizado. | `Verifier.ts` | Final sign-off PASS | PENDENTE |
+| W4-02 | Verifier (Fase 11) | Componente final de aceitação que consolida o veredito humano e automatizado. | `Verifier.ts`, `types/Verifier.ts` | 15/15 testes PASS | CONCLUÍDO |
 | W4-03 | Qwen Integration | Acoplamento final da extensão no pipeline de execução do Qwen CLI. | `index.ts` | E2E integration PASS | PENDENTE |
 
 ### Meta da Onda 4

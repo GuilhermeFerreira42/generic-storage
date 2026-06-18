@@ -1,0 +1,180 @@
+Agora sim, **Fase 11 aprovada**.
+
+A correção resolveu o ponto bloqueante: o `Verifier` agora valida a consistência entre `input.taskId`, `diffReport.taskId` e `joinResult.taskId`. Também foram adicionados testes explícitos para `retryable` em `APPROVED`, `BLOCKED` e `RETRYABLE`, `durationMs` foi fortalecido como não negativo e `createdAt` agora usa `z.string().datetime()`. A suíte passou com **154 testes**, build passou e lint passou.
+
+Então a situação atual é:
+
+```text
+Fase 0: aprovada
+Fase 1: aprovada
+Fase 2: aprovada
+Fase 3: aprovada
+Fase 4: aprovada
+Fase 5: aprovada
+Fase 6: aprovada
+Fase 7: aprovada
+Fase 8: aprovada
+Fase 9: aprovada
+Fase 10: aprovada
+Fase 11: aprovada
+```
+
+Apenas uma observação não bloqueante: no `BACKLOG_FUTURO.md`, dentro de `CONTRATOS_DA_ONDA 4`, ainda aparece visualmente `GREENFORGE_[AUDIT.md](http://AUDIT.md)`, mas como isso já foi investigado antes com `Select-String`, eu trataria como possível artefato visual. Mesmo assim, na próxima atualização de documentação, vale garantir que o texto bruto seja `GREENFORGE_AUDIT.md`.
+
+Agora a próxima fase é:
+
+```text
+Fase 12 — Qwen Integration
+```
+
+Essa fase é delicada, porque começa a conectar o GreenForge ao formato real de extensão do Qwen CLI. Eu recomendo que ela seja feita como **integração estática e testável**, sem ainda rodar uma sessão real do Qwen. Ou seja: criar/validar `qwen-extension.json`, `.qwen/skills/greenforge/SKILL.md`, `.qwen/settings.json`, entrypoints, contratos de comandos e testes de configuração. A integração E2E real pode ficar para a fase seguinte.
+
+Você pode mandar este prompt para o executor:
+
+```text
+Fase 11 aprovada.
+
+Comece agora somente a Onda 4 — Fase 12: Qwen Integration Base.
+
+Leia primeiro:
+- `.ai-context`
+- `docs/CURRENT_STATE.md`
+- `docs/BACKLOG_FUTURO.md`
+- `docs/DECISION_LOG.md`
+- `documentacao/000_ler_primeiro_CONTEXT_TRANSFER.md`
+- `documentacao/GREENFORGE_DESIGN.md`
+- `documentacao/06-api-and-extensibility.md`
+- `documentacao/INTEGRACAO_STATUS.md`
+- `documentacao/docs/MIGRATION_GUIDE.md`, se existir
+
+Execute apenas a Fase 12.
+Não implemente empacotamento final.
+Não publique extensão.
+Não execute sessão real do Qwen CLI.
+Não avance para próxima fase.
+Use TDD estrito: primeiro testes, depois implementação.
+
+Objetivo da Fase 12:
+Criar a base estática e testável da integração do GreenForge como extensão do Qwen CLI.
+
+Escopo permitido:
+- `qwen-extension.json`
+- `.qwen/skills/greenforge/SKILL.md`
+- `.qwen/settings.json`
+- entrypoint leve em `src/index.ts`, se necessário
+- tipos/validadores para manifesto e settings
+- testes de validação de configuração
+
+CONTRATOS_DA_FASE 12:
+
+QwenExtensionManifest:
+  name: "greenforge"
+  version: string
+  description: string
+  mcpServers: object
+  skills: string
+  contextFileName?: string
+  hooks?: string
+
+SkillManifest:
+  path: ".qwen/skills/greenforge/SKILL.md"
+  frontmatter:
+    name: "greenforge"
+    description: string
+    argument-hint: string
+
+SettingsHooks:
+  SessionStart
+  SessionEnd
+  UserPromptSubmit
+  PreToolUse
+  PostToolUse
+
+Regras obrigatórias:
+- Não chamar Qwen CLI real nos testes.
+- Não chamar MCP server real.
+- Não usar rede.
+- Não executar comandos externos.
+- Testes devem validar arquivos estáticos e schemas.
+- `qwen-extension.json` deve ser JSON válido.
+- `SKILL.md` deve conter frontmatter válido.
+- `.qwen/settings.json` deve conter hooks esperados.
+- `PreToolUse` deve incluir proteção para Write/Edit/Bash ou equivalente.
+- Não alterar módulos core aprovados, exceto se for necessário exportar entrypoints.
+- Se criar ou alterar `src/index.ts`, manter build e lint passando.
+- Se houver referência a `GREENFORGE_AUDIT.md`, garantir que não vire link malformado.
+
+Arquivos esperados:
+- `qwen-extension.json`
+- `.qwen/skills/greenforge/SKILL.md`
+- `.qwen/settings.json`
+- `src/integration/qwen/manifestSchemas.ts` ou equivalente
+- `tests/qwen-integration.test.ts`
+- `docs/phase_12_resumo.md`, se fizer sentido
+
+Testes mínimos esperados:
+1. `qwen-extension.json` existe e é JSON válido.
+2. manifesto tem `name = greenforge`.
+3. manifesto declara `mcpServers`.
+4. manifesto aponta para skills corretamente.
+5. `SKILL.md` existe no caminho esperado.
+6. `SKILL.md` tem frontmatter com name greenforge.
+7. `SKILL.md` lista comandos start/status/list/approve/abort ou equivalentes.
+8. `.qwen/settings.json` existe e é JSON válido.
+9. settings contém hooks SessionStart e SessionEnd.
+10. settings contém UserPromptSubmit.
+11. settings contém PreToolUse protegendo operações sensíveis.
+12. settings contém PostToolUse.
+13. nenhuma configuração aponta para paths inexistentes óbvios.
+14. schemas rejeitam manifesto inválido.
+15. não há chamada real ao Qwen CLI, rede ou servidor MCP nos testes.
+
+Depois rode:
+- npm test
+- npm run build
+- npm run lint
+
+Atualize a documentação viva:
+- docs/CURRENT_STATE.md
+- docs/BACKLOG_FUTURO.md
+- docs/DECISION_LOG.md
+- .humano
+- docs/phase_12_resumo.md, se fizer sentido
+
+No relatório final, informe:
+- arquivos criados
+- arquivos modificados
+- número de testes adicionados
+- quais contratos de integração foram validados
+- resultado de npm test
+- resultado de npm run build
+- resultado de npm run lint
+- riscos conhecidos
+- confirmação de que parou aguardando aprovação humana
+
+Não avance para a próxima fase.
+```
+
+Quando ele terminar a Fase 12, traga:
+
+```text
+qwen-extension.json
+.qwen/skills/greenforge/SKILL.md
+.qwen/settings.json
+src/integration/qwen/manifestSchemas.ts   se existir
+tests/qwen-integration.test.ts
+docs/CURRENT_STATE.md
+docs/BACKLOG_FUTURO.md
+docs/DECISION_LOG.md
+.humano
+```
+
+E:
+
+```powershell
+npm test
+npm run build
+npm run lint
+```
+
+Resumo direto: **Fase 11 aprovada. Próximo passo: Fase 12 — Qwen Integration Base, com validação estática e sem execução real do Qwen CLI ainda.**

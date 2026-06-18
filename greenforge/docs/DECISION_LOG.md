@@ -44,3 +44,10 @@ F10 | FIX | Relatório Markdown Confiável | Correção do nome do arquivo para 
 F10 | MOD | Validação de Revisão | Implementada validação Zod para conteúdos de `REVIEW_REPORT` nos artefatos | `src/core/DiffLens.ts`
 F10 | RULE | Alinhamento Reativo Refinado | Uso de `PARTIAL` para erros de formato e `DIVERGED` para violações de qualidade | `src/core/DiffLens.ts`
 F10 | CFG | Contrato DiffReport Puro | Remoção do campo `ok` redundante para manter integridade com o schema Zod | `src/core/types/DiffLens.ts`
+
+### Fase 11 — Verifier
+F11 | ADD | Verifier Component | Componente de aceitação e consolidação técnica | `src/core/Verifier.ts`
+F11 | ADD | Verifier Type Definitions | Contratos robustos para inputs/outputs de verificação com validação Zod | `src/core/types/Verifier.ts`
+F11 | RULE | Precedência de Status de Verificação | BLOCKED > RETRYABLE > APPROVED | `src/core/Verifier.ts`
+F11 | RULE | Mapeamento de Falhas e Alinhamento | Mapeamento de erros de JoinGate, alinhamento DIVERGED e risco HIGH para bloqueios/retries | `src/core/Verifier.ts`
+F11 | RULE | Consistência de taskId | O Verifier rejeita execuções caso input.taskId, diffReport.taskId e joinResult.taskId divirjam | `src/core/Verifier.ts`
