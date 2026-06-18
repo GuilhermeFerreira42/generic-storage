@@ -1,0 +1,102 @@
+Não está bom ainda. **Não aprove a Fase 10.**
+
+O próprio comando de busca confirmou o problema real:
+
+```text
+src\core\DiffLens.ts: const fileName = 'GREENFORGE_[AUDIT.md](http://AUDIT.md)';
+tests\difflens.test.ts: expect(path.basename(filePath)).toBe('GREENFORGE_[AUDIT.md](http://AUDIT.md)');
+docs\BACKLOG_FUTURO.md: GREENFORGE_[AUDIT.md](http://AUDIT.md) literal
+```
+
+Ou seja, não é só renderização da conversa. O nome errado está realmente no código, nos testes e na documentação.
+
+O correto é:
+
+```text
+GREENFORGE_AUDIT.md
+```
+
+Então mande esta correção bem direta para a IA executora:
+
+```text
+A Fase 10 ainda não está aprovada.
+
+Não avance para a Fase 11.
+
+Ainda existe nome de arquivo incorreto no código, nos testes e na documentação:
+
+`GREENFORGE_[AUDIT.md](http://AUDIT.md)`
+
+Isso é inválido. O nome correto e obrigatório é:
+
+`GREENFORGE_AUDIT.md`
+
+Faça uma correção cirúrgica:
+
+1. Em `src/core/DiffLens.ts`, altere:
+   `GREENFORGE_[AUDIT.md](http://AUDIT.md)`
+   para:
+   `GREENFORGE_AUDIT.md`
+
+2. Em `tests/difflens.test.ts`, altere o nome esperado para:
+   `GREENFORGE_AUDIT.md`
+
+3. Em `tests/difflens.test.ts`, adicione uma verificação explícita de que o path final NÃO contém:
+   - `[`
+   - `]`
+   - `(`
+   - `)`
+   - `http://`
+   - `https://`
+
+4. Em `docs/BACKLOG_FUTURO.md`, corrija qualquer ocorrência de:
+   `GREENFORGE_[AUDIT.md](http://AUDIT.md)`
+   para:
+   `GREENFORGE_AUDIT.md`
+
+5. Rode este comando e garanta que NÃO apareça nenhuma ocorrência malformada:
+   `Select-String -Path .\src\core\DiffLens.ts,.\tests\difflens.test.ts,.\docs\*.md -Pattern "GREENFORGE_\[AUDIT|http://AUDIT|https://AUDIT" -AllMatches`
+
+6. Rode:
+   - `npm test`
+   - `npm run build`
+   - `npm run lint`
+
+7. Entregue relatório curto com:
+   - confirmação de que o nome final é `GREENFORGE_AUDIT.md`
+   - saída do Select-String sem ocorrências malformadas
+   - resultado de npm test
+   - resultado de npm run build
+   - resultado de npm run lint
+
+Não altere escopo funcional. Não implemente Verifier. Não avance para Fase 11.
+```
+
+Depois, para você trazer para mim, rode:
+
+```powershell
+cd C:\Users\Usuario\Desktop\xgeneric-storage\greenforge
+
+Write-Host "===== Verificando ocorrências malformadas =====" -ForegroundColor Yellow
+Select-String -Path .\src\core\DiffLens.ts,.\tests\difflens.test.ts,.\docs\*.md -Pattern "GREENFORGE_\[AUDIT|http://AUDIT|https://AUDIT" -AllMatches
+
+Write-Host "`n===== Verificando ocorrências corretas =====" -ForegroundColor Cyan
+Select-String -Path .\src\core\DiffLens.ts,.\tests\difflens.test.ts,.\docs\*.md -Pattern "GREENFORGE_AUDIT.md" -AllMatches
+
+Write-Host "`n===== trecho DiffLens.ts =====" -ForegroundColor Cyan
+Get-Content .\src\core\DiffLens.ts | Select-String -Pattern "GREENFORGE"
+
+Write-Host "`n===== trecho difflens.test.ts =====" -ForegroundColor Cyan
+Get-Content .\tests\difflens.test.ts | Select-String -Pattern "GREENFORGE|http://|AUDIT"
+
+Write-Host "`n===== npm test =====" -ForegroundColor Green
+npm test
+
+Write-Host "`n===== npm run build =====" -ForegroundColor Green
+npm run build
+
+Write-Host "`n===== npm run lint =====" -ForegroundColor Green
+npm run lint
+```
+
+Resumo: **Fase 10 ainda bloqueada só por esse problema de nome malformado.** Depois que corrigir isso, provavelmente aprovo.

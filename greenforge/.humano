@@ -41,8 +41,8 @@ HISTÓRICO DE APROVAÇÕES
 - Status: REFINADA E ARQUIVADA.
 
 ### [2026-06-18] Fase 10 — DiffLens Engine
-- Status: CONCLUÍDA E ARQUIVADA (135 testes totais).
-- Destaque: Motor de auditoria com análise de risco crítico e geração de relatório Markdown.
+- Status: REFINADA E ARQUIVADA (133 testes totais).
+- Destaque: Nome de artefato corrigido, validação de revisão via Zod e contrato de auditoria purificado.
 - Próxima parada: Onda 4 - Fase 11 (Verifier).
 
 ────────────────────────────────────────────────────────

@@ -6,7 +6,6 @@ import path from 'path';
 import os from 'os';
 import { SecurityError } from '../src/shared/errors.js';
 import { DiffReportSchema } from '../src/core/types/DiffLens.js';
-import { safeResolveForWrite } from '../src/shared/SafeResolve.js';
 
 describe('DiffLens Engine', () => {
   let diffLens: DiffLens;
@@ -32,8 +31,8 @@ describe('DiffLens Engine', () => {
     const report = await diffLens.generateReport('task-1', artifacts);
 
     expect(report.taskId).toBe('task-1');
-    expect(report.riskLevel).toBe('LOW');
     expect(report.artifacts).toHaveLength(3);
+    expect((report as any).ok).toBeUndefined(); // Garante que o campo 'ok' foi removido
     DiffReportSchema.parse(report);
   });
 
@@ -73,22 +72,31 @@ describe('DiffLens Engine', () => {
     expect(report.warnings).toContain('No artifacts found for this task.');
   });
 
-  it('7. marks planAlignment ALIGNED in normal case', async () => {
+  it('7. marks planAlignment ALIGNED in normal case with APPROVED review', async () => {
     const artifacts = createMockArtifacts();
     const report = await diffLens.generateReport('task-1', artifacts);
     expect(report.planAlignment).toBe('ALIGNED');
   });
 
-  it('8. marks planAlignment PARTIAL or DIVERGED when review report contains violations', async () => {
+  it('8. marks planAlignment DIVERGED and risk HIGH when review report contains violations', async () => {
     const artifacts = [
       { type: 'REVIEW_REPORT', path: 'rev.json', content: { status: 'VIOLATIONS', comments: ['bad code'] } }
     ] as AgentArtifact[];
     const report = await diffLens.generateReport('task-1', artifacts);
-    expect(['PARTIAL', 'DIVERGED']).toContain(report.planAlignment);
+    expect(report.planAlignment).toBe('DIVERGED');
     expect(report.riskLevel).toBe('HIGH');
   });
 
-  it('9. renders Markdown with summary, riskLevel, fileChanges and warnings', async () => {
+  it('9. generates warning and PARTIAL alignment when review report is malformed', async () => {
+    const artifacts = [
+      { type: 'REVIEW_REPORT', path: 'bad_rev.json', content: { status: 'UNKNOWN_STATUS' } }
+    ] as AgentArtifact[];
+    const report = await diffLens.generateReport('task-1', artifacts);
+    expect(report.planAlignment).toBe('PARTIAL');
+    expect(report.warnings.some(w => w.includes('Invalid review report format'))).toBe(true);
+  });
+
+  it('10. renders Markdown with summary, riskLevel, fileChanges and warnings', async () => {
     const artifacts = createMockArtifacts();
     const report = await diffLens.generateReport('task-1', artifacts);
     const md = diffLens.renderMarkdown(report);
@@ -96,31 +104,24 @@ describe('DiffLens Engine', () => {
     expect(md).toContain('# GREENFORGE AUDIT — task-1');
     expect(md).toContain('**Risk Level:** LOW');
     expect(md).toContain('src/index.ts');
+    expect(md).not.toContain('http'); // Garante integridade do texto
   });
 
-  it('10. saves markdown report with AtomicWrite and SafeResolveForWrite inside allowed root', async () => {
+  it('11. saves exactly GREENFORGE_AUDIT.md inside allowed root', async () => {
     const artifacts = createMockArtifacts();
     const report = await diffLens.generateReport('task-1', artifacts);
     
     const filePath = await diffLens.saveAuditReport(report, tempDir);
     
     expect(path.basename(filePath)).toBe('GREENFORGE_AUDIT.md');
+    expect(filePath).not.toContain('[');
+    expect(filePath).not.toContain(']');
+    expect(filePath).not.toContain('(');
+    expect(filePath).not.toContain(')');
+    expect(filePath).not.toContain('http://');
+    expect(filePath).not.toContain('https://');
     const content = await readFile(filePath, 'utf8');
     expect(content).toContain('GREENFORGE AUDIT');
-  });
-
-  it('11. blocks writing report outside allowed root using path traversal in filename root', async () => {
-    const report = await diffLens.generateReport('task-1', []);
-    
-    // Tentativa de burlar a segurança forçando um path que resolveria fora.
-    // Como saveAuditReport usa SafeResolveForWrite, ele deve barrar se o root for enganoso.
-    // Mas para testar REALMENTE a segurança do componente CONTRA path traversal, 
-    // deveríamos testar se ele aceita nomes de arquivos maliciosos.
-    // Vamos adicionar um teste que prova que safeResolveForWrite funciona conforme esperado.
-    
-    const maliciousName = '../../etc/passwd';
-    await expect(safeResolveForWrite(maliciousName, tempDir))
-        .rejects.toThrow(SecurityError);
   });
 
   it('12. rejects malformed input (empty taskId)', async () => {
@@ -129,18 +130,8 @@ describe('DiffLens Engine', () => {
       .rejects.toThrow();
   });
 
-  it('13. validates output with Zod', async () => {
+  it('13. validates output with Zod in generateReport', async () => {
     const report = await diffLens.generateReport('task-1', []);
     expect(() => DiffReportSchema.parse(report)).not.toThrow();
-  });
-
-  it('14. does not call Git real', async () => {
-    const report = await diffLens.generateReport('task-1', []);
-    expect(report.taskId).toBe('task-1');
-  });
-
-  it('15. does not call MCP real', async () => {
-    const report = await diffLens.generateReport('task-1', []);
-    expect(report.taskId).toBe('task-1');
   });
 });

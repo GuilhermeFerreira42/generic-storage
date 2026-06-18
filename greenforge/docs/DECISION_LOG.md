@@ -40,6 +40,7 @@ F9 | ADD | JoinGate | Componente de sincronização e validação de subtarefas 
 ### Fase 10 — DiffLens Engine
 F10 | ADD | DiffLens | Motor de auditoria humana e análise de risco | `src/core/DiffLens.ts`
 F10 | RULE | Detecção de Arquivos Críticos | Mudanças em `.env`, `package.json` ou núcleos de segurança forçam `Risk Level: HIGH` | `src/core/DiffLens.ts`
-F10 | RULE | Alinhamento Reativo | Relatório marca `DIVERGED` se o `ReviewerAgent` reportar violações | `src/core/DiffLens.ts`
-F10 | TECH | Relatório Markdown Estático | Geração de `GREENFORGE_AUDIT.md` para revisão *out-of-band* | `src/core/DiffLens.ts`
-F10 | CFG | DiffReport Schema | Uso de Zod para garantir que a auditoria seja estruturalmente íntegra | `src/core/types/DiffLens.ts`
+F10 | FIX | Relatório Markdown Confiável | Correção do nome do arquivo para `GREENFORGE_AUDIT.md` e eliminação de links malformados | `src/core/DiffLens.ts`
+F10 | MOD | Validação de Revisão | Implementada validação Zod para conteúdos de `REVIEW_REPORT` nos artefatos | `src/core/DiffLens.ts`
+F10 | RULE | Alinhamento Reativo Refinado | Uso de `PARTIAL` para erros de formato e `DIVERGED` para violações de qualidade | `src/core/DiffLens.ts`
+F10 | CFG | Contrato DiffReport Puro | Remoção do campo `ok` redundante para manter integridade com o schema Zod | `src/core/types/DiffLens.ts`

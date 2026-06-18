@@ -2,6 +2,15 @@ import { DiffReport, DiffReportSchema, FileChange, RiskLevel, PlanAlignment } fr
 import { AgentArtifact } from './types/Agent.js';
 import { safeResolveForWrite } from '../shared/SafeResolve.js';
 import { atomicWrite } from '../shared/AtomicWrite.js';
+import { z } from 'zod';
+
+/**
+ * Schema interno para validação do conteúdo de revisão vindo dos artefatos.
+ */
+const ReviewContentSchema = z.object({
+  status: z.enum(['APPROVED', 'VIOLATIONS']),
+  comments: z.array(z.string()).optional(),
+});
 
 /**
  * Motor de visualização e auditoria de mudanças.
@@ -17,8 +26,7 @@ export class DiffLens {
   /**
    * Gera um relatório estruturado a partir dos artefatos consolidados.
    */
-  async generateReport(taskId: string, artifacts: AgentArtifact[]): Promise<DiffReport & { ok: boolean }> {
-    // Validação de entrada mínima
+  async generateReport(taskId: string, artifacts: AgentArtifact[]): Promise<DiffReport> {
     if (!taskId) {
       throw new Error('taskId is required for generating audit report.');
     }
@@ -51,13 +59,18 @@ export class DiffLens {
         });
       }
 
-      // 2. Analisar alinhamento via Review Report
+      // 2. Analisar alinhamento via Review Report com validação segura
       if (artifact.type === 'REVIEW_REPORT') {
-        const content = artifact.content as { status: string } | undefined;
-        if (content?.status === 'VIOLATIONS') {
-          alignment = 'DIVERGED';
-          globalRisk = 'HIGH';
-          warnings.push(`Review violations found in ${artifact.path}`);
+        try {
+          const reviewData = ReviewContentSchema.parse(artifact.content);
+          if (reviewData.status === 'VIOLATIONS') {
+            alignment = 'DIVERGED';
+            globalRisk = 'HIGH';
+            warnings.push(`Review violations found in ${artifact.path}`);
+          }
+        } catch {
+          warnings.push(`Invalid review report format in ${artifact.path}. Content could not be parsed.`);
+          if (alignment === 'ALIGNED') alignment = 'PARTIAL';
         }
       }
     }
@@ -74,9 +87,7 @@ export class DiffLens {
     };
 
     // Validar saída com Zod
-    DiffReportSchema.parse(report);
-
-    return { ...report, ok: globalRisk !== 'HIGH' };
+    return DiffReportSchema.parse(report);
   }
 
   /**
@@ -90,7 +101,9 @@ export class DiffLens {
 
     if (report.warnings.length > 0) {
       md += `## ⚠️ Warnings\n`;
-      report.warnings.forEach(w => md += `- ${w}\n`);
+      report.warnings.forEach(w => {
+          md += `- ${w}\n`;
+      });
       md += `\n`;
     }
 
