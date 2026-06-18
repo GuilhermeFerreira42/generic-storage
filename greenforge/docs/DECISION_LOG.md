@@ -33,8 +33,11 @@ F7 | ADD | McpClientPort | Interface de porta para desacoplar o core do SDK ofic
 
 ### Fase 8 — Agentes Especialistas
 F8 | ADD | Specialist Agents (@Coder, @Tester, @Reviewer) | Decompor execução em papéis técnicos específicos | `src/core/agents/`
-F8 | ADD | BaseAgent | Centralizar validações de privilégio e contexto | `src/core/agents/BaseAgent.ts`
-F8 | RULE | Privilégio Mínimo no Fluxo Real | Bloqueio de ferramentas validado no método `execute` dos agentes | `src/core/agents/BaseAgent.ts`
-F8 | RULE | Validação de Saída Zod | Todo `AgentResult` é validado antes de ser retornado pelo agente | `src/core/agents/BaseAgent.ts`
-F8 | TECH | Validação de Conteúdo de Review | `ReviewerAgent` valida o JSON de retorno da ferramenta de revisão | `src/core/agents/ReviewerAgent.ts`
-F8 | CFG | Contexto Estrito | `AgentContextSchema` exige campos não vazios para segurança de auditoria | `src/core/types/Agent.ts`
+
+### Fase 9 — Join Gate
+F9 | ADD | JoinGate | Componente de sincronização e validação de subtarefas | `src/core/JoinGate.ts`
+F9 | RULE | Validação Zod I/O | Garantir integridade estrutural absoluta na entrada e saída do portão | `src/core/JoinGate.ts`
+F9 | RULE | Bloqueio de Duplicados e Órfãos | Impedir que resultados incoerentes ou redundantes corrompam o grafo | `src/core/JoinGate.ts`
+F9 | RULE | Filtro de Artefatos DONE | Apenas artefatos de subtarefas bem-sucedidas são propagados para a consolidação | `src/core/JoinGate.ts`
+F9 | TECH | Subtask Schema | Implementado schema Zod para SubtaskNode para eliminar o uso de 'any' no JoinInput | `src/core/types/Join.ts`
+F9 | FIX | Correção de Testes Inválidos | Removidos campos inexistentes de input nos testes (failedSubtasks) | `tests/join-gate.test.ts`

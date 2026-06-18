@@ -2,7 +2,7 @@
 
 ## Intenção Original
 - **Objetivo:** Transformar o Qwen CLI em um engenheiro autônomo com isolamento físico e execução especializada via agentes.
-- **Estado Atual:** Fase 8 refinada (Agentes Especialistas MVP com blindagem total).
+- **Estado Atual:** Fase 9 refinada (Join Gate com blindagem absoluta).
 
 ---
 
@@ -24,23 +24,21 @@
 | ID | Entregável | Descrição (entregue ou planejada) | Arquivos Impactados | Critério de Aceite | Status |
 |----|------------|-----------------------------------|----------------------|---------------------|--------|
 | W3-01 | MCP Client Base | Camada de integração MCP com contratos estritos e mock inspecionável. | `McpClientPort.ts`, `MockMcpClient.ts` | 9/9 testes MCP PASS | CONCLUÍDO |
-| W3-02 | Agentes Especialistas | Implementação dos agentes @Coder, @Tester e @Reviewer com validação Zod de entrada/saída e privilégio mínimo no fluxo real. | `CoderAgent.ts`, `TesterAgent.ts`, `ReviewerAgent.ts`, `BaseAgent.ts` | 14/14 testes agentes PASS | CONCLUÍDO |
-| W3-03 | Join Gate | Sistema de consolidação de artefatos produzidos por múltiplos agentes em paralelo. | `src/core/Joiner` | Multi-branch merge PASS | PENDENTE |
+| W3-02 | Agentes Especialistas | Implementação dos agentes @Coder, @Tester e @Reviewer com validação Zod de entrada/saída e privilégio mínimo. | `CoderAgent.ts`, `TesterAgent.ts`, `ReviewerAgent.ts`, `BaseAgent.ts` | 14/14 testes agentes PASS | CONCLUÍDO |
+| W3-03 | Join Gate | Sistema de consolidação com validação Zod de input/output, detecção de resultados duplicados/órfãos e barreira de integridade de grafo. | `JoinGate.ts`, `Join.ts` | 14/14 testes join PASS | CONCLUÍDO |
 
 ### Meta da Onda 3
-- **Critério binário:** Sistema capaz de delegar tarefas a sub-agentes especialistas que operam de forma isolada e segura via MCP.
-- **Status:** PENDENTE
+- **Critério binário:** Sistema capaz de delegar tarefas a sub-agentes especialistas e consolidar seus resultados de forma segura e íntegra.
+- **Status:** CONCLUÍDO ✅
 
-### CONTRATOS_DA_ONDA 3 (Finalizado)
-```
-OUTPUT_SCHEMAS:
-  W3-01: Strict Zod Union (ok: true | ok: false)
-  W3-02: (AgentResult) status 'DONE'|'FAILED', validated by Zod
-ESCOPO_CONGELADO:
-  - src/core/Orchestrator.ts
-  - src/infrastructure/db/SQLiteRepository.ts
-  - src/core/agents/BaseAgent.ts (Blindado)
-```
+---
+
+## Onda 4 — Visualização e Auditoria (Fases 10-12)
+> Pré-requisito: Onda 3 concluída
+
+| ID | Entregável | Descrição | Arquivos | Critério | Status |
+|----|------------|-----------|----------|----------|--------|
+| W4-01 | DiffLens Engine | Motor de visualização de mudanças e auditoria de planos. | `src/core/DiffLens` | Visual comparison PASS | PENDENTE |
 
 ---
 

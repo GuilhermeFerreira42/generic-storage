@@ -1,0 +1,161 @@
+Agora sim, **Fase 9 aprovada**.
+
+O refinamento resolveu os pontos que estavam bloqueando a aprovação: o `JoinInputSchema` não usa mais `any`, existe `SubtaskNodeJoinSchema`, o `JoinGate` valida entrada e saída com Zod, detecta `AgentResult` duplicado, detecta `AgentResult` órfão, não consolida artefatos de resultados `FAILED`, e os testes cobrem os principais caminhos. Além disso, a suíte completa passou com **120 testes**, build passou e lint passou.
+
+Então a situação atual é:
+
+```text
+Fase 0: aprovada
+Fase 1: aprovada
+Fase 2: aprovada
+Fase 3: aprovada
+Fase 4: aprovada
+Fase 5: aprovada
+Fase 6: aprovada
+Fase 7: aprovada
+Fase 8: aprovada
+Fase 9: aprovada
+Onda 1: concluída
+Onda 2: concluída
+Onda 3: concluída
+```
+
+Agora o projeto entra na **Onda 4 — Visualização e Auditoria**. A próxima fase sugerida é:
+
+```text
+Fase 10 — DiffLens Engine
+```
+
+O objetivo da Fase 10 deve ser gerar um relatório legível para o usuário explicando o que os agentes fizeram, quais arquivos mudaram, quais artefatos foram produzidos, quais riscos existem e se o plano foi seguido. Ainda não precisa fazer merge real, não precisa chamar Git real se não quiser, e não precisa integrar ao Qwen CLI ainda. Pode ser tudo com artefatos mockados.
+
+Você pode mandar este prompt para o executor:
+
+```text
+Fase 9 aprovada. Onda 3 concluída.
+
+Comece agora somente a Onda 4 — Fase 10: DiffLens Engine.
+
+Leia primeiro:
+- `.ai-context`
+- `docs/CURRENT_STATE.md`
+- `docs/BACKLOG_FUTURO.md`
+- `docs/DECISION_LOG.md`
+- `documentacao/000_ler_primeiro_CONTEXT_TRANSFER.md`
+- `documentacao/GREENFORGE_DESIGN.md`
+- `documentacao/06-api-and-extensibility.md`
+- `documentacao/03-technical-spec-and-data.md`
+
+Execute apenas a Fase 10.
+Não implemente Qwen CLI integration.
+Não implemente MCP Server real.
+Não implemente merge real de Git.
+Não avance para Fase 11.
+Use TDD estrito: primeiro testes, depois implementação.
+
+Objetivo da Fase 10:
+Implementar o DiffLens Engine, responsável por transformar o resultado consolidado do Join Gate e o plano aprovado em um relatório humano de auditoria.
+
+CONTRATOS_DA_FASE 10:
+
+DiffReport:
+  taskId: string
+  summary: string
+  planAlignment: 'ALIGNED' | 'PARTIAL' | 'DIVERGED'
+  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH'
+  fileChanges: FileChange[]
+  artifacts: AgentArtifact[]
+  warnings: string[]
+  createdAt: string
+
+FileChange:
+  path: string
+  reason: string
+  artifactType: 'DIFF' | 'TEST_REPORT' | 'REVIEW_REPORT' | 'DOCS' | 'LINT_REPORT'
+  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH'
+
+Regras obrigatórias:
+- DiffLens deve receber dados estruturados, não chamar agentes reais.
+- DiffLens não deve chamar Git real nesta fase.
+- DiffLens não deve chamar MCP real nesta fase.
+- DiffLens deve validar entrada e saída com Zod.
+- DiffLens deve aceitar artifacts vindos do JoinGate.
+- DiffLens deve gerar relatório em objeto estruturado.
+- DiffLens deve renderizar relatório Markdown.
+- DiffLens deve usar AtomicWrite e SafeResolveForWrite para salvar relatório, se houver método de escrita.
+- Se não houver artifacts, deve gerar warning.
+- Se houver artifact com tipo DIFF em path crítico como `.env`, `package.json`, `src/shared/SafeResolve.ts` ou `src/infrastructure/git/WorktreeManager.ts`, risco deve ser HIGH.
+- Se houver REVIEW_REPORT com violações, planAlignment deve ser PARTIAL ou DIVERGED.
+- Se todos os artifacts forem esperados e não houver warnings, riskLevel pode ser LOW.
+
+Arquivos esperados:
+- `src/core/DiffLens.ts`
+- `src/core/types/DiffLens.ts`
+- `tests/difflens.test.ts`
+- `docs/phase_10_resumo.md`, se fizer sentido
+
+Testes mínimos esperados:
+1. gera DiffReport básico a partir de artifacts consolidados.
+2. inclui todos os artifacts no relatório.
+3. gera fileChanges para artifacts tipo DIFF.
+4. calcula riskLevel LOW para mudança simples.
+5. calcula riskLevel HIGH para arquivo sensível.
+6. gera warning quando não há artifacts.
+7. marca planAlignment ALIGNED em caso normal.
+8. marca planAlignment PARTIAL ou DIVERGED quando review report contém violações.
+9. renderiza Markdown com summary, riskLevel, fileChanges e warnings.
+10. salva relatório markdown com AtomicWrite e SafeResolveForWrite dentro da raiz permitida.
+11. bloqueia escrita fora da raiz permitida.
+12. rejeita entrada malformada.
+13. valida saída com Zod.
+14. não chama Git real.
+15. não chama MCP real.
+
+Depois rode:
+- `npm test`
+- `npm run build`
+- `npm run lint`
+
+Atualize a documentação viva:
+- `docs/CURRENT_STATE.md`
+- `docs/BACKLOG_FUTURO.md`
+- `docs/DECISION_LOG.md`
+- `.humano`
+- `docs/phase_10_resumo.md`, se fizer sentido
+
+No relatório final, informe:
+- arquivos criados
+- arquivos modificados
+- número de testes adicionados
+- como o risco é calculado
+- como planAlignment é calculado
+- se relatório Markdown foi implementado
+- resultado de `npm test`
+- resultado de `npm run build`
+- resultado de `npm run lint`
+- riscos conhecidos
+- confirmação de que parou aguardando aprovação humana
+
+Não avance para a próxima fase.
+```
+
+Quando ele terminar a Fase 10, traga:
+
+```text
+src/core/DiffLens.ts
+src/core/types/DiffLens.ts
+tests/difflens.test.ts
+docs/CURRENT_STATE.md
+docs/BACKLOG_FUTURO.md
+docs/DECISION_LOG.md
+.humano
+```
+
+E também:
+
+```powershell
+npm test
+npm run build
+npm run lint
+```
+
+Resumo direto: **Fase 9 aprovada. Onda 3 concluída. Próximo passo: Fase 10 — DiffLens Engine.**

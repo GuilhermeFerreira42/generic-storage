@@ -2,24 +2,24 @@
 
 ## Resumo do Estado Atual
 - **Projeto:** GreenForge (Orquestrador Autônomo)
-- **Última fase concluída:** 7 — MCP Base Integration
-- **Próxima fase:** 8 — Agentes Especialistas
+- **Última fase concluída:** 9 — Join Gate (Fim da Onda 3)
+- **Próxima fase:** 10 — DiffLens (Visualização e Revisão)
 - **Status do build:** PASSANDO
-- **Status dos testes:** PASSANDO (91/91 testes)
-- **Módulos Críticos:** `Orchestrator`, `SQLiteRepository`, `McpClientPort`
+- **Status dos testes:** PASSANDO (120/120 testes)
+- **Módulos Críticos:** `Orchestrator`, `JoinGate`, `BaseAgent`, `McpClientPort`
 
 ## Leitura Obrigatória
 1. `docs/CURRENT_STATE.md` — estado atual completo do sistema
-2. `src/core/ports/McpClientPort.ts` — contrato de integração externa
+2. `src/core/JoinGate.ts` — contrato de sincronização
 
 ## Leitura no Início de Onda
-3. `docs/BACKLOG_FUTURO.md` — roadmap Onda 3 e CONTRATOS_DA_ONDA
+3. `docs/BACKLOG_FUTURO.md` — roadmap Onda 4
 
 ## NUNCA Ler Automaticamente
 - `.git/`, `node_modules/`, `dist/`, `build/`
 - `docs/archive/*`
 
 ## Regra de Contrato
-- Todas as interações com ferramentas externas devem passar por `McpClientPort`.
-- Erros de MCP devem ser tratados usando a flag `retryable`.
+- Use `JoinGate` para validar a conclusão de tarefas paralelas.
+- Garanta que todos os artefatos de agentes sejam consolidados antes da revisão final.
 

@@ -35,9 +35,13 @@ HISTÓRICO DE APROVAÇÕES
 - Status: REFINADA E ARQUIVADA.
 
 ### [2026-06-17] Fase 8 — Agentes Especialistas
-- Status: REFINADA E ARQUIVADA (106 testes totais).
-- Destaque: Blindagem total de entrada/saída via Zod e validação de privilégio no fluxo real.
-- Próxima parada: Onda 3 - Fase 9 (Join Gate).
+- Status: REFINADA E ARQUIVADA.
+
+### [2026-06-17] Fase 9 — Join Gate
+- Status: REFINADA E ARQUIVADA (120 testes totais).
+- Destaque: Barreira de integridade absoluta com validação Zod I/O e detecção de anomalias (14 testes).
+- Onda 3: Meta atingida (Capaz de delegar e consolidar resultados com segurança e integridade total).
+- Próxima parada: Onda 4 - Fase 10 (DiffLens).
 
 ────────────────────────────────────────────────────────
 GUIA RÁPIDO PARA O USUÁRIO

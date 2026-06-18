@@ -1,0 +1,127 @@
+Eu **não aprovaria a Fase 9 ainda**. Ela está bem encaminhada e os testes passaram, mas encontrei problemas de contrato e alguns testes parecem fracos ou até com erro conceitual.
+
+O primeiro problema está em `Join.ts`:
+
+```ts
+subtasksGraph: z.array(z.any())
+```
+
+Isso é fraco demais. A Fase 9 é justamente uma barreira de integridade, então não pode aceitar `any` no schema de entrada. Precisa existir um schema real para `SubtaskNode`, ou pelo menos uma validação explícita dentro do `JoinGate`. Do jeito atual, o `JoinInputSchema` não protege quase nada sobre as subtarefas.
+
+O segundo problema é que o `JoinGate.join()` não usa `JoinInputSchema.parse(input)` nem `JoinResultSchema.parse(result)`. O teste valida o resultado em um caso, mas o componente em si não valida entrada nem saída. Como vocês estão usando Zod nas fases anteriores, eu esperaria que o Join Gate também validasse.
+
+O terceiro problema é que `agentResults` é transformado em `Map<subtaskId, AgentResult>`. Se houver dois resultados para a mesma subtarefa, um sobrescreve o outro silenciosamente. Isso pode esconder erro sério. O Join Gate deve detectar `AgentResult` duplicado para o mesmo `subtaskId`.
+
+O quarto problema é que o Join Gate não valida se existem `AgentResult` extras para subtarefas que não existem no grafo. Se um agente retornar resultado para `ST-999`, isso deve ser erro, não simplesmente ignorado.
+
+O quinto problema é que ele consolida artifacts mesmo quando a subtask falhou. Pode até ser aceitável em alguns cenários, mas para um Join Gate de aprovação, eu preferiria só consolidar artifacts de resultados `DONE`, ou pelo menos separar artifacts de falha. Como o critério é “pode avançar?”, o resultado final deve ser muito claro.
+
+O sexto ponto é o teste 4:
+
+```ts
+input.failedSubtasks = ['ST-01'];
+```
+
+Mas `JoinInput` não tem `failedSubtasks`. Isso é um sinal de teste errado. Se o TypeScript/build passou, provavelmente isso foi ignorado de alguma forma ou apareceu alterado na renderização, mas conceitualmente está errado. O input não deve ter esse campo.
+
+Então: **Fase 9 quase aprovada, mas precisa refinamento antes de avançar para Fase 10.**
+
+Mande este prompt para o executor:
+
+```text
+A Fase 9 está quase aprovada, mas ainda não está aprovada.
+
+Não avance para a Fase 10.
+
+Faça uma correção final da Fase 9: Join Gate.
+
+Problemas encontrados:
+
+1. `JoinInputSchema` usa `subtasksGraph: z.array(z.any())`. Isso é fraco demais para uma barreira de integridade.
+   Crie um schema Zod real para `SubtaskNode`, compatível com `src/core/types/Task.ts`, ou importe/reutilize um schema se existir.
+   O schema deve validar:
+   - id: string não vazia
+   - title: string não vazia
+   - assignedAgent: CODER | TESTER | DOCS | null
+   - dependsOn: string[]
+   - status: PENDING | RUNNING | DONE | FAILED
+   - worktreePath: string | null
+   - artifactOutput: string | null
+
+2. `JoinGate.join()` deve validar a entrada com `JoinInputSchema.parse(input)` antes de processar.
+
+3. `JoinGate.join()` deve validar a saída com `JoinResultSchema.parse(result)` antes de retornar.
+
+4. Detecte AgentResult duplicado para o mesmo `subtaskId`.
+   Se houver duplicidade, retorne ok=false com erro:
+   - code: DUPLICATE_AGENT_RESULT
+   - retryable: false
+
+5. Detecte AgentResult cujo `subtaskId` não existe em `subtasksGraph`.
+   Se houver resultado órfão, retorne ok=false com erro:
+   - code: ORPHAN_AGENT_RESULT
+   - retryable: false
+
+6. Decida e documente uma regra para artifacts de AgentResult FAILED.
+   Preferência: não consolidar artifacts de resultados FAILED no campo principal `artifacts`.
+   Adicione teste confirmando essa regra.
+
+7. Remova qualquer campo inválido de input nos testes, como `input.failedSubtasks`.
+   `failedSubtasks` pertence somente ao JoinResult, nunca ao JoinInput.
+
+8. Adicione ou ajuste testes:
+   - rejeita JoinInput malformado
+   - rejeita SubtaskNode malformado
+   - detecta AgentResult duplicado
+   - detecta AgentResult órfão
+   - não consolida artifacts de AgentResult FAILED
+   - valida schema do JoinResult em todos os caminhos principais
+   - mantém ok=true no caso feliz com subtarefas DONE e artifacts presentes
+
+9. Rode novamente:
+- npm test
+- npm run build
+- npm run lint
+
+10. Atualize a documentação viva:
+- docs/CURRENT_STATE.md
+- docs/BACKLOG_FUTURO.md
+- docs/DECISION_LOG.md
+- .humano
+- docs/phase_9_resumo.md, se existir
+
+11. No relatório final, informe:
+- quantos testes existem agora em join-gate.test.ts
+- se JoinInputSchema não usa mais any
+- se entradas e saídas são validadas dentro do JoinGate
+- se duplicidade e orphan AgentResult são bloqueados
+- regra final sobre artifacts de resultados FAILED
+- resultado de npm test
+- resultado de npm run build
+- resultado de npm run lint
+- confirmação de que parou aguardando aprovação humana
+
+Não avance para a Fase 10.
+```
+
+Depois da correção, traga só:
+
+```text
+src/core/JoinGate.ts
+src/core/types/Join.ts
+tests/join-gate.test.ts
+docs/CURRENT_STATE.md
+docs/BACKLOG_FUTURO.md
+docs/DECISION_LOG.md
+.humano
+```
+
+E:
+
+```powershell
+npm test
+npm run build
+npm run lint
+```
+
+Resumo direto: **não aprove a Fase 9 ainda**. Ela precisa de validação Zod real no input/output e bloqueio de duplicados/órfãos antes de virar uma barreira confiável.
