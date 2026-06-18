@@ -36,8 +36,10 @@ F8 | ADD | Specialist Agents (@Coder, @Tester, @Reviewer) | Decompor execução 
 
 ### Fase 9 — Join Gate
 F9 | ADD | JoinGate | Componente de sincronização e validação de subtarefas | `src/core/JoinGate.ts`
-F9 | RULE | Validação Zod I/O | Garantir integridade estrutural absoluta na entrada e saída do portão | `src/core/JoinGate.ts`
-F9 | RULE | Bloqueio de Duplicados e Órfãos | Impedir que resultados incoerentes ou redundantes corrompam o grafo | `src/core/JoinGate.ts`
-F9 | RULE | Filtro de Artefatos DONE | Apenas artefatos de subtarefas bem-sucedidas são propagados para a consolidação | `src/core/JoinGate.ts`
-F9 | TECH | Subtask Schema | Implementado schema Zod para SubtaskNode para eliminar o uso de 'any' no JoinInput | `src/core/types/Join.ts`
-F9 | FIX | Correção de Testes Inválidos | Removidos campos inexistentes de input nos testes (failedSubtasks) | `tests/join-gate.test.ts`
+
+### Fase 10 — DiffLens Engine
+F10 | ADD | DiffLens | Motor de auditoria humana e análise de risco | `src/core/DiffLens.ts`
+F10 | RULE | Detecção de Arquivos Críticos | Mudanças em `.env`, `package.json` ou núcleos de segurança forçam `Risk Level: HIGH` | `src/core/DiffLens.ts`
+F10 | RULE | Alinhamento Reativo | Relatório marca `DIVERGED` se o `ReviewerAgent` reportar violações | `src/core/DiffLens.ts`
+F10 | TECH | Relatório Markdown Estático | Geração de `GREENFORGE_AUDIT.md` para revisão *out-of-band* | `src/core/DiffLens.ts`
+F10 | CFG | DiffReport Schema | Uso de Zod para garantir que a auditoria seja estruturalmente íntegra | `src/core/types/DiffLens.ts`

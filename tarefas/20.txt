@@ -1,0 +1,129 @@
+Eu **não aprovaria a Fase 10 ainda**. Ela está bem encaminhada, mas tem o mesmo tipo de problema que vimos antes: o relatório diz que corrigiu/gerou o artefato certo, mas no código e nos testes aparece o nome com link quebrado:
+
+```ts
+const fileName = 'GREENFORGE_[AUDIT.md](http://AUDIT.md)';
+```
+
+e o teste espera:
+
+```ts
+expect(path.basename(filePath)).toBe('GREENFORGE_[AUDIT.md](http://AUDIT.md)');
+```
+
+Diferente do caso anterior, aqui o trecho veio dentro do conteúdo do arquivo copiado, então precisamos tratar como problema real, a menos que seja só uma conversão do seu copiador. O nome correto e oficial deve ser:
+
+```text
+GREENFORGE_AUDIT.md
+```
+
+Sem colchetes, sem parênteses, sem `http://`.
+
+O segundo problema é o teste 11. Ele diz que testa o `DiffLens`, mas na verdade ele testa diretamente `safeResolveForWrite`. Isso já foi coberto na Fase 3. Se o `saveAuditReport` usa nome fixo, o teste relevante deve provar que ele sempre salva `GREENFORGE_AUDIT.md` dentro do root permitido. Se quiser testar path traversal, isso pertence ao SafeResolve, não ao DiffLens, a menos que o DiffLens aceite nome customizado, o que ele não deve aceitar.
+
+O terceiro ponto é que `generateReport` retorna:
+
+```ts
+Promise<DiffReport & { ok: boolean }>
+```
+
+mas o contrato definido antes era `DiffReport`. Esse `ok` extra não está no `DiffReportSchema`. Como o código faz `DiffReportSchema.parse(report)` antes de retornar `{ ...report, ok: ... }`, o objeto final tem campo extra não validado. Isso pode ser aceitável, mas não é limpo. Eu recomendo escolher uma opção: ou `ok` vira parte oficial do schema, ou o método retorna apenas `DiffReport`. Para auditoria, eu acho melhor não ter `ok`; o veredito deve ser derivado de `riskLevel` e `planAlignment`, ou então criar outro tipo específico como `DiffLensResult`. Mas para manter simples, remova `ok`.
+
+O quarto ponto é que o conteúdo do `REVIEW_REPORT` é lido com cast:
+
+```ts
+const content = artifact.content as { status: string } | undefined;
+```
+
+Isso deveria ser validado com Zod ou validação segura, assim como fizemos no `ReviewerAgent`. Se vier formato inválido, o relatório deve gerar warning, não simplesmente ignorar.
+
+Então a Fase 10 está quase aprovada, mas precisa refinamento.
+
+Mande este prompt para o executor:
+
+```text
+A Fase 10 está quase aprovada, mas ainda não está aprovada.
+
+Não avance para a Fase 11.
+
+Faça uma correção final da Fase 10: DiffLens Engine.
+
+Problemas encontrados:
+
+1. Corrija o nome do arquivo de auditoria.
+   O nome correto e obrigatório é:
+   `GREENFORGE_AUDIT.md`
+
+   Remova qualquer ocorrência literal de:
+   `GREENFORGE_[AUDIT.md](http://AUDIT.md)`
+
+   Corrija `DiffLens.saveAuditReport`, testes e documentação viva.
+
+2. O teste de path traversal em `difflens.test.ts` está testando diretamente `safeResolveForWrite`, não o DiffLens.
+   Remova ou ajuste esse teste para focar no comportamento real do DiffLens.
+   O teste correto deve validar que `saveAuditReport` salva sempre `GREENFORGE_AUDIT.md` dentro da raiz permitida.
+
+3. `generateReport` retorna `DiffReport & { ok: boolean }`, mas `ok` não faz parte de `DiffReportSchema`.
+   Corrija isso.
+   Minha preferência: remova `ok` do retorno e mantenha `generateReport(): Promise<DiffReport>`.
+   O veredito deve ser derivado de `riskLevel` e `planAlignment`.
+
+4. Valide o conteúdo de artifacts `REVIEW_REPORT` com Zod ou validação equivalente.
+   Casos:
+   - `{ status: "APPROVED" }` mantém `planAlignment: ALIGNED`
+   - `{ status: "VIOLATIONS" }` marca `planAlignment: DIVERGED` e `riskLevel: HIGH`
+   - conteúdo inválido de REVIEW_REPORT deve gerar warning estruturado e não quebrar o relatório
+
+5. Adicione testes:
+   - `saveAuditReport` salva exatamente `GREENFORGE_AUDIT.md`
+   - não existe string `GREENFORGE_[AUDIT.md](http://AUDIT.md)` no resultado esperado
+   - `generateReport` não retorna campo `ok`
+   - REVIEW_REPORT inválido gera warning
+   - REVIEW_REPORT aprovado mantém ALIGNED
+   - REVIEW_REPORT com violações marca DIVERGED e HIGH
+
+6. Rode novamente:
+- npm test
+- npm run build
+- npm run lint
+
+7. Atualize a documentação viva:
+- docs/CURRENT_STATE.md
+- docs/BACKLOG_FUTURO.md
+- docs/DECISION_LOG.md
+- .humano
+- docs/phase_10_resumo.md, se existir
+
+8. No relatório final, informe:
+- quantos testes existem agora em difflens.test.ts
+- confirmação de que o nome final é `GREENFORGE_AUDIT.md`
+- confirmação de que `generateReport` retorna apenas `DiffReport`
+- como REVIEW_REPORT inválido é tratado
+- resultado de npm test
+- resultado de npm run build
+- resultado de npm run lint
+- confirmação de que parou aguardando aprovação humana
+
+Não avance para Fase 11.
+```
+
+Depois traga só:
+
+```text
+src/core/DiffLens.ts
+src/core/types/DiffLens.ts
+tests/difflens.test.ts
+docs/CURRENT_STATE.md
+docs/BACKLOG_FUTURO.md
+docs/DECISION_LOG.md
+.humano
+```
+
+E:
+
+```powershell
+npm test
+npm run build
+npm run lint
+```
+
+Resumo direto: **Fase 10 quase aprovada, mas precisa corrigir nome do arquivo, contrato de retorno e validação do REVIEW_REPORT.**
