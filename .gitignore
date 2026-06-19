@@ -1,0 +1,17 @@
+```
+# Dependencies
+node_modules/
+
+# Vite/Vitest cache
+.greenforge/node_modules/.vite/
+
+# Logs and temp files
+*.log
+*.tmp
+*.swp
+
+# Environment
+.env
+.env.local
+.env.*
+```
