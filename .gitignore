@@ -2,6 +2,16 @@
 # Dependencies
 node_modules/
 
-# Build artifacts
-.eslintcache
+# Vite/Vitest cache
+.greenforge/node_modules/.vite/
+
+# Logs and temp files
+*.log
+*.tmp
+*.swp
+
+# Environment
+.env
+.env.local
+.env.*
 ```
