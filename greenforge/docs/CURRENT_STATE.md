@@ -1,5 +1,5 @@
 # CURRENT_STATE — GreenForge
-> Última atualização: Fase 11 | 2026-06-18
+> Última atualização: Fase 12 | 2026-06-20
 
 ## Arquitetura Ativa
 - **Arquitetura Hexagonal:** Desacoplamento total via portas e adaptadores.
@@ -7,6 +7,7 @@
 - **Isolamento:** Sandbox físico via Git Worktrees.
 - **Integração Externa:** Camada MCP funcional com contratos estritos.
 - **Visualização e Auditoria:** DiffLens Engine gerando relatórios de risco e alinhamento refinados.
+- **Validação de Ciclo de Vida (Qwen CLI):** Extensão integrada estaticamente com manifesto de skills e configurações de hooks validadas via Zod.
 
 ## Módulos e Contratos Vigentes
 | Módulo | Arquivo | Contrato Público | Desde |
@@ -24,6 +25,7 @@
 | `JoinGate` | `src/core/JoinGate.ts` | `join(input: JoinInput): Promise<JoinResult>` | Fase 9 |
 | `DiffLens` | `src/core/DiffLens.ts` | `generateReport(taskId, artifacts)`, `renderMarkdown(report)`, `saveAuditReport(report, root)` | Fase 10 |
 | `Verifier` | `src/core/Verifier.ts` | `verify(input: VerificationInput): Promise<VerificationResult>` | Fase 11 |
+| `ManifestSchemas` | `src/integration/qwen/manifestSchemas.ts` | `validateQwenExtensionManifest(input)`, `validateQwenSettings(input)`, `validateSkillManifest(markdown)` | Fase 12 |
 
 ## Fluxo Principal
 1. Router identifica tarefa técnica.
@@ -33,6 +35,7 @@
 5. `JoinGate` valida e consolida os artefatos.
 6. **DiffLens Engine** analisa artefatos, valida conteúdos de revisão e gera o relatório oficial `GREENFORGE_AUDIT.md`.
 7. **Verifier** consolida todos os sinais técnicos, valida a consistência do identificador da tarefa e gera o veredito final estruturado (`APPROVED` | `BLOCKED` | `RETRYABLE`).
+8. **Qwen CLI Extension Layer** mapeia hooks locais do host e expõe comandos estáticos definidos via `SKILL.md`.
 
 ## Invariantes Globais
 1. **No-Shell Policy:** `execa` sem shell.
@@ -44,11 +47,13 @@
 ## Restrições Técnicas Ativas
 - **Runtime:** Node.js v24.
 - **Audit Constraints:** Alinhamento `PARTIAL` em caso de erro de parsing de revisão; `DIVERGED` em caso de violações explícitas.
+- **Extension Isolation:** Testes estáticos proíbem conexões reais a redes ou processos externos no carregamento de manifestos.
 
 ## Testes Obrigatórios
 | Suite | Arquivo | Cobertura Aproximada | Comando |
 |-------|---------|----------------------|---------|
-| Total Suíte | `tests/*.test.ts` | 148 testes ativos | `npm test` |
+| Total Suíte | `tests/*.test.ts` | 178 testes ativos | `npm test` |
+| Qwen Integration | `tests/qwen-integration.test.ts` | 24 testes (Estáticos) | `npm test` |
 | DiffLens | `tests/difflens.test.ts` | 13 testes (Refinados) | `npm test` |
 | Verifier | `tests/verifier.test.ts` | 15 testes (Unitários) | `npm test` |
 

@@ -1,0 +1,121 @@
+Fase 11 aprovada.
+
+Comece agora somente a Onda 4 — Fase 12: Qwen Integration Base.
+
+Leia primeiro:
+- `.ai-context`
+- `docs/CURRENT_STATE.md`
+- `docs/BACKLOG_FUTURO.md`
+- `docs/DECISION_LOG.md`
+- `documentacao/000_ler_primeiro_CONTEXT_TRANSFER.md`
+- `documentacao/GREENFORGE_DESIGN.md`
+- `documentacao/06-api-and-extensibility.md`
+- `documentacao/INTEGRACAO_STATUS.md`
+- `documentacao/docs/MIGRATION_GUIDE.md`, se existir
+
+Execute apenas a Fase 12.
+Não implemente empacotamento final.
+Não publique extensão.
+Não execute sessão real do Qwen CLI.
+Não avance para próxima fase.
+Use TDD estrito: primeiro testes, depois implementação.
+
+Objetivo da Fase 12:
+Criar a base estática e testável da integração do GreenForge como extensão do Qwen CLI.
+
+Escopo permitido:
+- `qwen-extension.json`
+- `.qwen/skills/greenforge/SKILL.md`
+- `.qwen/settings.json`
+- entrypoint leve in `src/index.ts`, se necessário
+- tipos/validadores para manifesto e settings
+- testes de validação de configuração
+
+CONTRATOS_DA_FASE 12:
+
+QwenExtensionManifest:
+  name: "greenforge"
+  version: string
+  description: string
+  mcpServers: object
+  skills: string
+  contextFileName?: string
+  hooks?: string
+
+SkillManifest:
+  path: ".qwen/skills/greenforge/SKILL.md"
+  frontmatter:
+    name: "greenforge"
+    description: string
+    argument-hint: string
+
+SettingsHooks:
+  SessionStart
+  SessionEnd
+  UserPromptSubmit
+  PreToolUse
+  PostToolUse
+
+Regras obrigatórias:
+- Não chamar Qwen CLI real nos testes.
+- Não chamar MCP server real.
+- Não usar rede.
+- Não executar comandos externos.
+- Testes devem validar arquivos estáticos e schemas.
+- `qwen-extension.json` deve ser JSON válido.
+- `SKILL.md` deve conter frontmatter válido.
+- `.qwen/settings.json` deve conter hooks esperados.
+- `PreToolUse` deve incluir proteção para Write/Edit/Bash ou equivalente.
+- Não alterar módulos core aprovados, exceto se for necessário exportar entrypoints.
+- Se criar ou alterar `src/index.ts`, manter build e lint passando.
+- Se houver referência a `GREENFORGE_AUDIT.md`, garantir que não vire link malformado.
+
+Arquivos esperados:
+- `qwen-extension.json`
+- `.qwen/skills/greenforge/SKILL.md`
+- `.qwen/settings.json`
+- `src/integration/qwen/manifestSchemas.ts` ou equivalente
+- `tests/qwen-integration.test.ts`
+- `docs/phase_12_resumo.md`, se fizer sentido
+
+Testes mínimos esperados:
+1. `qwen-extension.json` existe e é JSON válido.
+2. manifesto tem `name = greenforge`.
+3. manifesto declara `mcpServers`.
+4. manifesto aponta para skills corretamente.
+5. `SKILL.md` existe no caminho esperado.
+6. `SKILL.md` tem frontmatter com name greenforge.
+7. `SKILL.md` lista comandos start/status/list/approve/abort ou equivalentes.
+8. `.qwen/settings.json` existe e é JSON válido.
+9. settings contém hooks SessionStart e SessionEnd.
+10. settings contém UserPromptSubmit.
+11. settings contém PreToolUse protegendo operações sensíveis.
+12. settings contém PostToolUse.
+13. nenhuma configuração aponta para paths inexistentes óbvios.
+14. schemas rejeitam manifesto inválido.
+15. não há chamada real ao Qwen CLI, rede ou servidor MCP nos testes.
+
+Depois rode:
+- npm test
+- npm run build
+- npm run lint
+
+Atualize a documentação viva:
+- docs/CURRENT_STATE.md
+- docs/BACKLOG_FUTURO.md
+- docs/DECISION_LOG.md
+- .humano
+- docs/phase_12_resumo.md, se fizer sentido
+
+No relatório final, informe:
+- arquivos criados
+- arquivos modificados
+- número de testes adicionados
+- quais contratos de integração foram validados
+- resultado de npm test
+- resultado de npm run build
+- resultado de npm run lint
+- riscos conhecidos
+- confirmação de que parou aguardando aprovação humana
+
+Não avance para a próxima fase.

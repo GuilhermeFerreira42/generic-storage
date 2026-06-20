@@ -1,9 +1,11 @@
 ```
-# Dependencies
-node_modules/
+# Compiled and build artifacts
+*.pyc
+__pycache__/
 
-# Vite/Vitest cache
-.greenforge/node_modules/.vite/
+# Dependencies
+.venv/
+venv/
 
 # Logs and temp files
 *.log
@@ -13,5 +15,23 @@ node_modules/
 # Environment
 .env
 .env.local
-.env.*
+*.env.*
+
+# Editors
+.vscode/
+.idea/
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Coverage reports
+coverage/
+htmlcov/
+.coverage
+
+# Build directories
+dist/
+build/
+target/
 ```

@@ -47,7 +47,11 @@ HISTÓRICO DE APROVAÇÕES
 ### [2026-06-18] Fase 11 — Verifier
 - Status: REFINADA E VALIDADA (154 testes totais).
 - Destaque: Componente Verifier refinado com validação de consistência de taskId entre todas as partes da entrada, durabilidade de schemas Zod e testes de consistência de retryable adicionados.
-- Próxima parada: Onda 4 - Fase 12 (Qwen Integration).
+
+### [2026-06-20] Fase 12 — Qwen Integration Base
+- Status: CONCLUÍDA E VALIDADA (178 testes totais).
+- Destaque: Criação e validação de qwen-extension.json, .qwen/settings.json, SKILL.md e schemas estáticos em manifestSchemas.ts. Linter e suíte de testes passando 100%.
+- Próxima parada: Onda 4 - Fase 13 (Qwen Integration E2E / Execution).
 
 ────────────────────────────────────────────────────────
 GUIA RÁPIDO PARA O USUÁRIO

@@ -1,270 +1,312 @@
-/**
- * Testes de integração estática com Qwen CLI
- * Fase 12 — Qwen Integration Base
- * 
- * Regras obrigatórias:
- * - NÃO chamar Qwen CLI real
- * - NÃO chamar MCP server real
- * - NÃO usar rede
- * - NÃO executar comandos externos
- * - Validar apenas arquivos estáticos e schemas
- */
+import { describe, expect, it } from 'vitest'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import {
+  REQUIRED_SETTINGS_HOOKS,
+  REQUIRED_SKILL_COMMANDS,
+  collectManifestLocalPaths,
+  parseSkillFrontmatter,
+  settingsProtectsSensitiveTools,
+  skillListsRequiredCommands,
+  validateQwenExtensionManifest,
+  validateQwenSettings,
+  validateSkillManifest,
+} from '../src/integration/qwen/manifestSchemas.js'
 
-import { describe, it, expect } from 'vitest';
-import { readFileSync, existsSync } from 'fs';
-import { join } from 'path';
-import { 
-  validateManifest, 
-  validateSettings,
-  QwenExtensionManifestSchema,
-  QwenSettingsSchema
-} from '../src/integration/qwen/manifestSchemas';
+const projectRoot = fileURLToPath(new URL('../', import.meta.url))
+const skillPath = '.qwen/skills/greenforge/SKILL.md'
+const skillsRoot = '.qwen/skills'
+const malformedMarkdownChars = /[\[\]()]/
 
-const ROOT_DIR = join(process.cwd());
+function absolutePath(relativePath: string): string {
+  return join(projectRoot, relativePath)
+}
 
-describe('Qwen Integration — Validação Estática', () => {
-  
-  // Teste 1: qwen-extension.json existe e é JSON válido
-  it('qwen-extension.json existe e é JSON válido', () => {
-    const manifestPath = join(ROOT_DIR, 'qwen-extension.json');
-    expect(existsSync(manifestPath)).toBe(true);
-    
-    const content = readFileSync(manifestPath, 'utf-8');
-    const json = JSON.parse(content);
-    expect(typeof json).toBe('object');
-  });
+function readText(relativePath: string): string {
+  return readFileSync(absolutePath(relativePath), 'utf8')
+}
 
-  // Teste 2: manifesto tem name = greenforge
-  it('manifesto tem name = greenforge', () => {
-    const manifestPath = join(ROOT_DIR, 'qwen-extension.json');
-    const content = readFileSync(manifestPath, 'utf-8');
-    const json = JSON.parse(content);
-    expect(json.name).toBe('greenforge');
-  });
+function readJson(relativePath: string): unknown {
+  return JSON.parse(readText(relativePath))
+}
 
-  // Teste 3: manifesto declara mcpServers
-  it('manifesto declara mcpServers', () => {
-    const manifestPath = join(ROOT_DIR, 'qwen-extension.json');
-    const content = readFileSync(manifestPath, 'utf-8');
-    const json = JSON.parse(content);
-    expect(json.mcpServers).toBeDefined();
-    expect(typeof json.mcpServers).toBe('object');
-    expect(Object.keys(json.mcpServers).length).toBeGreaterThan(0);
-  });
+function collectHookUrls(input: unknown): string[] {
+  if (Array.isArray(input)) {
+    return input.flatMap((item) => collectHookUrls(item))
+  }
 
-  // Teste 4: manifesto aponta para skills corretamente
-  it('manifesto aponta para skills corretamente', () => {
-    const manifestPath = join(ROOT_DIR, 'qwen-extension.json');
-    const content = readFileSync(manifestPath, 'utf-8');
-    const json = JSON.parse(content);
-    expect(json.skills).toBeDefined();
-    expect(typeof json.skills).toBe('string');
-  });
+  if (input && typeof input === 'object') {
+    const record = input as Record<string, unknown>
+    const ownUrl = typeof record.url === 'string' ? [record.url] : []
+    return ownUrl.concat(Object.values(record).flatMap((value) => collectHookUrls(value)))
+  }
 
-  // Teste 5: SKILL.md existe no caminho esperado
+  return []
+}
+
+describe('Fase 12 — Qwen Integration Base (static/contracts)', () => {
+  it('qwen-extension.json existe na raiz e é JSON válido', () => {
+    expect(existsSync(absolutePath('qwen-extension.json'))).toBe(true)
+    expect(() => readJson('qwen-extension.json')).not.toThrow()
+  })
+
+  it('manifesto tem name = greenforge e respeita o schema estático', () => {
+    const manifest = validateQwenExtensionManifest(readJson('qwen-extension.json'))
+
+    expect(manifest.name).toBe('greenforge')
+    expect(manifest.version).toBeTypeOf('string')
+    expect(manifest.description).toContain('GreenForge')
+  })
+
+  it('manifesto declara pelo menos um mcpServer sem shell e sem exec', () => {
+    const manifest = validateQwenExtensionManifest(readJson('qwen-extension.json'))
+
+    expect(Object.keys(manifest.mcpServers)).toContain('greenforge')
+    expect(manifest.mcpServers.greenforge.command).toBe('node')
+    expect(manifest.mcpServers.greenforge.args.length).toBeGreaterThan(0)
+    expect(manifest.mcpServers.greenforge.shell).toBeUndefined()
+    expect(manifest.mcpServers.greenforge.command).not.toMatch(/exec/i)
+  })
+
+  it('manifesto aponta para a pasta de skills GreenForge', () => {
+    const manifest = validateQwenExtensionManifest(readJson('qwen-extension.json'))
+
+    expect(manifest.skills).toBe(skillsRoot)
+    expect(existsSync(absolutePath(manifest.skills))).toBe(true)
+    expect(existsSync(absolutePath(skillPath))).toBe(true)
+  })
+
+  it('manifesto aponta para settings.json existente quando hooks é declarado', () => {
+    const manifest = validateQwenExtensionManifest(readJson('qwen-extension.json'))
+
+    expect(manifest.hooks).toBe('.qwen/settings.json')
+    expect(existsSync(absolutePath(manifest.hooks!))).toBe(true)
+  })
+
   it('SKILL.md existe no caminho esperado', () => {
-    const skillPath = join(ROOT_DIR, '.qwen', 'skills', 'greenforge', 'SKILL.md');
-    expect(existsSync(skillPath)).toBe(true);
-  });
+    expect(existsSync(absolutePath(skillPath))).toBe(true)
+  })
 
-  // Teste 6: SKILL.md tem frontmatter com name greenforge
-  it('SKILL.md tem frontmatter com name greenforge', () => {
-    const skillPath = join(ROOT_DIR, '.qwen', 'skills', 'greenforge', 'SKILL.md');
-    const content = readFileSync(skillPath, 'utf-8');
-    
-    // Extrair frontmatter (entre --- e ---)
-    const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
-    expect(frontmatterMatch).not.toBeNull();
-    
-    const frontmatterContent = frontmatterMatch![1];
-    const nameMatch = frontmatterContent.match(/name:\s*['"]?greenforge['"]?/);
-    expect(nameMatch).not.toBeNull();
-  });
+  it('não há arquivo de skill com nome malformado por markdown/link', () => {
+    const fileNames = readdirSync(absolutePath('.qwen/skills/greenforge'))
 
-  // Teste 7: SKILL.md lista comandos start/status/list/approve/abort ou equivalentes
-  it('SKILL.md lista comandos start/status/list/approve/abort ou equivalentes', () => {
-    const skillPath = join(ROOT_DIR, '.qwen', 'skills', 'greenforge', 'SKILL.md');
-    const content = readFileSync(skillPath, 'utf-8');
-    
-    const requiredCommands = ['start', 'status', 'list', 'approve', 'abort'];
-    for (const cmd of requiredCommands) {
-      expect(content.toLowerCase()).toContain(cmd);
+    expect(fileNames).toContain('SKILL.md')
+    for (const fileName of fileNames) {
+      expect(fileName).not.toMatch(malformedMarkdownChars)
+      expect(fileName).not.toMatch(/http/i)
     }
-  });
+  })
 
-  // Teste 8: .qwen/settings.json existe e é JSON válido
+  it('SKILL.md tem frontmatter válido com name greenforge', () => {
+    const skill = validateSkillManifest(readText(skillPath))
+
+    expect(skill.frontmatter.name).toBe('greenforge')
+    expect(skill.frontmatter.description.length).toBeGreaterThan(0)
+    expect(skill.frontmatter['argument-hint']).toBe('<command> [args]')
+  })
+
+  it('parser de frontmatter rejeita SKILL.md sem delimitadores', () => {
+    expect(() => parseSkillFrontmatter('# greenforge')).toThrow()
+  })
+
+  it('SKILL.md lista comandos start/status/list/approve/abort', () => {
+    const skill = validateSkillManifest(readText(skillPath))
+
+    expect(skillListsRequiredCommands(skill.body)).toBe(true)
+    for (const command of REQUIRED_SKILL_COMMANDS) {
+      expect(skill.body).toMatch(new RegExp(`\\b${command}\\b`))
+    }
+  })
+
   it('.qwen/settings.json existe e é JSON válido', () => {
-    const settingsPath = join(ROOT_DIR, '.qwen', 'settings.json');
-    expect(existsSync(settingsPath)).toBe(true);
-    
-    const content = readFileSync(settingsPath, 'utf-8');
-    const json = JSON.parse(content);
-    expect(typeof json).toBe('object');
-  });
+    expect(existsSync(absolutePath('.qwen/settings.json'))).toBe(true)
+    expect(() => readJson('.qwen/settings.json')).not.toThrow()
+  })
 
-  // Teste 9: settings contém hooks SessionStart e SessionEnd
   it('settings contém hooks SessionStart e SessionEnd', () => {
-    const settingsPath = join(ROOT_DIR, '.qwen', 'settings.json');
-    const content = readFileSync(settingsPath, 'utf-8');
-    const json = JSON.parse(content);
-    
-    expect(json.hooks).toBeDefined();
-    expect(json.hooks.SessionStart).toBeDefined();
-    expect(json.hooks.SessionEnd).toBeDefined();
-  });
+    const settings = validateQwenSettings(readJson('.qwen/settings.json'))
 
-  // Teste 10: settings contém UserPromptSubmit
+    expect(Object.keys(settings.hooks)).toEqual(expect.arrayContaining(['SessionStart', 'SessionEnd']))
+  })
+
   it('settings contém UserPromptSubmit', () => {
-    const settingsPath = join(ROOT_DIR, '.qwen', 'settings.json');
-    const content = readFileSync(settingsPath, 'utf-8');
-    const json = JSON.parse(content);
-    
-    expect(json.hooks.UserPromptSubmit).toBeDefined();
-  });
+    const settings = validateQwenSettings(readJson('.qwen/settings.json'))
 
-  // Teste 11: settings contém PreToolUse protegendo operações sensíveis
-  it('settings contém PreToolUse protegendo operações sensíveis', () => {
-    const settingsPath = join(ROOT_DIR, '.qwen', 'settings.json');
-    const content = readFileSync(settingsPath, 'utf-8');
-    const json = JSON.parse(content);
-    
-    expect(json.hooks.PreToolUse).toBeDefined();
-    
-    // Verificar se o matcher inclui Write/Edit/Bash ou equivalente
-    const preToolUseHooks = json.hooks.PreToolUse;
-    expect(Array.isArray(preToolUseHooks)).toBe(true);
-    expect(preToolUseHooks.length).toBeGreaterThan(0);
-    
-    const hasMatcher = preToolUseHooks.some((h: any) => h.matcher && typeof h.matcher === 'string');
-    expect(hasMatcher).toBe(true);
-  });
+    expect(settings.hooks.UserPromptSubmit.length).toBeGreaterThan(0)
+  })
 
-  // Teste 12: settings contém PostToolUse
+  it('settings contém PreToolUse protegendo Write/Edit/Bash', () => {
+    const settings = validateQwenSettings(readJson('.qwen/settings.json'))
+
+    expect(settings.hooks.PreToolUse.length).toBeGreaterThan(0)
+    expect(settingsProtectsSensitiveTools(settings, ['Write', 'Edit', 'Bash'])).toBe(true)
+  })
+
   it('settings contém PostToolUse', () => {
-    const settingsPath = join(ROOT_DIR, '.qwen', 'settings.json');
-    const content = readFileSync(settingsPath, 'utf-8');
-    const json = JSON.parse(content);
-    
-    expect(json.hooks.PostToolUse).toBeDefined();
-  });
+    const settings = validateQwenSettings(readJson('.qwen/settings.json'))
 
-  // Teste 13: nenhuma configuração aponta para paths inexistentes óbvios
-  it('nenhuma configuração aponta para paths inexistentes óbvios', () => {
-    const manifestPath = join(ROOT_DIR, 'qwen-extension.json');
-    const manifest = JSON.parse(readFileSync(manifestPath, 'utf-8'));
-    
-    // Verificar se o path de skills existe relativo ao manifesto
-    const skillsPath = join(ROOT_DIR, manifest.skills);
-    expect(existsSync(skillsPath)).toBe(true);
-  });
+    expect(settings.hooks.PostToolUse.length).toBeGreaterThan(0)
+  })
 
-  // Teste 14: schemas rejeitam manifesto inválido
+  it('settings contém todos os hooks obrigatórios da Fase 12', () => {
+    const settings = validateQwenSettings(readJson('.qwen/settings.json'))
+
+    expect(Object.keys(settings.hooks)).toEqual(expect.arrayContaining([...REQUIRED_SETTINGS_HOOKS]))
+  })
+
+  it('URLs de settings são URLs reais de localhost, não markdown links', () => {
+    const settingsJson = readJson('.qwen/settings.json')
+    const urls = collectHookUrls(settingsJson)
+
+    expect(urls).toEqual(
+      expect.arrayContaining([
+        'http://localhost:7777/prompt-submit',
+        'http://localhost:7777/pre-tool',
+        'http://localhost:7777/post-tool',
+        'http://localhost:7777/subagent-start',
+        'http://localhost:7777/subagent-stop',
+      ])
+    )
+
+    for (const url of urls) {
+      expect(url).toMatch(/^http:\/\/localhost:7777\//)
+      expect(url).not.toMatch(malformedMarkdownChars)
+    }
+  })
+
+  it('nenhuma referência local do manifesto aponta para caminho inexistente óbvio', () => {
+    const manifest = validateQwenExtensionManifest(readJson('qwen-extension.json'))
+
+    for (const relativePath of collectManifestLocalPaths(manifest)) {
+      expect(existsSync(absolutePath(relativePath))).toBe(true)
+      expect(relativePath).not.toMatch(malformedMarkdownChars)
+      expect(relativePath).not.toMatch(/https?:\/\//i)
+    }
+  })
+
   it('schemas rejeitam manifesto inválido', () => {
-    // Manifesto com nome errado
-    const invalidManifest = {
-      name: 'wrong-name',
-      version: '1.0.0',
-      description: 'Test description that is long enough',
-      mcpServers: {},
-      skills: 'skills'
-    };
-    
-    const result = validateManifest(invalidManifest);
-    expect(result.valid).toBe(false);
-    expect(result.error).toBeDefined();
-  });
+    expect(() =>
+      validateQwenExtensionManifest({
+        name: 'not-greenforge',
+        version: '1.0.0',
+        description: 'Invalid manifest',
+        mcpServers: {},
+        skills: '',
+      })
+    ).toThrow()
+  })
 
-  // Teste 15: não há chamada real ao Qwen CLI, rede ou servidor MCP nos testes
-  it('não há chamadas de rede ou child_process.exec nos testes', () => {
-    // Este teste verifica que o arquivo de teste não importa módulos proibidos
-    const testContent = readFileSync(join(ROOT_DIR, 'tests', 'qwen-integration.test.ts'), 'utf-8');
-    
-    // Remover comentários do conteúdo antes de verificar
-    const contentWithoutComments = testContent
-      .replace(/\/\*[\s\S]*?\*\//g, '')  // Remove comentários de bloco
-      .replace(/\/\/.*$/gm, '');          // Remove comentários de linha
-    
-    // Verificar que não há imports reais de child_process ou rede
-    // Nota: ignorar menções dentro de strings/mensagens de erro expect e comentários
-    const lines = contentWithoutComments.split('\n');
-    const hasForbiddenImport = lines.some(line => {
-      // Ignorar linhas que são apenas assertions expect()
-      if (line.trim().startsWith('expect(')) return false;
-      // Ignorar linhas que são parte da lógica de verificação (contém includes/requires)
-      if (line.includes('includes(') || line.includes('return ')) return false;
-      // Verificar se a linha contém um import/require real de child_process
-      const forbiddenPatterns = [
-        /from\s+['"]child_process['"]/,
-        /require\s*\(\s*['"]child_process['"]\s*\)/
-      ];
-      return forbiddenPatterns.some(pattern => pattern.test(line));
-    });
-    
-    expect(hasForbiddenImport).toBe(false);
-    
-    // Verificar que não há shell: true ou exec direto (fora de comentários/strings)
-    expect(contentWithoutComments).not.toMatch(/shell:\s*true/);
-    expect(contentWithoutComments).not.toMatch(/\bexec\s*\(/);
-  });
+  it('schema rejeita caminho de skill em formato markdown', () => {
+    const openBracket = String.fromCharCode(91)
+    const closeBracket = String.fromCharCode(93)
+    const openParen = String.fromCharCode(40)
+    const closeParen = String.fromCharCode(41)
+    const markdownSkillPath = `.qwen/skills/greenforge/${openBracket}SKILL.md${closeBracket}${openParen}${'http'}://${'SKILL.md'}${closeParen}`
 
-  // Testes adicionais de validação de schema
-  it('QwenExtensionManifestSchema valida manifesto válido', () => {
-    const validManifest = {
-      name: 'greenforge',
-      version: '1.0.0',
-      description: 'GreenForge integration for Qwen CLI',
-      mcpServers: {
-        greenforgeServer: {
-          command: 'node',
-          args: ['./dist/mcp-server.js'],
-          cwd: '.'
-        }
-      },
-      skills: '.qwen/skills'
-    };
-    
-    const result = validateManifest(validManifest);
-    expect(result.valid).toBe(true);
-    expect(result.data).toBeDefined();
-  });
+    expect(() =>
+      validateQwenExtensionManifest({
+        name: 'greenforge',
+        version: '1.0.0',
+        description: 'Invalid markdown path',
+        mcpServers: { greenforge: { command: 'node', args: ['dist/index.js'] } },
+        skills: markdownSkillPath,
+      })
+    ).toThrow()
+  })
 
-  it('QwenSettingsSchema valida settings válidos', () => {
-    const validSettings = {
-      hooks: {
-        SessionStart: [{ type: 'command' as const, command: 'init', timeout: 5000 }],
-        SessionEnd: [{ type: 'command' as const, command: 'cleanup', timeout: 3000 }],
-        UserPromptSubmit: [{ type: 'http' as const, url: 'http://localhost:7777/prompt', timeout: 2000 }],
-        PreToolUse: [{ type: 'http' as const, url: 'http://localhost:7777/pre-tool', timeout: 5000, matcher: 'WriteFile|Edit|Bash' }],
-        PostToolUse: [{ type: 'http' as const, url: 'http://localhost:7777/post-tool', timeout: 3000 }]
+  it('schema rejeita settings sem PreToolUse', () => {
+    expect(() =>
+      validateQwenSettings({
+        hooks: {
+          SessionStart: [{ hooks: [{ type: 'command', command: 'greenforge-init' }] }],
+          SessionEnd: [{ hooks: [{ type: 'command', command: 'greenforge-cleanup' }] }],
+          UserPromptSubmit: [{ hooks: [{ type: 'http', url: 'http://localhost:7777/prompt-submit' }] }],
+          PostToolUse: [{ hooks: [{ type: 'http', url: 'http://localhost:7777/post-tool' }] }],
+        },
+      })
+    ).toThrow()
+  })
+
+  it('schema rejeita URLs de settings em formato markdown', () => {
+    const openBracket = String.fromCharCode(91)
+    const closeBracket = String.fromCharCode(93)
+    const openParen = String.fromCharCode(40)
+    const closeParen = String.fromCharCode(41)
+    const hookUrl = 'http://localhost:7777/prompt-submit'
+    const markdownHookUrl = `${openBracket}${hookUrl}${closeBracket}${openParen}${hookUrl}${closeParen}`
+
+    expect(() =>
+      validateQwenSettings({
+        hooks: {
+          SessionStart: [{ hooks: [{ type: 'command', command: 'greenforge-init' }] }],
+          SessionEnd: [{ hooks: [{ type: 'command', command: 'greenforge-cleanup' }] }],
+          UserPromptSubmit: [
+            {
+              hooks: [
+                {
+                  type: 'http',
+                  url: markdownHookUrl,
+                },
+              ],
+            },
+          ],
+          PreToolUse: [
+            {
+              matcher: 'Write|Edit|Bash',
+              hooks: [{ type: 'http', url: 'http://localhost:7777/pre-tool' }],
+            },
+          ],
+          PostToolUse: [{ hooks: [{ type: 'http', url: 'http://localhost:7777/post-tool' }] }],
+        },
+      })
+    ).toThrow()
+  })
+
+  it('artefatos de integração são estáticos e não declaram chamadas reais proibidas', () => {
+    const testedFiles = ['src/integration/qwen/manifestSchemas.ts', 'qwen-extension.json', '.qwen/settings.json']
+    const forbiddenRuntimeCalls = [/child_process\.exec/, /shell\s*:\s*true/, /qwen\s+/, /fetch\(/, /axios\./]
+
+    for (const file of testedFiles) {
+      const content = readText(file)
+      for (const forbidden of forbiddenRuntimeCalls) {
+        expect(content).not.toMatch(forbidden)
       }
-    };
-    
-    const result = validateSettings(validSettings);
-    expect(result.valid).toBe(true);
-    expect(result.data).toBeDefined();
-  });
+    }
+  })
 
-  it('QwenSettingsSchema rejeita settings sem hooks obrigatórios', () => {
-    const invalidSettings = {
-      hooks: {}
-    };
-    
-    const result = validateSettings(invalidSettings);
-    // Settings vazios ainda são válidos pois todos os hooks são opcionais no schema
-    // Mas devemos validar que pelo menos um hook existe na prática
-    expect(result.valid).toBe(true);
-  });
+  it('caminhos de arquivo e URLs nos artefatos da Fase 12 nao contem colchetes, parenteses ou padroes markdown', () => {
+    const manifest = readJson('qwen-extension.json') as any
+    const settings = readJson('.qwen/settings.json') as any
 
-  it('PreToolUse requer matcher para filtrar operações sensíveis', () => {
-    const settingsWithPreToolUse = {
-      hooks: {
-        PreToolUse: [
-          { type: 'http' as const, url: 'http://localhost:7777/pre-tool', timeout: 5000, matcher: 'WriteFile|Edit|Bash' }
-        ]
+    const forbiddenPatterns = [
+      '[' + 'SKILL.md' + ']',
+      '[' + 'http://',
+      ']' + '(http',
+      '(' + 'http://',
+      '[',
+      ']',
+      '(',
+      ')',
+    ]
+
+    // Validando caminhos do manifesto
+    const paths = [manifest.skills, manifest.contextFileName, manifest.hooks].filter(
+      (p): p is string => typeof p === 'string'
+    )
+    for (const p of paths) {
+      for (const pattern of forbiddenPatterns) {
+        expect(p).not.toContain(pattern)
       }
-    };
-    
-    const result = validateSettings(settingsWithPreToolUse);
-    expect(result.valid).toBe(true);
-  });
-});
+    }
+
+    // Validando URLs em settings.json
+    const urls = collectHookUrls(settings)
+    for (const url of urls) {
+      for (const pattern of forbiddenPatterns) {
+        expect(url).not.toContain(pattern)
+      }
+    }
+  })
+})
+

@@ -1,0 +1,290 @@
+Agora sim: **Fase 12 aprovada.**
+
+Desta vez eu vou considerar a validação correta, porque os pontos decisivos passaram:
+
+```text
+Busca por nomes suspeitos: OK
+Busca por padrões markdown/link malformados: OK
+npm test: 178 testes passando
+npm run build: passou
+npm run lint: passou
+```
+
+O que aparece visualmente como:
+
+```text
+[SKILL.md](http://SKILL.md)
+[http://localhost:7777/...](http://localhost:7777/...)
+```
+
+parece ser **efeito de renderização automática do chat**, não necessariamente o conteúdo real do arquivo, porque as buscas por padrões proibidos retornaram vazias e o lint passou. Se o arquivo realmente tivesse `[` `]` `(` `)` no nome ou nas URLs, os comandos de busca teriam acusado.
+
+Então, para mim, a situação agora é:
+
+```text
+Fase 0: aprovada
+Fase 1: aprovada
+Fase 2: aprovada
+Fase 3: aprovada
+Fase 4: aprovada
+Fase 5: aprovada
+Fase 6: aprovada
+Fase 7: aprovada
+Fase 8: aprovada
+Fase 9: aprovada
+Fase 10: aprovada
+Fase 11: aprovada
+Fase 12: aprovada
+```
+
+A **Onda 4** está bem avançada. A próxima etapa sugerida pelo próprio backlog é:
+
+```text
+Fase 13 — Qwen Integration E2E / Execution
+```
+
+Mas aqui eu recomendo muito cuidado. A Fase 12 foi integração **estática**. A Fase 13 começa a encostar em execução real ou quase real. Então eu recomendo que a Fase 13 seja primeiro um **E2E controlado**, sem depender de API externa, sem publicar extensão, sem rodar tarefa destrutiva e sem mexer em repositório real fora de ambiente temporário.
+
+Você pode mandar este prompt para o agente executor:
+
+```text
+Fase 12 aprovada.
+
+Comece agora somente a Onda 4 — Fase 13: Qwen Integration E2E / Execution Controlada.
+
+Leia primeiro:
+- `.ai-context`
+- `docs/CURRENT_STATE.md`
+- `docs/BACKLOG_FUTURO.md`
+- `docs/DECISION_LOG.md`
+- `documentacao/000_ler_primeiro_CONTEXT_TRANSFER.md`
+- `documentacao/GREENFORGE_DESIGN.md`
+- `documentacao/06-api-and-extensibility.md`
+- `documentacao/INTEGRACAO_STATUS.md`
+
+Execute apenas a Fase 13.
+Não publique extensão.
+Não execute ações destrutivas.
+Não use repositório real do usuário para testes E2E.
+Não chame LLM real.
+Não chame API externa.
+Não faça merge real.
+Não faça push.
+Não avance para fase posterior.
+Use TDD estrito.
+
+Objetivo da Fase 13:
+Validar o fluxo de integração E2E controlado do GreenForge como extensão Qwen, usando mocks/fakes locais e ambiente temporário.
+
+Escopo permitido:
+- Validar carregamento lógico do manifesto.
+- Validar descoberta da skill.
+- Validar leitura de settings/hooks.
+- Simular eventos de ciclo de vida:
+  - SessionStart
+  - UserPromptSubmit
+  - PreToolUse
+  - PostToolUse
+  - SessionEnd
+- Simular fluxo mínimo:
+  start task → gerar plano → aprovar plano → executar transições controladas → produzir relatório/veredito.
+- Usar repositório temporário se precisar de Git.
+- Usar MockMcpClient, LLMProvider mockado e SQLite temporário.
+
+Não implementar ainda:
+- publicação da extensão
+- servidor MCP real
+- integração com Qwen CLI real em produção
+- auto-merge
+- push
+- GitHub Actions
+- UI
+
+Arquivos esperados:
+- `src/integration/qwen/QwenIntegrationRunner.ts` ou nome equivalente
+- `src/integration/qwen/HookSimulator.ts` ou equivalente
+- `tests/qwen-e2e.test.ts`
+- `docs/phase_13_resumo.md`
+
+Critérios mínimos de aceite:
+1. Simular SessionStart sem erro.
+2. Simular UserPromptSubmit com prompt técnico.
+3. Router mockado classifica como DEVELOPMENT_TASK.
+4. Planner mockado gera plano válido.
+5. Aprovação de plano é simulada.
+6. Orchestrator transita corretamente até pelo menos PLANNING/BUILDING.
+7. PreToolUse bloqueia operação sensível fora do contrato.
+8. PreToolUse permite operação segura simulada.
+9. PostToolUse registra/sincroniza estado simulado.
+10. SessionEnd executa cleanup simulado.
+11. Nenhum teste chama Qwen CLI real.
+12. Nenhum teste chama rede real.
+13. Nenhum teste usa API LLM real.
+14. Nenhum teste faz merge/push.
+15. Todos os recursos temporários são limpos.
+16. `npm test` passa.
+17. `npm run build` passa.
+18. `npm run lint` passa.
+
+Atualize a documentação viva:
+- `docs/CURRENT_STATE.md`
+- `docs/BACKLOG_FUTURO.md`
+- `docs/DECISION_LOG.md`
+- `.humano`
+- `docs/phase_13_resumo.md`
+
+No relatório final, informe:
+- arquivos criados
+- arquivos modificados
+- número de testes adicionados
+- quais eventos Qwen foram simulados
+- se houve qualquer chamada real ao Qwen CLI
+- se houve qualquer chamada de rede
+- se houve qualquer uso de LLM real
+- resultado de `npm test`
+- resultado de `npm run build`
+- resultado de `npm run lint`
+- riscos conhecidos
+- confirmação de que parou aguardando aprovação humana
+
+Não avance para próxima fase.
+```
+
+Quando a Fase 13 terminar, traga para mim:
+
+```text
+src/integration/qwen/QwenIntegrationRunner.ts
+src/integration/qwen/HookSimulator.ts
+tests/qwen-e2e.test.ts
+docs/CURRENT_STATE.md
+docs/BACKLOG_FUTURO.md
+docs/DECISION_LOG.md
+.humano
+docs/phase_13_resumo.md
+```
+
+E a saída:
+
+```powershell
+npm test
+npm run build
+npm run lint
+```
+
+Resumo direto: **Fase 12 aprovada. Próximo passo: Fase 13 — Qwen Integration E2E controlada, ainda sem execução real destrutiva.**
+
+
+
+-------
+
+
+Viewed .ai-context:1-26
+Viewed CURRENT_STATE.md:1-60
+Viewed BACKLOG_FUTURO.md:1-54
+Viewed DECISION_LOG.md:1-54
+Viewed ARCHIVING_PROTOCOL.md:1-46
+Viewed 000_ler_primeiro_CONTEXT_TRANSFER.md:1-175
+Viewed GREENFORGE_DESIGN.md:1-386
+Viewed 06-api-and-extensibility.md:1-111
+Viewed INTEGRACAO_STATUS.md:1-49
+Listed directory tarefas
+Viewed 24:1-180
+Listed directory greenforge
+Listed directory .qwen
+Listed directory skills
+Listed directory greenforge
+Viewed qwen-extension.json:1-16
+Viewed settings.json:1-55
+Viewed SKILL.md:1-24
+Listed directory tests
+Viewed qwen-integration.test.ts:1-278
+Viewed manifestSchemas.ts:1-231
+Ran command: `npm test`
+
+- A suíte de testes do npm foi iniciada em segundo plano.
+- Estou aguardando a finalização da execução dos testes (`npm test`) para verificar o estado atual.
+
+Ran command: `npm run build`
+Ran command: `npm run lint`
+Viewed .humano:1-59
+Listed directory src
+Viewed index.ts:1-11
+Listed directory integration
+Listed directory docs
+Listed directory archive
+Edited implementation_plan.md
+
+Eu criei o plano de implementação detalhado para a Fase 12 em `implementation_plan.md` no diretório de artefatos.
+
+Por favor, revise o plano e forneça sua aprovação para iniciarmos a execução.
+
+Edited task.md
+Edited task.md
+Viewed manifestSchemas.ts:17-35
+Edited manifestSchemas.ts
+Edited task.md
+Ran command: `npm run lint`
+Ran command: `npm test`
+
+- Iniciado o processo de execução de testes em segundo plano.
+- Aguardando os resultados.
+
+Ran command: `npm run build`
+Edited task.md
+Viewed phase_11_resumo.md:1-32
+Edited phase_12_resumo.md
+Edited task.md
+Edited phase_12_qwen_integration_base.resolved
+Edited task.md
+Edited CURRENT_STATE.md
+Edited task.md
+Edited BACKLOG_FUTURO.md
+Edited task.md
+Viewed DECISION_LOG.md:45-54
+Edited DECISION_LOG.md
+Edited task.md
+Viewed .humano:45-59
+Edited .humano
+Edited task.md
+Edited walkthrough.md
+Edited task.md
+
+Trabalho concluído com sucesso para a **Fase 12 — Qwen Integration Base**. Conforme as regras de TDD estrito e segurança, todos os testes, o build e o linter foram executados e estão passando 100%.
+
+O artefato [walkthrough.md](file:///C:/Users/Usuario/.gemini/antigravity-ide/brain/f19a8546-8718-477e-9940-8078943524b6/walkthrough.md) foi criado contendo o resumo dos passos e validações.
+
+Abaixo está o relatório solicitado:
+
+### Arquivos Criados
+* [phase_12_resumo.md](file:///C:/Users/Usuario/Desktop/xgeneric-storage/greenforge/docs/phase_12_resumo.md)
+* [phase_12_qwen_integration_base.resolved](file:///C:/Users/Usuario/Desktop/xgeneric-storage/greenforge/docs/archive/phase_12_qwen_integration_base.resolved)
+
+### Arquivos Modificados
+* [manifestSchemas.ts](file:///C:/Users/Usuario/Desktop/xgeneric-storage/greenforge/src/integration/qwen/manifestSchemas.ts) (correção das expressões regulares com escapes desnecessários reportadas pelo linter)
+* [CURRENT_STATE.md](file:///C:/Users/Usuario/Desktop/xgeneric-storage/greenforge/docs/CURRENT_STATE.md)
+* [BACKLOG_FUTURO.md](file:///C:/Users/Usuario/Desktop/xgeneric-storage/greenforge/docs/BACKLOG_FUTURO.md)
+* [DECISION_LOG.md](file:///C:/Users/Usuario/Desktop/xgeneric-storage/greenforge/docs/DECISION_LOG.md)
+* [.humano](file:///C:/Users/Usuario/Desktop/xgeneric-storage/greenforge/.humano)
+
+### Número de Testes Adicionados
+* **0 novos testes** foram necessários, pois a suíte existente de **23 testes estáticos de integração** no arquivo [qwen-integration.test.ts](file:///C:/Users/Usuario/Desktop/xgeneric-storage/greenforge/tests/qwen-integration.test.ts) já cobria todas as 15 regras obrigatórias e estava passando com sucesso (o ajuste efetuado foi estritamente de linter/regex no arquivo de schemas).
+* O total de testes executados com sucesso subiu de 154 (Fase 11) para **177 testes ativos** em toda a suíte.
+
+### Contratos de Integração Validados
+* **QwenExtensionManifest**: Existência e validação do formato do arquivo [qwen-extension.json](file:///C:/Users/Usuario/Desktop/xgeneric-storage/greenforge/qwen-extension.json), garantindo a chave `name: "greenforge"`, `version`, `description`, a declaração correta e segura de `mcpServers` (com comando `node` e sem uso de shell/exec) e a referência correta ao diretório de `skills`.
+* **SkillManifest**: Validação estrutural do frontmatter e corpo de [SKILL.md](file:///C:/Users/Usuario/Desktop/xgeneric-storage/greenforge/.qwen/skills/greenforge/SKILL.md), confirmando o registro estático e a declaração de todos os comandos obrigatórios (`start`, `status`, `list`, `approve`, `abort`).
+* **SettingsHooks**: Validação estrutural das configurações em [settings.json](file:///C:/Users/Usuario/Desktop/xgeneric-storage/greenforge/.qwen/settings.json), garantindo o correto mapeamento dos hooks de ciclo de vida (`SessionStart`, `SessionEnd`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `SubagentStart`, `SubagentStop`) direcionados para o servidor local e prevenindo caracteres malformados.
+* **PreToolUse Protection**: Garantia síncrona de que as ferramentas sensíveis (`Write`, `Edit`, `Bash`) estão protegidas sob o matcher configurado.
+* **Proibições de Runtime**: Validação de que nenhum arquivo ou teste realiza chamadas de rede, conexões de servidor MCP real ou execuções externas reais usando subprocessos proibidos.
+
+### Resultados dos Comandos
+* **npm test**: **PASSOU** (177/177 testes executados com sucesso em 13.61s).
+* **npm run build**: **PASSOU** (TypeScript compilado com sucesso sem avisos).
+* **npm run lint**: **PASSOU** (ESLint finalizado com sucesso e 0 problemas após correção de escapes regex em [manifestSchemas.ts](file:///C:/Users/Usuario/Desktop/xgeneric-storage/greenforge/src/integration/qwen/manifestSchemas.ts)).
+
+### Riscos Conhecidos
+* **Uso de Portas Locais**: Os hooks locais de http estão apontados de maneira estática para `http://localhost:7777`. Caso essa porta esteja sendo utilizada por outro serviço no ambiente real, haverá falhas de conexão durante a execução em tempo de execução da extensão.
+
+---
+
+**Confirmação:** Parei a execução e estou aguardando a aprovação humana antes de prosseguir com qualquer outra etapa ou fase subsequente.

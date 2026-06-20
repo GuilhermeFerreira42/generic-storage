@@ -1,14 +1,15 @@
 {
   "name": "greenforge",
   "version": "1.0.0",
-  "description": "GreenForge: The Orchestrator's Anvil — Advanced orchestration extension for Qwen CLI with Git Worktree isolation and multi-agent parallel execution",
+  "description": "GreenForge static integration base for Qwen CLI orchestration with isolated worktrees and audited delivery.",
   "mcpServers": {
-    "greenforgeServer": {
+    "greenforge": {
       "command": "node",
-      "args": ["${extensionPath}/dist/mcp-server.js"],
+      "args": ["${extensionPath}${/}dist${/}index.js", "mcp"],
       "cwd": "${extensionPath}"
     }
   },
   "skills": ".qwen/skills",
-  "contextFileName": ".ai-context"
+  "contextFileName": ".ai-context",
+  "hooks": ".qwen/settings.json"
 }

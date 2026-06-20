@@ -51,3 +51,8 @@ F11 | ADD | Verifier Type Definitions | Contratos robustos para inputs/outputs d
 F11 | RULE | Precedência de Status de Verificação | BLOCKED > RETRYABLE > APPROVED | `src/core/Verifier.ts`
 F11 | RULE | Mapeamento de Falhas e Alinhamento | Mapeamento de erros de JoinGate, alinhamento DIVERGED e risco HIGH para bloqueios/retries | `src/core/Verifier.ts`
 F11 | RULE | Consistência de taskId | O Verifier rejeita execuções caso input.taskId, diffReport.taskId e joinResult.taskId divirjam | `src/core/Verifier.ts`
+
+### Fase 12 — Qwen Integration Base
+F12 | ADD | Qwen static configuration schemas | Schemas Zod de validação síncrona para manifesto e settings | `src/integration/qwen/manifestSchemas.ts`
+F12 | CFG | Configuração declarativa da extensão | Definição de skills, hooks locais e comandos da extensão | `qwen-extension.json`, `.qwen/settings.json`, `.qwen/skills/greenforge/SKILL.md`
+

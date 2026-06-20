@@ -2,52 +2,52 @@
   "hooks": {
     "SessionStart": [
       {
-        "type": "command",
-        "command": "greenforge-init",
-        "timeout": 5000
+        "hooks": [
+          { "type": "command", "command": "greenforge-init", "timeout": 5000 }
+        ]
       }
     ],
     "SessionEnd": [
       {
-        "type": "command",
-        "command": "greenforge-cleanup",
-        "timeout": 3000
+        "hooks": [
+          { "type": "command", "command": "greenforge-cleanup", "timeout": 3000 }
+        ]
       }
     ],
     "UserPromptSubmit": [
       {
-        "type": "http",
-        "url": "http://localhost:7777/prompt-submit",
-        "timeout": 2000
+        "hooks": [
+          { "type": "http", "url": "http://localhost:7777/prompt-submit", "timeout": 2000 }
+        ]
       }
     ],
     "PreToolUse": [
       {
-        "matcher": "WriteFile|Edit|Bash",
-        "type": "http",
-        "url": "http://localhost:7777/pre-tool",
-        "timeout": 5000
+        "matcher": "Write|WriteFile|Edit|MultiEdit|Bash",
+        "hooks": [
+          { "type": "http", "url": "http://localhost:7777/pre-tool", "timeout": 5000 }
+        ]
       }
     ],
     "PostToolUse": [
       {
-        "type": "http",
-        "url": "http://localhost:7777/post-tool",
-        "timeout": 3000
+        "hooks": [
+          { "type": "http", "url": "http://localhost:7777/post-tool", "timeout": 3000 }
+        ]
       }
     ],
     "SubagentStart": [
       {
-        "type": "http",
-        "url": "http://localhost:7777/subagent-start",
-        "timeout": 3000
+        "hooks": [
+          { "type": "http", "url": "http://localhost:7777/subagent-start", "timeout": 3000 }
+        ]
       }
     ],
     "SubagentStop": [
       {
-        "type": "http",
-        "url": "http://localhost:7777/subagent-stop",
-        "timeout": 3000
+        "hooks": [
+          { "type": "http", "url": "http://localhost:7777/subagent-stop", "timeout": 3000 }
+        ]
       }
     ]
   }
