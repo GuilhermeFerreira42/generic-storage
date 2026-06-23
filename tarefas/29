@@ -1,0 +1,149 @@
+Melhorou **muito**. Agora a Fase 13 está no caminho certo, porque o `QwenIntegrationRunner` finalmente passou a importar e usar os componentes reais:
+
+```text
+QwenRouter
+PlannerEngine
+SQLiteRepository
+Orchestrator
+MockMcpClient
+CoderAgent
+TesterAgent
+ReviewerAgent
+JoinGate
+DiffLens
+Verifier
+```
+
+Também passou:
+
+```text
+npm test: 194 testes passando
+npm run build: passou
+npm run lint: passou sem warnings
+```
+
+Mas eu **ainda não aprovaria a Fase 13**. Está quase, mas ainda tem problemas importantes.
+
+O principal problema é que o `QwenIntegrationRunner` **não limpa recursos temporários no caminho de sucesso**. Ele cria:
+
+```ts
+this.tempDir = join(tmpdir(), `greenforge-e2e-${Date.now()}`);
+mkdirSync(this.tempDir, { recursive: true });
+```
+
+Mas no fluxo aprovado ele retorna o resultado sem chamar `cleanup()`. O `cleanup()` só é chamado no `catch`. Isso contradiz o requisito:
+
+```text
+Recursos temporários são limpos
+```
+
+Ou seja, ele está dizendo na documentação que limpa, mas o código não limpa no caso feliz.
+
+Outro problema: o `HookSimulator.handlePreToolUse` ainda usa uma validação frágil:
+
+```ts
+targetPath.includes('/tmp/greenforge-worktree-') || targetPath.includes('worktree')
+```
+
+Isso não é segurança forte. Um caminho como:
+
+```text
+/tmp/not-a-real-worktree-but-has-worktree-name/evil.txt
+```
+
+poderia passar. Para a Fase 13, isso deveria usar `allowedRoot` no payload e validar com `safeResolveForWrite` ou pelo menos `path.resolve/path.relative`.
+
+Também há inconsistência na documentação viva: a saída atual diz **194 testes**, mas os trechos de `CURRENT_STATE.md` e `.humano` ainda mencionam **190 testes** e `qwen-e2e.test.ts` com 12 testes. Agora são 16 testes E2E e 194 no total.
+
+Então a Fase 13 está **quase aprovada**, mas peça esse refinamento final.
+
+Envie isto para o agente:
+
+```text
+A Fase 13 está quase aprovada, mas ainda não está aprovada.
+
+Não avance para a próxima fase.
+
+A implementação agora está no caminho certo porque usa os componentes reais do core, mas ainda há três problemas obrigatórios a corrigir.
+
+1. Cleanup de recursos temporários
+
+O `QwenIntegrationRunner` cria `tempDir`, banco SQLite e worktree temporário, mas no fluxo de sucesso não chama `cleanup()`.
+
+Corrija isso.
+
+Regras:
+- Em sucesso, sempre fechar o repository e remover `tempDir`.
+- Em erro, também limpar por padrão.
+- `preserveOnError` só deve preservar se for explicitamente true.
+- Adicione teste provando que o diretório temporário é removido após o fluxo E2E.
+- Se necessário, permita injetar `tempDir` via `E2ERunOptions` para o teste conseguir verificar a limpeza.
+
+2. PreToolUse ainda usa validação frágil baseada em `includes('worktree')`
+
+O código atual aceita path se contiver a palavra `worktree`. Isso é frágil.
+
+Corrija `HookSimulator.handlePreToolUse`.
+
+Regras:
+- Para ferramentas sensíveis (`WriteFile`, `Edit`, `MultiEdit`, `Write`, `Bash` se aplicável), exigir um `allowedRoot` ou `worktreeRoot` no payload.
+- Se não houver root permitido, bloquear.
+- Validar que o path alvo está dentro do root permitido usando `safeResolveForWrite` ou validação equivalente com `path.resolve` + `path.relative`.
+- Não permitir path fora do root mesmo que contenha a palavra `worktree`.
+
+Adicione testes:
+- PreToolUse bloqueia escrita fora de allowedRoot.
+- PreToolUse permite escrita dentro de allowedRoot.
+- PreToolUse bloqueia se `allowedRoot` estiver ausente para operação sensível.
+- PreToolUse bloqueia path falso que contém a palavra `worktree` mas está fora do allowedRoot.
+
+3. Documentação viva desatualizada
+
+Atualize:
+- `docs/CURRENT_STATE.md`
+- `docs/BACKLOG_FUTURO.md`
+- `docs/DECISION_LOG.md`
+- `.humano`
+- `docs/phase_13_resumo.md`
+
+Corrija:
+- total de testes para 194
+- qwen-e2e.test.ts para 16 testes
+- indicar que recursos temporários são limpos no caminho de sucesso
+- indicar que PreToolUse usa validação por root permitido, não string includes
+
+4. Remova qualquer comentário enganoso
+
+Remova comentários como:
+- “guaranteed by architecture”
+- “no network calls” se não houver teste real verificando
+
+Se quiser manter esse teste, faça busca por padrões proibidos nos arquivos da Fase 13.
+
+5. Rode novamente:
+
+- `npm test`
+- `npm run build`
+- `npm run lint`
+
+6. Relatório final deve informar:
+
+- se cleanup em sucesso foi implementado
+- se há teste provando cleanup
+- se PreToolUse valida allowedRoot/worktreeRoot corretamente
+- se a validação por `includes('worktree')` foi removida
+- total final de testes
+- resultado de npm test
+- resultado de npm run build
+- resultado de npm run lint
+
+Não avance para a próxima fase.
+```
+
+Resumo direto:
+
+```text
+Fase 13: quase aprovada
+Status atual: boa evolução, mas ainda bloqueada
+Motivos: cleanup ausente no sucesso, PreToolUse frágil e documentação desatualizada
+```

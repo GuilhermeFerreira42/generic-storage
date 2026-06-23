@@ -60,6 +60,9 @@ F12 | CFG | Configuração declarativa da extensão | Definição de skills, hoo
 F13 | ADD | HookSimulator | Simulador de eventos de hooks Qwen (SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, SessionEnd) | `src/integration/qwen/HookSimulator.ts`
 F13 | ADD | QwenIntegrationRunner | Orquestrador de fluxo E2E simulado conectando hooks ao core via mocks | `src/integration/qwen/QwenIntegrationRunner.ts`
 F13 | ADD | Qwen E2E Types | Contratos Zod para HookSimulationInput, HookSimulationResult, QwenE2EResult | `src/integration/qwen/types.ts`
-F13 | ADD | Qwen E2E Tests | Testes de integração controlada cobrindo 16 cenários obrigatórios | `tests/qwen-e2e.test.ts`
+F13 | ADD | Qwen E2E Tests | Testes de integração controlada cobrindo 20 cenários obrigatórios | `tests/qwen-e2e.test.ts`
 F13 | RULE | Isolamento Total de Testes E2E | Nenhum teste chama Qwen real, MCP real, LLM real, rede, merge ou push | `tests/qwen-e2e.test.ts`
 F13 | RULE | Mock-First Architecture | Uso de mocks, fakes e diretórios temporários para todos os componentes core | `src/integration/qwen/QwenIntegrationRunner.ts`
+F13 | FIX | Cleanup de Recursos Temporários | `QwenIntegrationRunner` usa `try/catch/finally` para garantir limpeza de `tempDir` e `SQLiteRepository` em todos os caminhos (sucesso, NORMAL_CHAT, BLOCKED, RETRYABLE, exceção). `preserveOnError` só preserva em caso de exceção real. | `src/integration/qwen/QwenIntegrationRunner.ts`
+F13 | FIX | Validação Robusta de PreToolUse | `HookSimulator.handlePreToolUse` valida `allowedRoot` usando `path.resolve` e `path.relative` para prevenir Path Traversal | `src/integration/qwen/HookSimulator.ts`
+F13 | FIX | Tipagem sem `any` | `repository` e `orchestrator` tipados como `SQLiteRepository | null` e `Orchestrator | null` com guards internos `getRepository()` e `getOrchestrator()` | `src/integration/qwen/QwenIntegrationRunner.ts`

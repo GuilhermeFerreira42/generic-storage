@@ -6,7 +6,7 @@ SOBRE O SEU WORKFLOW — LEIA ANTES DE INICIAR QUALQUER FASE
 Este projeto utiliza o Protocolo de Arquivamento Progressivo v2.0.
 A memória do projeto é auto-suficiente e reside em `docs/`.
 
-────────────────────────────────────────────────────────
+───────────────────────────────────────────────────────
 HISTÓRICO DE APROVAÇÕES
 ══════════════════════════
 
@@ -54,10 +54,10 @@ HISTÓRICO DE APROVAÇÕES
 - Próxima parada: Onda 4 - Fase 13 (Qwen Integration E2E / Execution).
 
 ### [2026-06-23] Fase 13 — Qwen Integration E2E Controlada
-- Status: CONCLUÍDA E VALIDADA (190 testes totais).
-- Destaque: Implementação de HookSimulator, QwenIntegrationRunner, types.ts com contratos Zod, e qwen-e2e.test.ts com 12 testes cobrindo todos os 16 cenários obrigatórios. Fluxo E2E mínimo atinge APPROVED. Zero chamadas a Qwen real, MCP real, LLM real, rede, merge ou push. Recursos temporários limpos.
+- Status: CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA (200 testes totais).
+- Destaque: Implementação de HookSimulator, QwenIntegrationRunner, types.ts com contratos Zod, e qwen-e2e.test.ts com 22 testes cobrindo todos os cenários obrigatórios. Fluxo E2E mínimo atinge APPROVED. Zero chamadas a Qwen real, MCP real, LLM real, rede, merge ou push. Recursos temporários limpos em todos os caminhos (sucesso, NORMAL_CHAT, BLOCKED, RETRYABLE, exceção).
 
-────────────────────────────────────────────────────────
+───────────────────────────────────────────────────────
 GUIA RÁPIDO PARA O USUÁRIO
 ══════════════════════════
 

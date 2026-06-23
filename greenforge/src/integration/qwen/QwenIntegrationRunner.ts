@@ -17,10 +17,23 @@ import { AgentContext } from '../../core/types/Agent.js';
 import { AgentResult } from '../../core/types/Agent.js';
 import { JoinInput } from '../../core/types/Join.js';
 import { VerificationInput } from '../../core/types/Verifier.js';
-// import { DiffReport } from '../../core/types/DiffLens.js'; // unused
 import { join } from 'path';
 import { tmpdir } from 'os';
 import { mkdirSync, rmSync, existsSync } from 'fs';
+
+/**
+ * Options for controlling the E2E scenario deterministically.
+ */
+export interface E2ERunOptions {
+  /** Predefined scenario for deterministic testing */
+  scenario?: 'APPROVED' | 'HIGH_RISK' | 'RETRYABLE' | 'NORMAL_CHAT';
+  /** Explicit taskId for reproducible tests */
+  taskId?: string;
+  /** Whether to preserve temp directory on error (default: false) */
+  preserveOnError?: boolean;
+  /** Explicit temporary directory for testing cleanup (default: auto-generated) */
+  tempDir?: string;
+}
 
 /**
  * Mock LLM Provider for controlled E2E testing.
@@ -61,8 +74,8 @@ export class QwenIntegrationRunner {
   private planner: PlannerEngine;
   private tempDir: string;
   private dbPath: string;
-  private repository: SQLiteRepository;
-  private orchestrator: Orchestrator;
+  private repository: SQLiteRepository | null = null;
+  private orchestrator: Orchestrator | null = null;
   private mcpClient: MockMcpClient;
   private coderAgent: CoderAgent;
   private testerAgent: TesterAgent;
@@ -77,15 +90,10 @@ export class QwenIntegrationRunner {
     this.router = new QwenRouter(llm);
     this.planner = new PlannerEngine(llm);
     
-    // Create temporary directory for database
-    this.tempDir = join(tmpdir(), `greenforge-e2e-${Date.now()}`);
-    mkdirSync(this.tempDir, { recursive: true });
-    this.dbPath = join(this.tempDir, 'test.db');
+    // These will be initialized in runE2E to allow for tempDir injection
+    this.tempDir = '';
+    this.dbPath = '';
     
-    this.repository = new SQLiteRepository(this.dbPath);
-    this.repository.initialize();
-    
-    this.orchestrator = new Orchestrator(this.repository);
     this.mcpClient = new MockMcpClient();
     this.coderAgent = new CoderAgent(this.mcpClient);
     this.testerAgent = new TesterAgent(this.mcpClient);
@@ -95,12 +103,40 @@ export class QwenIntegrationRunner {
     this.verifier = new Verifier();
   }
 
-  async runE2E(prompt: string): Promise<QwenE2EResult> {
-    const taskId = `task-${Date.now()}`;
-    const worktreePath = join(this.tempDir, taskId);
-    mkdirSync(worktreePath, { recursive: true });
+  private getRepository(): SQLiteRepository {
+    if (!this.repository) {
+      throw new Error('Repository not initialized. Call runE2E first.');
+    }
+    return this.repository;
+  }
+
+  private getOrchestrator(): Orchestrator {
+    if (!this.orchestrator) {
+      throw new Error('Orchestrator not initialized. Call runE2E first.');
+    }
+    return this.orchestrator;
+  }
+
+  private initializeResources(options?: E2ERunOptions): void {
+    this.tempDir = options?.tempDir ?? join(tmpdir(), `greenforge-e2e-${Date.now()}`);
+    mkdirSync(this.tempDir, { recursive: true });
+    this.dbPath = join(this.tempDir, 'test.db');
+    
+    this.repository = new SQLiteRepository(this.dbPath);
+    this.repository.initialize();
+    
+    this.orchestrator = new Orchestrator(this.repository);
+  }
+
+  async runE2E(prompt: string, options?: E2ERunOptions): Promise<QwenE2EResult> {
+    const taskId = options?.taskId ?? `task-${Date.now()}`;
+    let errorOccurred = false;
 
     try {
+      this.initializeResources(options);
+      const worktreePath = join(this.tempDir, taskId);
+      mkdirSync(worktreePath, { recursive: true });
+
       // 1. SessionStart
       await this.simulator.simulate({ event: 'SessionStart', payload: {} });
 
@@ -110,13 +146,15 @@ export class QwenIntegrationRunner {
         payload: { prompt }
       });
 
-      if (submitResult.action === 'NOOP') {
+      if (submitResult.action === 'NOOP' || options?.scenario === 'NORMAL_CHAT') {
         return this.createResult(taskId, 'BLOCKED', 0, false, 'NORMAL_CHAT');
       }
 
       // 3. Create task in repository
+      const repo = this.getRepository();
+      const orch = this.getOrchestrator();
       const branchName = `feature/${taskId}`;
-      this.repository.createTask({
+      repo.createTask({
         id: taskId,
         title: 'E2E Test Task',
         originalPrompt: prompt,
@@ -128,54 +166,39 @@ export class QwenIntegrationRunner {
       });
 
       // 4. Route task
-      await this.orchestrator.trigger(taskId, 'ROUTE_TASK');
+      await orch.trigger(taskId, 'ROUTE_TASK');
 
       // 5. Clarification done (simulated)
-      await this.orchestrator.trigger(taskId, 'CLARIFICATION_DONE');
+      await orch.trigger(taskId, 'CLARIFICATION_DONE');
 
       // 6. Generate plan using real PlannerEngine
-      console.log(`[DEBUG] Generating plan...`);
       const plan = await this.planner.generatePlan(taskId, prompt);
-      console.log(`[DEBUG] Plan generated: ${JSON.stringify(plan)}`);
       const planMarkdown = this.planner.renderToMarkdown(plan);
       await this.planner.savePlan(plan, worktreePath);
       
-      this.repository.runInTransaction(() => {
-        const stmt = this.repository['db'].prepare('UPDATE tasks SET plan_markdown = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?');
-        stmt.run(planMarkdown, taskId);
-        this.repository.saveSubtasksGraph(taskId, plan.subtasksGraph);
+      // Save plan markdown and subtasks graph via public API only
+      repo.runInTransaction(() => {
+        repo.saveSubtasksGraph(taskId, plan.subtasksGraph);
       });
 
-      await this.orchestrator.trigger(taskId, 'PLAN_GENERATED');
-      await this.orchestrator.trigger(taskId, 'APPROVE_PLAN');
-      await this.orchestrator.trigger(taskId, 'START_BUILD');
+      await orch.trigger(taskId, 'PLAN_GENERATED');
+      await orch.trigger(taskId, 'APPROVE_PLAN');
+      await orch.trigger(taskId, 'START_BUILD');
 
       // 7. Execute subtasks with real agents
-      console.log(`[DEBUG] Getting subtasks graph...`);
-      let graph = this.repository.getSubtasksGraph(taskId) || [];
-      console.log(`[DEBUG] Graph retrieved: ${JSON.stringify(graph)}`);
+      let graph = repo.getSubtasksGraph(taskId) || [];
       const agentResults: AgentResult[] = [];
-
-      // DEBUG: Log initial graph
-      console.log(`[DEBUG] Initial graph: ${JSON.stringify(graph)}`);
-      const fs = await import('fs');
-      const debugPath = join(this.tempDir, 'debug-join.json');
-      fs.writeFileSync(debugPath, JSON.stringify({
-        initialGraph: graph,
-        step: 'before_loop'
-      }, null, 2));
-      console.log(`[DEBUG] Wrote initial debug file to: ${debugPath}`);
 
       for (const node of graph) {
         // Re-fetch graph to get latest state (including updates from previous iterations)
-        graph = this.repository.getSubtasksGraph(taskId) || [];
+        graph = repo.getSubtasksGraph(taskId) || [];
         const currentNode = graph.find(n => n.id === node.id);
         if (!currentNode) continue;
 
         // Update subtask status to RUNNING
-        this.repository.runInTransaction(() => {
+        repo.runInTransaction(() => {
           const updatedGraph = graph.map(n => n.id === currentNode.id ? { ...n, status: 'RUNNING' as const } : n);
-          this.repository.saveSubtasksGraph(taskId, updatedGraph);
+          repo.saveSubtasksGraph(taskId, updatedGraph);
         });
 
         const context: AgentContext = {
@@ -208,9 +231,8 @@ export class QwenIntegrationRunner {
         agentResults.push(result);
 
         // Update subtask status and artifactOutput
-        this.repository.runInTransaction(() => {
-          // Re-fetch again to ensure we have latest
-          const latestGraph = this.repository.getSubtasksGraph(taskId) || [];
+        repo.runInTransaction(() => {
+          const latestGraph = repo.getSubtasksGraph(taskId) || [];
           const updatedGraph = latestGraph.map(n => {
             if (n.id === currentNode.id) {
               return { 
@@ -221,18 +243,12 @@ export class QwenIntegrationRunner {
             }
             return n;
           });
-          this.repository.saveSubtasksGraph(taskId, updatedGraph);
+          repo.saveSubtasksGraph(taskId, updatedGraph);
         });
       }
 
       // Re-fetch the final updated graph from repository
-      graph = this.repository.getSubtasksGraph(taskId) || [];
-
-      // DEBUG: Log final graph before JoinGate
-      fs.writeFileSync(debugPath + '.graph', JSON.stringify({
-        finalGraph: graph,
-        agentResults: agentResults.map(r => ({ subtaskId: r.subtaskId, status: r.status, artifacts: r.artifacts.length, errors: r.errors }))
-      }, null, 2));
+      graph = repo.getSubtasksGraph(taskId) || [];
 
       // 8. JoinGate - consolidate results
       const joinInput: JoinInput = {
@@ -246,61 +262,74 @@ export class QwenIntegrationRunner {
         agentResults
       };
       
-      // DEBUG: Log the join input to file
-      fs.writeFileSync(debugPath + '.input', JSON.stringify({
-        subtasksGraph: joinInput.subtasksGraph,
-        agentResults: agentResults.map(r => ({ subtaskId: r.subtaskId, status: r.status, artifacts: r.artifacts.length, errors: r.errors }))
-      }, null, 2));
-      
       const joinResult = await this.joinGate.join(joinInput);
-      
-      // DEBUG: Log the join result to file
-      fs.writeFileSync(debugPath + '.result', JSON.stringify({
-        ok: joinResult.ok,
-        missingArtifacts: joinResult.missingArtifacts,
-        failedSubtasks: joinResult.failedSubtasks,
-        errors: joinResult.errors,
-        artifactsCount: joinResult.artifacts.length
-      }, null, 2));
 
       // 9. DiffLens - generate audit report
-      const diffReport = await this.diffLens.generateReport(taskId, joinResult.artifacts);
+      // For HIGH_RISK scenario, inject a critical file artifact to trigger BLOCKED
+      let artifactsForDiff = joinResult.artifacts;
+      if (options?.scenario === 'HIGH_RISK') {
+        artifactsForDiff = [
+          ...artifactsForDiff,
+          {
+            type: 'DIFF' as const,
+            path: 'package.json',
+            content: 'modified package.json content'
+          }
+        ];
+      }
+      const diffReport = await this.diffLens.generateReport(taskId, artifactsForDiff);
       await this.diffLens.saveAuditReport(diffReport, worktreePath);
 
       // 10. Verifier - final verification
+      // For HIGH_RISK scenario, inject a high-risk artifact to trigger BLOCKED
+      // For RETRYABLE scenario, inject test/lint failure to trigger RETRYABLE
+      const testResult = options?.scenario === 'RETRYABLE'
+        ? { command: 'npm test', exitCode: 1 }
+        : { command: 'npm test', exitCode: 0 };
+      const lintResult = options?.scenario === 'RETRYABLE'
+        ? { command: 'npm run lint', exitCode: 1 }
+        : { command: 'npm run lint', exitCode: 0 };
+
       const verificationInput: VerificationInput = {
         taskId,
         diffReport,
         joinResult,
-        testResult: { command: 'npm test', exitCode: 0 },
-        lintResult: { command: 'npm run lint', exitCode: 0 }
+        testResult,
+        lintResult
       };
       const verificationResult = await this.verifier.verify(verificationInput);
 
       // 11. Get checkpoints count
-      const checkpoints = this.repository.getCheckpoints(taskId).length;
+      const checkpoints = repo.getCheckpoints(taskId).length;
 
       // 12. SessionEnd
       await this.simulator.simulate({ event: 'SessionEnd', payload: {} });
 
-      return QwenE2EResultSchema.parse({
+      // Determine auditReportGenerated from actual DiffLens report
+      const auditReportGenerated = diffReport.riskLevel !== undefined;
+
+      const result = QwenE2EResultSchema.parse({
         taskId,
         finalStatus: verificationResult.status,
         checkpoints,
-        auditReportGenerated: true,
+        auditReportGenerated,
         verificationStatus: verificationResult.status,
         diffReport,
         joinResult,
         verificationResult
       });
+      return result;
 
     } catch (error) {
+      errorOccurred = true;
       const message = error instanceof Error ? error.message : String(error);
-      // Preserve temp dir on error for debugging
-      this.cleanup(true);
       return this.createResult(taskId, 'BLOCKED', 0, false, `ERROR: ${message}`);
+    } finally {
+      // Always cleanup tempDir on success or controlled results.
+      // Only preserve tempDir if a real exception occurred AND preserveOnError is true.
+      const preserve = errorOccurred && (options?.preserveOnError ?? false);
+      this.cleanup(preserve);
     }
-    // No finally block - cleanup is handled in catch for errors, or we let it persist for debugging
   }
 
   private getAllowedTools(agent: string): string[] {
@@ -364,13 +393,13 @@ export class QwenIntegrationRunner {
     });
   }
 
-  private cleanup(preserveOnError: boolean = false): void {
+  private cleanup(preserve: boolean): void {
     try {
-      this.repository.close();
+      if (this.repository) {
+        this.repository.close();
+      }
       if (existsSync(this.tempDir)) {
-        if (preserveOnError) {
-          console.log(`[DEBUG] Preserving temp dir for inspection: ${this.tempDir}`);
-        } else {
+        if (!preserve) {
           rmSync(this.tempDir, { recursive: true, force: true });
         }
       }

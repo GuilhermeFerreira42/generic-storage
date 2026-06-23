@@ -1,0 +1,224 @@
+Sim, agora o **código da Fase 13 parece tecnicamente resolvido**, mas eu **ainda não aprovo a Fase 13 como fase fechada** por um motivo objetivo: **documentação viva ainda está inconsistente com o terminal final**.
+
+## Veredito
+
+**Ainda não aprovo a Fase 13.**
+
+Mas agora é um bloqueio pequeno e documental, não mais de arquitetura/código.
+
+---
+
+## O que já está bom
+
+### 1. Testes passaram
+
+Terminal final:
+
+```text
+Test Files  14 passed (14)
+Tests       200 passed (200)
+```
+
+Ótimo.
+
+### 2. Build passou
+
+```text
+npm run build
+> tsc
+```
+
+Sem erro.
+
+### 3. Lint passou limpo
+
+```text
+npm run lint
+> eslint src/**/*.ts
+```
+
+Sem warnings e sem errors. Esse bloqueador foi resolvido.
+
+### 4. `QwenIntegrationRunner` melhorou
+
+Agora tem:
+
+```ts
+private repository: SQLiteRepository | null = null;
+private orchestrator: Orchestrator | null = null;
+```
+
+E guards:
+
+```ts
+getRepository()
+getOrchestrator()
+```
+
+Também removeu o `null as any`.
+
+### 5. Cleanup agora parece correto
+
+A estrutura atual com:
+
+```ts
+let errorOccurred = false;
+
+try {
+  this.initializeResources(options);
+  ...
+} catch (error) {
+  errorOccurred = true;
+  ...
+} finally {
+  const preserve = errorOccurred && (options?.preserveOnError ?? false);
+  this.cleanup(preserve);
+}
+```
+
+resolve os problemas anteriores:
+
+- cobre `initializeResources`;
+- cobre criação do `worktreePath`;
+- cobre retorno antecipado `NORMAL_CHAT`;
+- limpa em `APPROVED`, `BLOCKED`, `RETRYABLE`, `NORMAL_CHAT`;
+- só preserva em exceção real com `preserveOnError: true`.
+
+Isso está bom.
+
+### 6. PreToolUse está aceitável para a Fase 13
+
+Saiu do `includes('worktree')` e usa:
+
+```ts
+path.resolve(...)
+path.relative(...)
+```
+
+Com testes para:
+
+- sem `allowedRoot`;
+- dentro do root;
+- fora do root;
+- path falso contendo `worktree`.
+
+Bom para esta fase controlada.
+
+---
+
+## Bloqueador restante — documentação com número errado
+
+O terminal final diz:
+
+```text
+Tests 200 passed
+tests/qwen-e2e.test.ts (22)
+```
+
+Mas a documentação ainda mostra:
+
+### `docs/CURRENT_STATE.md`
+
+```text
+198 testes ativos
+```
+
+e:
+
+```text
+qwen-e2e.test.ts | 20 testes
+```
+
+### `.humano`
+
+```text
+CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA (198 testes totais)
+```
+
+e também fala:
+
+```text
+qwen-e2e.test.ts com 20 testes
+```
+
+### `docs/phase_13_resumo.md`
+
+Também fala:
+
+```text
+qwen-e2e.test.ts contém 20 testes
+```
+
+Mas o real agora é:
+
+```text
+200 testes totais
+22 testes em qwen-e2e.test.ts
+```
+
+Esse é o único ponto que impede a aprovação.
+
+---
+
+## Observação sobre os links estranhos
+
+Eu vi vários trechos renderizados como:
+
+```text
+[SKILL.md](http://SKILL.md)
+[Date.now](http://Date.now)
+[n.id](http://n.id)
+```
+
+Mas o comando de busca retornou:
+
+```text
+OK: nenhum padrão proibido encontrado.
+```
+
+Então vou tratar isso como artefato de renderização do chat, não como problema real no arquivo.
+
+---
+
+## Mensagem curta para o executor
+
+Pode mandar isso:
+
+```text
+A Fase 13 está tecnicamente pronta, mas ainda não está aprovada por inconsistência documental.
+
+Não avance para a Fase 14.
+
+Corrija somente a documentação viva para refletir o terminal final:
+
+- Total real da suíte: 200 testes
+- qwen-e2e.test.ts: 22 testes
+
+Atualize pelo menos:
+
+1. docs/CURRENT_STATE.md
+   - Trocar 198 por 200
+   - Trocar 20 testes E2E por 22 testes E2E
+
+2. .humano
+   - Trocar “198 testes totais” por “200 testes totais”
+   - Trocar “20 testes” por “22 testes”
+
+3. docs/phase_13_resumo.md
+   - Trocar “20 testes” por “22 testes”
+   - Manter status como “CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA”
+
+Opcionalmente corrigir também a frase:
+- `path.resolvepath.relative`
+para:
+- `path.resolve` + `path.relative`
+
+Depois rode:
+
+npm test
+npm run build
+npm run lint
+
+Entregue apenas:
+- trechos corrigidos da documentação
+- saída final de npm

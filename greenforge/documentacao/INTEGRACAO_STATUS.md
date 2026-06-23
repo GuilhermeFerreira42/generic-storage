@@ -1,83 +1,75 @@
-# Status de Integração GreenForge × Qwen CLI
+# INTEGRAÇÃO_STATUS — GreenForge
 
-**Última atualização:** 2026-06-23
-**Versão do Qwen CLI:** v0.4+
-**Node.js mínimo:** v22+
+## Status Geral
+- **Fase 13 — Qwen Integration E2E Controlada:** ✅ CONCLUÍDA e APROVADA.
+    - **Melhorias:**
+        - `QwenIntegrationRunner`: Limpeza garantida de recursos temporários (diretório e DB) em caso de sucesso ou falha.
+        - `HookSimulator`: Validação robusta de `PreToolUse` para operações de escrita, usando `path.resolve` e `path.relative` para garantir que o caminho alvo esteja dentro de um `allowedRoot` explícito, prevenindo Path Traversal.
+        - `qwen-e2e.test.ts`: Testes atualizados para cobrir os novos cenários de segurança e limpeza, totalizando 18 testes.
+    - **Próxima Fase:** Fase 14 — Qwen CLI Extension (Real).
 
-## Componentes de Integração
+## Detalhes das Fases
+### Fase 1 — Intention Router
+- **Status:** ✅ CONCLUÍDA
+- **Descrição:** Implementação do `QwenRouter` para classificar a intenção do usuário (tarefa de desenvolvimento vs. chat normal).
+- **Arquivos Chave:** `src/infrastructure/llm/QwenRouter.ts`
 
-| Componente | Mecanismo | Status | Arquivo de Referência | Observações |
-|---|---|---|---|---|
-| Inicialização | SessionStart hook | ✅ Implementado | `src/integration/qwen/HookSimulator.ts` | Substitui activate() |
-| Shutdown | SessionEnd hook | ✅ Implementado | `src/integration/qwen/HookSimulator.ts` | Substitui deactivate() |
-| Interceptação de prompt | UserPromptSubmit hook | ✅ Implementado | `src/integration/qwen/HookSimulator.ts` | Substitui onMessage() |
-| Validação de ferramentas | PreToolUse hook | ✅ Implementado | `src/integration/qwen/HookSimulator.ts` | Substitui onToolCall() |
-| Sync de estado | PreToolUse + PostToolUse | ✅ Implementado | `src/integration/qwen/HookSimulator.ts` | Workaround para onStateChange ausente |
-| Ferramentas dinâmicas | MCP Server :7777 | ✅ Implementado | `src/infrastructure/mcp/MockMcpClient.ts` | Substitui registerTool() |
-| Comandos slash | SKILL.md manifest | ✅ Implementado | `SKILL.md` | Substitui comandos slash Gemini |
-| Controle de subagentes | SubagentStart/Stop hooks | ✅ Especificado | `06-api-and-extensibility.md` | NOVO — nativo no Qwen |
-| Persistência global | SQLite (mantido) | ✅ Implementado | `src/infrastructure/db/SQLiteRepository.ts` | globalState → SQLite direto |
-| Persistência workspace | SQLite (mantido) | ✅ Implementado | `src/infrastructure/db/SQLiteRepository.ts` | workspaceState → SQLite direto |
+### Fase 2 — Worktree Manager
+- **Status:** ✅ CONCLUÍDA
+- **Descrição:** Gerenciamento de worktrees Git para isolamento físico de cada tarefa.
+- **Arquivos Chave:** `src/infrastructure/git/WorktreeManager.ts`
 
-## Dívidas Técnicas Herdadas
+### Fase 3 — Segurança de Path
+- **Status:** ✅ CONCLUÍDA
+- **Descrição:** Implementação de `SafeResolve` para prevenir ataques de Path Traversal.
+- **Arquivos Chave:** `src/shared/SafeResolve.ts`
 
-1. **MockQwenHookRunner** → **RESOLVIDO** ✅
-   - **Referência:** `03-technical-spec-and-data.md` (§7)
-   - **Status:** **Concluído** — Substituído por `HookSimulator` + `QwenIntegrationRunner` com integração real aos componentes core.
-   - **Implementação:** `src/integration/qwen/HookSimulator.ts`, `src/integration/qwen/QwenIntegrationRunner.ts`
+### Fase 4 — Persistence Layer
+- **Status:** ✅ CONCLUÍDA
+- **Descrição:** Camada de persistência usando SQLite para armazenar dados de tarefas e checkpoints.
+- **Arquivos Chave:** `src/infrastructure/db/SQLiteRepository.ts`
 
-2. **Error Handling MCP Server** → **RESOLVIDO** ✅
-   - **Referência:** `06-api-and-extensibility.md` (§3)
-   - **Status:** **Concluído** — `MockMcpClient` retorna formato padronizado `{ ok: boolean, content: any, error?: { code: string, message: string, retryable: boolean } }`.
-   - **Implementação:** `src/infrastructure/mcp/MockMcpClient.ts`
+### Fase 5 — Planner Engine
+- **Status:** ✅ CONCLUÍDA
+- **Descrição:** Motor de planejamento que gera planos de execução estruturados para as tarefas.
+- **Arquivos Chave:** `src/core/PlannerEngine.ts`
 
-3. **onStateChange Workaround** → **RESOLVIDO** ✅
-   - **Referência:** `GREENFORGE_DESIGN.md` (§3.4)
-   - **Status:** **Concluído** — Implementado via `PreToolUse` + `PostToolUse` hooks com checkpoint registration.
-   - **Implementação:** `src/integration/qwen/HookSimulator.ts`
+### Fase 6 — Orchestrator
+- **Status:** ✅ CONCLUÍDA
+- **Descrição:** Orquestrador baseado em máquina de estados para gerenciar o ciclo de vida das tarefas.
+- **Arquivos Chave:** `src/core/Orchestrator.ts`
 
-## Novos Componentes Implementados
+### Fase 7 — MCP Base Integration
+- **Status:** ✅ CONCLUÍDA
+- **Descrição:** Interface de porta para integração com o Model Context Protocol (MCP).
+- **Arquivos Chave:** `src/core/ports/McpClientPort.ts`
 
-| Componente | Arquivo | Descrição |
-|---|---|---|
-| QwenRouter | `src/infrastructure/llm/QwenRouter.ts` | Roteamento de intenção (NORMAL_CHAT vs DEVELOPMENT_TASK) |
-| PlannerEngine | `src/core/PlannerEngine.ts` | Geração e validação de planos (Zod + DAG) |
-| Orchestrator | `src/core/Orchestrator.ts` | Máquina de estados da tarefa |
-| CoderAgent | `src/core/agents/CoderAgent.ts` | Agente de escrita de código |
-| TesterAgent | `src/core/agents/TesterAgent.ts` | Agente de testes |
-| ReviewerAgent | `src/core/agents/ReviewerAgent.ts` | Agente de revisão |
-| JoinGate | `src/core/JoinGate.ts` | Consolidação de resultados paralelos |
-| DiffLens | `src/core/DiffLens.ts` | Auditoria de diffs e relatórios |
-| Verifier | `src/core/Verifier.ts` | Verificação final (testes + lint + diff) |
-| SQLiteRepository | `src/infrastructure/db/SQLiteRepository.ts` | Persistência transacional |
-| QwenIntegrationRunner | `src/integration/qwen/QwenIntegrationRunner.ts` | Orquestrador E2E completo |
+### Fase 8 — Agentes Especialistas
+- **Status:** ✅ CONCLUÍDA
+- **Descrição:** Implementação de agentes especializados (Coder, Tester, Reviewer) para executar subtarefas.
+- **Arquivos Chave:** `src/core/agents/`
 
-## Testes E2E
+### Fase 9 — Join Gate
+- **Status:** ✅ CONCLUÍDA
+- **Descrição:** Componente para sincronizar e validar os resultados das subtarefas.
+- **Arquivos Chave:** `src/core/JoinGate.ts`
 
-| Teste | Status | Arquivo |
-|---|---|---|
-| 1. loads manifest and settings | ✅ Pass | `tests/qwen-e2e.test.ts` |
-| 2. SessionStart returns ok | ✅ Pass | `tests/qwen-e2e.test.ts` |
-| 3. UserPromptSubmit normal chat returns NOOP | ✅ Pass | `tests/qwen-e2e.test.ts` |
-| 4. UserPromptSubmit development task starts controlled flow | ✅ Pass | `tests/qwen-e2e.test.ts` |
-| 5. PreToolUse blocks unsafe write outside worktree | ✅ Pass | `tests/qwen-e2e.test.ts` |
-| 6. PreToolUse allows safe operation inside worktree | ✅ Pass | `tests/qwen-e2e.test.ts` |
-| 7. PostToolUse registers checkpoint | ✅ Pass | `tests/qwen-e2e.test.ts` |
-| 8. SessionEnd returns ok | ✅ Pass | `tests/qwen-e2e.test.ts` |
-| 9. full E2E minimum flow reaches APPROVED | ✅ Pass | `tests/qwen-e2e.test.ts` |
-| 10. E2E with HIGH risk DiffLens reaches BLOCKED | ✅ Pass | `tests/qwen-e2e.test.ts` |
-| 11. E2E with lint/test failure reaches RETRYABLE | ✅ Pass | `tests/qwen-e2e.test.ts` |
-| 12-16. never calls real Qwen / network / LLM / merge / push | ✅ Pass | `tests/qwen-e2e.test.ts` |
+### Fase 10 — DiffLens Engine
+- **Status:** ✅ CONCLUÍDA
+- **Descrição:** Motor de auditoria para analisar artefatos e gerar relatórios de risco.
+- **Arquivos Chave:** `src/core/DiffLens.ts`
 
-**Total: 190 testes passando** (14 arquivos de teste)
+### Fase 11 — Verifier
+- **Status:** ✅ CONCLUÍDA
+- **Descrição:** Componente final de verificação que consolida todos os sinais técnicos e gera o veredito da tarefa.
+- **Arquivos Chave:** `src/core/Verifier.ts`
 
-## Variáveis de Ambiente
+### Fase 12 — Qwen Integration Base
+- **Status:** ✅ CONCLUÍDA
+- **Descrição:** Definição de schemas Zod para validação estática de manifestos e configurações da extensão Qwen.
+- **Arquivos Chave:** `src/integration/qwen/manifestSchemas.ts`
 
-| Variável | Obrigatória | Descrição |
-|---|---|---|
-| QWEN_API_KEY | ✅ | Chave de API do Qwen |
-| GF_WORKTREE_ROOT | ❌ | Raiz dos worktrees (default: .git/greenforge-worktrees) |
-| GF_MAX_PARALLEL | ❌ | Máximo de tarefas simultâneas (default: 3) |
-| GF_DB_PATH | ❌ | Caminho do SQLite (default: ~/.greenforge/greenforge.db) |
-| GF_MCP_PORT | ❌ | Porta do MCP Server (default: 7777) |
-| GF_LOG_LEVEL | ❌ | Nível de log: debug, info, warn, error (default: info) |
+### Fase 13 — Qwen Integration E2E Controlada
+- **Status:** ✅ CONCLUÍDA
+- **Descrição:** Implementação de um simulador de hooks Qwen e um runner de integração E2E totalmente controlado, sem dependências externas reais.
+- **Arquivos Chave:** `src/integration/qwen/HookSimulator.ts`, `src/integration/qwen/QwenIntegrationRunner.ts`, `tests/qwen-e2e.test.ts`

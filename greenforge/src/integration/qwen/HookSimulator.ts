@@ -5,6 +5,7 @@ import {
 } from './types.js';
 import { QwenRouter } from '../../infrastructure/llm/QwenRouter.js';
 import { LLMProvider } from '../../core/ports/LLMProvider.js';
+import path from 'path';
 
   /**
    * Mock LLM Provider for controlled E2E testing.
@@ -119,13 +120,24 @@ export class HookSimulator {
   private handlePreToolUse(payload: Record<string, unknown>): HookSimulationResult {
     const tool = (payload.tool as string) || '';
     const targetPath = (payload.path as string) || '';
+    const allowedRoot = (payload.allowedRoot as string) || (payload.worktreeRoot as string) || '';
 
-    // Simulate worktree boundary check
-    const isInsideWorktree = targetPath.includes('/tmp/greenforge-worktree-') || targetPath.includes('worktree');
+    // Sensitive tools that modify filesystem
+    const sensitiveTools = ['WriteFile', 'Edit', 'MultiEdit', 'Write', 'Bash'];
 
-    if (tool === 'WriteFile' || tool === 'Edit') {
-      if (!isInsideWorktree) {
-        return { ok: true, event: 'PreToolUse', action: 'BLOCK', reason: 'Write outside worktree forbidden' };
+    if (sensitiveTools.includes(tool)) {
+      // Require allowedRoot for sensitive operations
+      if (!allowedRoot) {
+        return { ok: true, event: 'PreToolUse', action: 'BLOCK', reason: 'Missing allowedRoot for sensitive operation' };
+      }
+
+      // Validate target path is inside allowedRoot using path.resolve + path.relative
+      const resolvedTarget = path.resolve(allowedRoot, targetPath);
+      const relative = path.relative(allowedRoot, resolvedTarget);
+      const isInside = relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
+
+      if (!isInside) {
+        return { ok: true, event: 'PreToolUse', action: 'BLOCK', reason: 'Write outside allowedRoot forbidden' };
       }
     }
 

@@ -1,0 +1,282 @@
+## Veredito
+
+**Ainda não aprovo a Fase 13.**
+
+Evidências boas:
+
+- `npm test`: passou.
+- 14 arquivos de teste.
+- 198 testes passando.
+- `npm run build`: passou.
+- `PreToolUse` melhorou bastante: saiu do `includes('worktree')` e passou a usar `path.resolve` + `path.relative`.
+
+Mas ainda existem bloqueadores.
+
+---
+
+## Bloqueador 1 — lint não passou limpo
+
+O critério é zero warnings.
+
+Hoje ainda tem:
+
+```text
+QwenIntegrationRunner.ts
+96:31  warning  Unexpected any
+97:33  warning  Unexpected any
+```
+
+Esse trecho precisa sair:
+
+```ts
+this.repository = null as any;
+this.orchestrator = null as any;
+```
+
+Correção aceitável:
+
+```ts
+private repository: SQLiteRepository | null = null;
+private orchestrator: Orchestrator | null = null;
+```
+
+E depois usar guards ou helpers internos para garantir que foram inicializados.
+
+---
+
+## Bloqueador 2 — cleanup ainda está incompleto
+
+O executor corrigiu o cleanup no caminho principal de sucesso, mas ainda tem falhas.
+
+### Problema A: `initializeResources()` está fora do `try`
+
+Hoje está assim:
+
+```ts
+this.initializeResources(options);
+
+const worktreePath = join(this.tempDir, taskId);
+mkdirSync(worktreePath, { recursive: true });
+
+try {
+  ...
+}
+```
+
+Se `initializeResources()` ou `mkdirSync(worktreePath)` falhar, o `catch` não pega e o cleanup não roda.
+
+O `try/finally` precisa envolver também a inicialização dos recursos.
+
+---
+
+### Problema B: `NORMAL_CHAT` ainda retorna antes do cleanup
+
+Dentro do `try`, existe este retorno antecipado:
+
+```ts
+if (submitResult.action === 'NOOP' || options?.scenario === 'NORMAL_CHAT') {
+  return this.createResult(taskId, 'BLOCKED', 0, false, 'NORMAL_CHAT');
+}
+```
+
+Esse retorno pula o cleanup atual.
+
+Então se rodar `NORMAL_CHAT` com `tempDir`, o diretório provavelmente fica sobrando.
+
+Precisa ter teste para isso.
+
+---
+
+### Problema C: `preserveOnError` está sendo aplicado no sucesso
+
+No sucesso, o código faz:
+
+```ts
+this.cleanup(options?.preserveOnError ?? false);
+```
+
+Isso é errado semanticamente.
+
+`preserveOnError` só deveria preservar em caso de **erro real**, não em qualquer resultado.
+
+Exemplo: `HIGH_RISK` retorna `BLOCKED`, mas isso é um resultado controlado do Verifier, não uma exceção.
+
+Então este teste está enganoso:
+
+```ts
+it('18. temporary directory is preserved on error when preserveOnError is true', async () => {
+  const tempDir = join(tmpdir(), `greenforge-e2e-test-${Date.now()}`);
+
+  try {
+    await runner.runE2E('Create a new login page', { tempDir, scenario: 'HIGH_RISK', preserveOnError: true });
+  } catch {
+    // Expected to fail
+  }
+
+  expect(existsSync(tempDir)).toBe(true);
+});
+```
+
+`HIGH_RISK` não joga exceção. Ele retorna `BLOCKED`.
+
+Esse teste passa justamente porque o cleanup está errado: ele preserva o diretório em sucesso controlado quando `preserveOnError: true`.
+
+---
+
+## Bloqueador 3 — documentação continua overclaim/stale
+
+Está errado declarar Fase 13 aprovada antes da aprovação humana.
+
+Problemas vistos:
+
+### `.humano`
+
+Ainda diz:
+
+```text
+Status: CONCLUÍDA E VALIDADA (190 testes totais)
+```
+
+Mas o terminal mostrou:
+
+```text
+198 passed
+```
+
+E ainda fala 12 testes, mas agora `qwen-e2e.test.ts` tem 20.
+
+---
+
+### `docs/CURRENT_STATE.md`
+
+Diz:
+
+```text
+194 testes ativos
+```
+
+Mas o terminal mostrou 198.
+
+Também diz:
+
+```text
+Qwen Integration (E2E) ... 18 testes
+```
+
+Mas o arquivo atual tem 20 testes.
+
+---
+
+### `docs/phase_13_resumo.md`
+
+Diz:
+
+```text
+A Fase 13 está aprovada.
+```
+
+Não pode.
+
+Status correto por enquanto:
+
+```text
+Fase 13 concluída aguardando aprovação humana.
+```
+
+---
+
+## Observação menor
+
+Este comentário no teste:
+
+```ts
+// No child_process, no network calls in the simulator/runner
+```
+
+gera falso positivo no comando de busca:
+
+```text
+tests\qwen-e2e.test.ts:148: // No child_process...
+```
+
+Não é chamada real, então não reprova sozinho. Mas eu pediria para remover ou reescrever o comentário para não poluir a validação automática.
+
+Exemplo:
+
+```ts
+// O runner usa mocks locais e não aciona processos externos ou rede.
+```
+
+---
+
+## Mensagem para passar ao executor
+
+```text
+A Fase 13 ainda não está aprovada. Não avance para a Fase 14.
+
+Corrija somente os pontos abaixo:
+
+1. Lint
+
+- Remova os dois `null as any` em `QwenIntegrationRunner.ts`.
+- Tipar corretamente:
+  - `private repository: SQLiteRepository | null = null`
+  - `private orchestrator: Orchestrator | null = null`
+- Ajuste os usos com guards/helpers internos.
+- `npm run lint` precisa passar com 0 errors e 0 warnings.
+
+2. Cleanup robusto
+
+O cleanup ainda não cobre todos os caminhos.
+
+Corrija `runE2E` para usar `try/catch/finally` envolvendo também:
+
+- `initializeResources(options)`
+- criação do `worktreePath`
+- retornos antecipados como `NORMAL_CHAT`
+
+Regra correta:
+
+- Em sucesso, sempre remover `tempDir`, mesmo se `preserveOnError: true`.
+- Em resultado controlado `BLOCKED` ou `RETRYABLE`, também remover `tempDir`.
+- Preservar `tempDir` somente se ocorrer exceção real e `preserveOnError === true`.
+- Em erro real sem `preserveOnError`, remover `tempDir`.
+
+3. Testes de cleanup
+
+Adicione/corrija testes para provar:
+
+- fluxo `APPROVED` remove `tempDir`;
+- fluxo `NORMAL_CHAT` remove `tempDir`;
+- fluxo `HIGH_RISK`/`BLOCKED` controlado remove `tempDir`, mesmo se `preserveOnError: true`;
+- remova ou corrija o teste atual que usa `HIGH_RISK` como se fosse erro/exceção.
+
+4. Documentação
+
+Atualize:
+
+- `.humano`
+- `docs/CURRENT_STATE.md`
+- `docs/phase_13_resumo.md`
+- `docs/BACKLOG_FUTURO.md`, se tiver status da fase
+- `docs/DECISION_LOG.md`, se tiver contagem incorreta
+
+Corrigir para:
+
+- total real: 198 testes, ou novo total final após a correção;
+- `qwen-e2e.test.ts`: 20 testes, ou novo total final após a correção;
+- status: “concluída aguardando aprovação humana”;
+- não escrever “aprovada”, “validada” ou “pronta para Fase 14” antes da aprovação humana.
+
+5. Remover falso positivo
+
+Reescreva o comentário que contém `child_process` em `tests/qwen-e2e.test.ts`, para o comando de busca não acusar falso positivo.
+
+Depois rode:
+
+npm test
+npm run build
+npm run lint
+
+Entregue a saída completa do terminal.
+```
