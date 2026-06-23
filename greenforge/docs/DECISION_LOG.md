@@ -56,3 +56,10 @@ F11 | RULE | Consistência de taskId | O Verifier rejeita execuções caso input
 F12 | ADD | Qwen static configuration schemas | Schemas Zod de validação síncrona para manifesto e settings | `src/integration/qwen/manifestSchemas.ts`
 F12 | CFG | Configuração declarativa da extensão | Definição de skills, hooks locais e comandos da extensão | `qwen-extension.json`, `.qwen/settings.json`, `.qwen/skills/greenforge/SKILL.md`
 
+### Fase 13 — Qwen Integration E2E Controlada
+F13 | ADD | HookSimulator | Simulador de eventos de hooks Qwen (SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, SessionEnd) | `src/integration/qwen/HookSimulator.ts`
+F13 | ADD | QwenIntegrationRunner | Orquestrador de fluxo E2E simulado conectando hooks ao core via mocks | `src/integration/qwen/QwenIntegrationRunner.ts`
+F13 | ADD | Qwen E2E Types | Contratos Zod para HookSimulationInput, HookSimulationResult, QwenE2EResult | `src/integration/qwen/types.ts`
+F13 | ADD | Qwen E2E Tests | Testes de integração controlada cobrindo 16 cenários obrigatórios | `tests/qwen-e2e.test.ts`
+F13 | RULE | Isolamento Total de Testes E2E | Nenhum teste chama Qwen real, MCP real, LLM real, rede, merge ou push | `tests/qwen-e2e.test.ts`
+F13 | RULE | Mock-First Architecture | Uso de mocks, fakes e diretórios temporários para todos os componentes core | `src/integration/qwen/QwenIntegrationRunner.ts`

@@ -1,0 +1,296 @@
+# TAREFA 26 — Fase 13: Qwen Integration E2E Controlada
+
+Você está assumindo o projeto GreenForge após a validação de sanidade do projeto restaurado.
+
+A Tarefa 25 confirmou:
+
+- projeto restaurado corretamente
+- dependências instaladas
+- nenhum path ou URL malformado em markdown
+- `npm test` passando com 178 testes
+- `npm run build` passando
+- `npm run lint` passando
+- última fase concluída: Fase 12 — Qwen Integration Base
+- próxima fase: Fase 13
+
+## Objetivo
+
+Implementar a Fase 13 — Qwen Integration E2E Controlada.
+
+Esta fase deve validar o fluxo de integração de ponta a ponta de forma simulada e segura, sem executar Qwen CLI real, sem servidor MCP real, sem rede externa, sem LLM real, sem merge, sem push e sem publicação de extensão.
+
+O objetivo é provar que os artefatos de integração da Fase 12 conseguem se conectar ao core já implementado do GreenForge em um fluxo controlado.
+
+## Antes de implementar
+
+Leia nesta ordem:
+
+1. `.ai-context`
+2. `docs/CURRENT_STATE.md`
+3. `docs/BACKLOG_FUTURO.md`
+4. `docs/DECISION_LOG.md`
+5. `documentacao/000_ler_primeiro_CONTEXT_TRANSFER.md`
+6. `documentacao/GREENFORGE_DESIGN.md`
+7. `documentacao/06-api-and-extensibility.md`
+8. `documentacao/INTEGRACAO_STATUS.md`
+
+## Regras obrigatórias
+
+- Execute apenas a Fase 13.
+- Use TDD estrito: primeiro testes, depois implementação.
+- Não avance para a próxima fase.
+- Não publique extensão.
+- Não execute sessão real do Qwen CLI.
+- Não chame servidor MCP real.
+- Não chame LLM real.
+- Não use rede.
+- Não faça merge.
+- Não faça push.
+- Não use repositório real do usuário em testes E2E.
+- Use mocks, fakes e diretórios temporários.
+- Se precisar de Git real, use repositório temporário criado pelo teste.
+- Não use `child_process.exec`.
+- Não use `shell: true`.
+- Não altere módulos core aprovados, exceto se for necessário para exportar entrypoints de integração de forma compatível.
+- Não transforme paths, nomes de arquivos ou URLs em links markdown.
+
+## Escopo permitido
+
+Criar uma camada de integração controlada para simular eventos do Qwen CLI:
+
+- `SessionStart`
+- `UserPromptSubmit`
+- `PreToolUse`
+- `PostToolUse`
+- `SessionEnd`
+
+A implementação deve carregar/usar os artefatos estáticos já validados:
+
+- `qwen-extension.json`
+- `.qwen/settings.json`
+- `.qwen/skills/greenforge/SKILL.md`
+
+E deve conectar esses eventos simulados aos componentes já existentes do GreenForge, usando mocks quando necessário:
+
+- `QwenRouter`
+- `PlannerEngine`
+- `SQLiteRepository`
+- `WorktreeManager`
+- `Orchestrator`
+- `MockMcpClient`
+- agentes especialistas
+- `JoinGate`
+- `DiffLens`
+- `Verifier`
+
+## Arquivos esperados
+
+Crie arquivos com nomes claros, por exemplo:
+
+- `src/integration/qwen/HookSimulator.ts`
+- `src/integration/qwen/QwenIntegrationRunner.ts`
+- `src/integration/qwen/types.ts`, se necessário
+- `tests/qwen-e2e.test.ts`
+- `docs/phase_13_resumo.md`
+
+Os nomes podem variar se houver uma justificativa técnica, mas mantenha a estrutura dentro de `src/integration/qwen/`.
+
+## Contratos sugeridos
+
+### HookEvent
+
+```ts
+type HookEvent =
+  | 'SessionStart'
+  | 'SessionEnd'
+  | 'UserPromptSubmit'
+  | 'PreToolUse'
+  | 'PostToolUse'
+```
+
+### HookSimulationInput
+
+```ts
+interface HookSimulationInput {
+  event: HookEvent
+  payload: Record<string, unknown>
+}
+```
+
+### HookSimulationResult
+
+```ts
+interface HookSimulationResult {
+  ok: boolean
+  event: HookEvent
+  action: 'ALLOW' | 'BLOCK' | 'NOOP'
+  reason: string
+  metadata?: Record<string, unknown>
+}
+```
+
+### QwenE2EResult
+
+```ts
+interface QwenE2EResult {
+  taskId: string
+  finalStatus: 'APPROVED' | 'BLOCKED' | 'RETRYABLE'
+  checkpoints: number
+  auditReportGenerated: boolean
+  verificationStatus: string
+}
+```
+
+Use Zod ou validação equivalente para inputs e outputs públicos.
+
+## Comportamento esperado
+
+### SessionStart
+Deve simular inicialização segura do GreenForge.
+Critérios:
+- Não deve chamar Qwen real.
+- Não deve chamar rede.
+- Deve retornar `ok: true`.
+- Deve validar que settings/manifesto existem.
+
+### UserPromptSubmit
+Deve simular recebimento de prompt técnico.
+Critérios:
+- Usar Router mockado ou LLMProvider mockado.
+- Se classificar como `DEVELOPMENT_TASK`, deve iniciar fluxo controlado.
+- Se classificar como `NORMAL_CHAT`, deve retornar `NOOP`.
+
+### PreToolUse
+Deve simular validação de ferramenta sensível.
+Critérios:
+- Deve bloquear tentativa de escrita fora do worktree.
+- Deve permitir operação segura dentro do worktree.
+- Deve usar SafeResolve ou lógica já aprovada.
+
+### PostToolUse
+Deve simular sincronização pós-ferramenta.
+Critérios:
+- Deve registrar checkpoint ou metadata simulada.
+- Não deve chamar ferramenta real.
+
+### SessionEnd
+Deve simular encerramento seguro.
+Critérios:
+- Deve retornar `ok: true`.
+- Deve simular cleanup sem apagar recursos reais fora do escopo temporário.
+
+## Fluxo E2E mínimo
+
+Crie um teste de fluxo completo simulando:
+
+1. SessionStart
+2. UserPromptSubmit com prompt técnico
+3. Router retorna `DEVELOPMENT_TASK`
+4. Task é criada em SQLite temporário
+5. Planner gera plano mockado válido
+6. Plano é aprovado
+7. Orchestrator transita para execução
+8. Agentes mockados produzem artifacts
+9. JoinGate consolida artifacts
+10. DiffLens gera relatório
+11. Verifier aprova
+12. SessionEnd executa cleanup simulado
+
+Tudo deve ocorrer sem Qwen real, sem MCP real, sem LLM real, sem rede e sem repositório real do usuário.
+
+## Testes mínimos esperados
+
+Crie `tests/qwen-e2e.test.ts` cobrindo pelo menos:
+
+1. carrega manifesto e settings previamente validados.
+2. SessionStart simulado retorna ok.
+3. UserPromptSubmit com chat normal retorna NOOP.
+4. UserPromptSubmit com tarefa técnica inicia fluxo controlado.
+5. PreToolUse bloqueia operação insegura fora do worktree.
+6. PreToolUse permite operação segura dentro do worktree.
+7. PostToolUse registra checkpoint ou metadata simulada.
+8. SessionEnd simulado retorna ok.
+9. fluxo E2E mínimo chega a `APPROVED`.
+10. fluxo E2E com DiffLens HIGH risk chega a `BLOCKED`.
+11. fluxo E2E com teste/lint falhando chega a `RETRYABLE`.
+12. nenhum teste chama Qwen CLI real.
+13. nenhum teste chama rede real.
+14. nenhum teste chama LLM real.
+15. nenhum teste faz merge/push.
+16. recursos temporários são limpos.
+
+## Validações finais obrigatórias
+
+Ao terminar, rode:
+
+```powershell
+npm test
+npm run build
+npm run lint
+```
+
+Todos devem passar.
+
+Também rode busca por padrões malformados:
+
+```powershell
+$files = Get-ChildItem ".\qwen-extension.json", ".\.qwen", ".\src", ".\tests", ".\docs", ".\.humano" -Recurse -File -ErrorAction SilentlyContinue |
+  Where-Object {
+    $_.FullName -notmatch "\\node_modules\\" -and
+    $_.FullName -notmatch "\\dist\\" -and
+    $_.FullName -notmatch "\\build\\" -and
+    $_.FullName -notmatch "\\coverage\\" -and
+    $_.FullName -notmatch "\\\.git\\"
+  }
+
+$patterns = @(
+  "[[SKILL.md](http://SKILL.md)]",
+  "[http://",
+  "[https://",
+  "](http",
+  "](https",
+  "(http://",
+  "(https://",
+  "GREENFORGE_[AUDIT"
+)
+
+foreach ($pattern in $patterns) {
+  $files | Select-String -SimpleMatch $pattern -ErrorAction SilentlyContinue
+}
+```
+
+O resultado deve ser vazio.
+
+## Atualização da documentação viva
+
+Atualize:
+
+- `docs/CURRENT_STATE.md`
+- `docs/BACKLOG_FUTURO.md`
+- `docs/DECISION_LOG.md`
+- `.humano`
+- `docs/phase_13_resumo.md`
+
+## Relatório final obrigatório
+
+Ao final, entregue relatório em português brasileiro contendo:
+
+- fase executada
+- arquivos criados
+- arquivos modificados
+- número de testes adicionados
+- eventos Qwen simulados
+- resultado do fluxo E2E mínimo
+- confirmação de que não houve Qwen real
+- confirmação de que não houve MCP real
+- confirmação de que não houve LLM real
+- confirmação de que não houve rede
+- confirmação de que não houve merge/push
+- resultado de `npm test`
+- resultado de `npm run build`
+- resultado de `npm run lint`
+- resultado da busca por padrões malformados
+- riscos conhecidos
+- confirmação de que parou aguardando aprovação humana
+
+Não avance para a próxima fase.

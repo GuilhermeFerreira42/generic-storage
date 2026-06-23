@@ -1,0 +1,114 @@
+A implementação atual da Fase 13 está reprovada.
+
+Não confie no relatório anterior.
+
+O código atual de `QwenIntegrationRunner.ts` está hardcoded e deve ser refeito.
+
+Problemas reais:
+- usa `as any`
+- força `const intent = 'DEVELOPMENT_TASK'`
+- retorna `finalStatus: 'APPROVED'` fixo
+- retorna `checkpoints: 2` fixo
+- retorna `auditReportGenerated: true` fixo
+- não usa PlannerEngine, SQLiteRepository, Orchestrator, MockMcpClient, agentes, JoinGate, DiffLens e Verifier
+- lint ainda tem warnings
+
+Sua tarefa é substituir a Fase 13 por um E2E controlado real usando os componentes reais do core, com mocks apenas nas bordas.
+
+Não altere módulos core aprovados.
+
+Implemente somente nos arquivos:
+- `src/integration/qwen/types.ts`
+- `src/integration/qwen/HookSimulator.ts`
+- `src/integration/qwen/QwenIntegrationRunner.ts`
+- `tests/qwen-e2e.test.ts`
+- documentação viva
+
+O runner deve usar:
+- QwenRouter real com LLMProvider mockado
+- PlannerEngine real com LLMProvider mockado
+- SQLiteRepository real com banco temporário e `initialize()`
+- Orchestrator real
+- MockMcpClient real
+- CoderAgent real
+- TesterAgent real
+- ReviewerAgent real
+- JoinGate real
+- DiffLens real
+- Verifier real
+
+O resultado final deve vir do Verifier.
+O número de checkpoints deve vir do SQLiteRepository.
+O auditReportGenerated deve vir da geração real do DiffLens.
+
+Não use hardcode para sucesso.
+
+Só entregue relatório quando:
+- `npm test` passar
+- `npm run build` passar
+- `npm run lint` passar sem warnings
+```
+
+
+
+PS C:\Users\Usuario\Desktop\xgeneric-storage\greenforge> Write-Host "`n===== npm test =====" -ForegroundColor Green
+
+===== npm test =====
+PS C:\Users\Usuario\Desktop\xgeneric-storage\greenforge> npm test
+
+> greenforge@1.0.0 test
+> vitest run
+
+
+ RUN  v1.6.1 C:/Users/Usuario/Desktop/xgeneric-storage/greenforge
+
+ ✓ tests/router.test.ts (13)
+ ✓ tests/security.test.ts (10)
+ ✓ tests/qwen-integration.test.ts (24)
+ ✓ tests/persistence.test.ts (9) 364ms
+ ✓ tests/orchestrator.test.ts (22) 638ms
+ ✓ tests/planner.test.ts (13)
+ ✓ tests/join-gate.test.ts (14)
+ ✓ tests/verifier.test.ts (21)
+ ✓ tests/difflens.test.ts (13)
+ ✓ tests/agents.test.ts (14)
+ ✓ tests/smoke.test.ts (1)
+ ✓ tests/worktree.test.ts (15) 6849ms
+ ✓ tests/mcp.test.ts (9)
+ ✓ tests/qwen-e2e.test.ts (12)
+
+ Test Files  14 passed (14)
+      Tests  190 passed (190)
+   Start at  10:11:37
+   Duration  8.17s (transform 1.32s, setup 2ms, collect 2.93s, tests 8.17s, environment 4ms, prepare 4.38s)
+
+PS C:\Users\Usuario\Desktop\xgeneric-storage\greenforge> 
+PS C:\Users\Usuario\Desktop\xgeneric-storage\greenforge> Write-Host "`n===== npm run build =====" -ForegroundColor Green
+
+===== npm run build =====
+PS C:\Users\Usuario\Desktop\xgeneric-storage\greenforge> npm run build
+
+> greenforge@1.0.0 build
+> tsc
+
+PS C:\Users\Usuario\Desktop\xgeneric-storage\greenforge> 
+PS C:\Users\Usuario\Desktop\xgeneric-storage\greenforge> Write-Host "`n===== npm run lint =====" -ForegroundColor Green
+
+===== npm run lint =====
+PS C:\Users\Usuario\Desktop\xgeneric-storage\greenforge> npm run lint
+
+> greenforge@1.0.0 lint
+> eslint src/**/*.ts
+
+
+C:\Users\Usuario\Desktop\xgeneric-storage\greenforge\src\integration\qwen\HookSimulator.ts
+   51:30  warning  '_payload' is defined but never used  @typescript-eslint/no-unused-vars
+   91:29  warning  '_payload' is defined but never used  @typescript-eslint/no-unused-vars
+  101:28  warning  '_payload' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\Usuario\Desktop\xgeneric-storage\greenforge\src\integration\qwen\QwenIntegrationRunner.ts
+  20:42  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+✖ 4 problems (0 errors, 4 warnings)
+
+PS C:\Users\Usuario\Desktop\xgeneric-storage\greenforge> 

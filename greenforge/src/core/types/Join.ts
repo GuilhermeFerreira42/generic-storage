@@ -8,7 +8,7 @@ import { AgentResultSchema, AgentArtifactSchema, AgentErrorSchema } from './Agen
 export const SubtaskNodeJoinSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
-  assignedAgent: z.enum(['CODER', 'TESTER', 'DOCS']).nullable(),
+  assignedAgent: z.enum(['CODER', 'TESTER', 'REVIEWER', 'DOCS']).nullable(),
   dependsOn: z.array(z.string()),
   status: z.enum(['PENDING', 'RUNNING', 'DONE', 'FAILED']),
   worktreePath: z.string().nullable(),

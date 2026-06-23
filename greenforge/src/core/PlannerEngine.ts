@@ -17,7 +17,7 @@ const ClarificationQuestionSchema = z.object({
 const SubtaskNodeSchema = z.object({
   id: z.string(),
   title: z.string(),
-  assignedAgent: z.enum(['CODER', 'TESTER', 'DOCS']).nullable(),
+  assignedAgent: z.enum(['CODER', 'TESTER', 'REVIEWER', 'DOCS']).nullable(),
   dependsOn: z.array(z.string()),
   status: z.literal('PENDING'),
   worktreePath: z.null(),

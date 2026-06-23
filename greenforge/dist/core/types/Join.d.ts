@@ -6,7 +6,7 @@ import { z } from 'zod';
 export declare const SubtaskNodeJoinSchema: z.ZodObject<{
     id: z.ZodString;
     title: z.ZodString;
-    assignedAgent: z.ZodNullable<z.ZodEnum<["CODER", "TESTER", "DOCS"]>>;
+    assignedAgent: z.ZodNullable<z.ZodEnum<["CODER", "TESTER", "REVIEWER", "DOCS"]>>;
     dependsOn: z.ZodArray<z.ZodString, "many">;
     status: z.ZodEnum<["PENDING", "RUNNING", "DONE", "FAILED"]>;
     worktreePath: z.ZodNullable<z.ZodString>;
@@ -16,7 +16,7 @@ export declare const SubtaskNodeJoinSchema: z.ZodObject<{
     worktreePath: string | null;
     id: string;
     title: string;
-    assignedAgent: "CODER" | "TESTER" | "DOCS" | null;
+    assignedAgent: "CODER" | "TESTER" | "REVIEWER" | "DOCS" | null;
     dependsOn: string[];
     artifactOutput: string | null;
 }, {
@@ -24,7 +24,7 @@ export declare const SubtaskNodeJoinSchema: z.ZodObject<{
     worktreePath: string | null;
     id: string;
     title: string;
-    assignedAgent: "CODER" | "TESTER" | "DOCS" | null;
+    assignedAgent: "CODER" | "TESTER" | "REVIEWER" | "DOCS" | null;
     dependsOn: string[];
     artifactOutput: string | null;
 }>;
@@ -33,7 +33,7 @@ export declare const JoinInputSchema: z.ZodObject<{
     subtasksGraph: z.ZodArray<z.ZodObject<{
         id: z.ZodString;
         title: z.ZodString;
-        assignedAgent: z.ZodNullable<z.ZodEnum<["CODER", "TESTER", "DOCS"]>>;
+        assignedAgent: z.ZodNullable<z.ZodEnum<["CODER", "TESTER", "REVIEWER", "DOCS"]>>;
         dependsOn: z.ZodArray<z.ZodString, "many">;
         status: z.ZodEnum<["PENDING", "RUNNING", "DONE", "FAILED"]>;
         worktreePath: z.ZodNullable<z.ZodString>;
@@ -43,7 +43,7 @@ export declare const JoinInputSchema: z.ZodObject<{
         worktreePath: string | null;
         id: string;
         title: string;
-        assignedAgent: "CODER" | "TESTER" | "DOCS" | null;
+        assignedAgent: "CODER" | "TESTER" | "REVIEWER" | "DOCS" | null;
         dependsOn: string[];
         artifactOutput: string | null;
     }, {
@@ -51,7 +51,7 @@ export declare const JoinInputSchema: z.ZodObject<{
         worktreePath: string | null;
         id: string;
         title: string;
-        assignedAgent: "CODER" | "TESTER" | "DOCS" | null;
+        assignedAgent: "CODER" | "TESTER" | "REVIEWER" | "DOCS" | null;
         dependsOn: string[];
         artifactOutput: string | null;
     }>, "many">;
@@ -132,7 +132,7 @@ export declare const JoinInputSchema: z.ZodObject<{
         worktreePath: string | null;
         id: string;
         title: string;
-        assignedAgent: "CODER" | "TESTER" | "DOCS" | null;
+        assignedAgent: "CODER" | "TESTER" | "REVIEWER" | "DOCS" | null;
         dependsOn: string[];
         artifactOutput: string | null;
     }[];
@@ -161,7 +161,7 @@ export declare const JoinInputSchema: z.ZodObject<{
         worktreePath: string | null;
         id: string;
         title: string;
-        assignedAgent: "CODER" | "TESTER" | "DOCS" | null;
+        assignedAgent: "CODER" | "TESTER" | "REVIEWER" | "DOCS" | null;
         dependsOn: string[];
         artifactOutput: string | null;
     }[];

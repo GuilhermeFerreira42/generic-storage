@@ -2,7 +2,7 @@ export type TaskStatus = 'PENDING' | 'CLARIFYING' | 'PLANNING' | 'BUILDING' | 'B
 export interface SubtaskNode {
     id: string;
     title: string;
-    assignedAgent: 'CODER' | 'TESTER' | 'DOCS' | null;
+    assignedAgent: 'CODER' | 'TESTER' | 'REVIEWER' | 'DOCS' | null;
     dependsOn: string[];
     status: 'PENDING' | 'RUNNING' | 'DONE' | 'FAILED';
     worktreePath: string | null;

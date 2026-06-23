@@ -1,5 +1,5 @@
 # CURRENT_STATE — GreenForge
-> Última atualização: Fase 12 | 2026-06-20
+> Última atualização: Fase 13 | 2026-06-23
 
 ## Arquitetura Ativa
 - **Arquitetura Hexagonal:** Desacoplamento total via portas e adaptadores.
@@ -8,6 +8,7 @@
 - **Integração Externa:** Camada MCP funcional com contratos estritos.
 - **Visualização e Auditoria:** DiffLens Engine gerando relatórios de risco e alinhamento refinados.
 - **Validação de Ciclo de Vida (Qwen CLI):** Extensão integrada estaticamente com manifesto de skills e configurações de hooks validadas via Zod.
+- **Integração E2E Controlada (Fase 13):** Simulador de hooks Qwen e runner de integração validando fluxo completo sem Qwen real, MCP real, LLM real, rede ou merge/push.
 
 ## Módulos e Contratos Vigentes
 | Módulo | Arquivo | Contrato Público | Desde |
@@ -26,6 +27,8 @@
 | `DiffLens` | `src/core/DiffLens.ts` | `generateReport(taskId, artifacts)`, `renderMarkdown(report)`, `saveAuditReport(report, root)` | Fase 10 |
 | `Verifier` | `src/core/Verifier.ts` | `verify(input: VerificationInput): Promise<VerificationResult>` | Fase 11 |
 | `ManifestSchemas` | `src/integration/qwen/manifestSchemas.ts` | `validateQwenExtensionManifest(input)`, `validateQwenSettings(input)`, `validateSkillManifest(markdown)` | Fase 12 |
+| `HookSimulator` | `src/integration/qwen/HookSimulator.ts` | `simulate(input: HookSimulationInput): Promise<HookSimulationResult>` | Fase 13 |
+| `QwenIntegrationRunner` | `src/integration/qwen/QwenIntegrationRunner.ts` | `runE2E(prompt: string): Promise<QwenE2EResult>` | Fase 13 |
 
 ## Fluxo Principal
 1. Router identifica tarefa técnica.
@@ -36,6 +39,7 @@
 6. **DiffLens Engine** analisa artefatos, valida conteúdos de revisão e gera o relatório oficial `GREENFORGE_AUDIT.md`.
 7. **Verifier** consolida todos os sinais técnicos, valida a consistência do identificador da tarefa e gera o veredito final estruturado (`APPROVED` | `BLOCKED` | `RETRYABLE`).
 8. **Qwen CLI Extension Layer** mapeia hooks locais do host e expõe comandos estáticos definidos via `SKILL.md`.
+9. **Fase 13 — E2E Controlado:** `HookSimulator` simula eventos `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `SessionEnd`; `QwenIntegrationRunner` orquestra fluxo completo simulado conectando ao core (Router, Planner, SQLite, Orchestrator, JoinGate, DiffLens, Verifier) via mocks.
 
 ## Invariantes Globais
 1. **No-Shell Policy:** `execa` sem shell.
@@ -43,19 +47,22 @@
 3. **Segurança de FS:** Acesso apenas via `SafeResolve`.
 4. **Integridade de Auditoria:** Mudanças em arquivos críticos forçam `Risk Level: HIGH`.
 5. **Contratos Blindados:** Auditoria via Zod impede geração de relatórios inconsistentes.
+6. **Isolamento de Testes E2E:** Nenhum teste E2E chama Qwen real, MCP real, LLM real, rede, merge ou push.
 
 ## Restrições Técnicas Ativas
 - **Runtime:** Node.js v24.
 - **Audit Constraints:** Alinhamento `PARTIAL` em caso de erro de parsing de revisão; `DIVERGED` em caso de violações explícitas.
 - **Extension Isolation:** Testes estáticos proíbem conexões reais a redes ou processos externos no carregamento de manifestos.
+- **E2E Isolation:** Testes E2E usam apenas mocks, fakes e diretórios temporários.
 
 ## Testes Obrigatórios
 | Suite | Arquivo | Cobertura Aproximada | Comando |
 |-------|---------|----------------------|---------|
-| Total Suíte | `tests/*.test.ts` | 178 testes ativos | `npm test` |
-| Qwen Integration | `tests/qwen-integration.test.ts` | 24 testes (Estáticos) | `npm test` |
+| Total Suíte | `tests/*.test.ts` | 190 testes ativos | `npm test` |
+| Qwen Integration (Static) | `tests/qwen-integration.test.ts` | 24 testes (Estáticos) | `npm test` |
+| Qwen Integration (E2E) | `tests/qwen-e2e.test.ts` | 12 testes (E2E Controlado) | `npm test` |
 | DiffLens | `tests/difflens.test.ts` | 13 testes (Refinados) | `npm test` |
-| Verifier | `tests/verifier.test.ts` | 15 testes (Unitários) | `npm test` |
+| Verifier | `tests/verifier.test.ts` | 21 testes (Unitários) | `npm test` |
 
 ## Dependências Externas
 | Pacote | Versão | Motivo |

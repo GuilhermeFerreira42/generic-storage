@@ -1,0 +1,218 @@
+Ainda **não aprovo a Fase 13**, mas agora ela está **bem mais perto** do que antes.
+
+Desta vez o agente realmente começou a usar componentes reais no `QwenIntegrationRunner`, como:
+
+```text
+QwenRouter
+PlannerEngine
+SQLiteRepository
+Orchestrator
+MockMcpClient
+CoderAgent
+TesterAgent
+ReviewerAgent
+JoinGate
+DiffLens
+Verifier
+```
+
+Isso é um avanço grande. Também agora:
+
+```text
+npm test passou
+npm run build passou
+npm run lint passou sem warnings
+```
+
+Mas ainda existem problemas importantes de qualidade do E2E.
+
+O principal problema é que os testes ainda não provam o que dizem provar. Por exemplo, o teste de HIGH risk ainda está assim:
+
+```ts
+it('10. E2E with HIGH risk DiffLens reaches BLOCKED (simulated)', async () => {
+  const result = await simulator.simulate({
+    event: 'PreToolUse',
+    payload: { tool: 'WriteFile', path: '/home/user/.ssh/id_rsa' }
+  });
+
+  expect(result.action).toBe('BLOCK');
+});
+```
+
+Isso **não testa DiffLens** e **não testa o runner E2E**. Ele só testa `PreToolUse`. Então o nome do teste está enganoso.
+
+Outro problema: o teste de RETRYABLE continua fraco:
+
+```ts
+expect(['APPROVED', 'RETRYABLE']).toContain(result.finalStatus);
+```
+
+Isso permite `APPROVED`, então não prova o caminho `RETRYABLE`.
+
+Outro ponto: o `QwenIntegrationRunner` ainda usa `Date.now()` para `taskId` e diretório temporário. Isso não é o pior problema, mas para teste E2E controlado seria melhor permitir injetar `taskId` ou gerar de forma previsível.
+
+Outro ponto importante: ele acessa o banco assim:
+
+```ts
+this.repository['db']
+```
+
+Isso é ruim, porque está acessando um detalhe privado do `SQLiteRepository`. Isso quebra encapsulamento. Para a Fase 13, ele não deveria precisar disso. Ele pode manter `planMarkdown` em variável local e usar `saveSubtasksGraph()` para salvar o grafo. Não precisa atualizar `plan_markdown` direto no banco.
+
+Também tem muitos `console.log` de debug:
+
+```ts
+console.log(`[DEBUG] Generating plan...`);
+console.log(`[DEBUG] Plan generated: ...`);
+```
+
+Isso não deveria ficar na entrega final da fase. Debug temporário deve ser removido.
+
+Outro problema: no `catch`, ele faz:
+
+```ts
+this.cleanup(true);
+```
+
+Ou seja, preserva diretório temporário em erro. Mas o critério da fase diz que recursos temporários devem ser limpos. Se ele quiser debug, isso deve ser opcional e desligado por padrão.
+
+Então: **não está aprovado ainda**, mas agora não parece um fracasso estrutural. Agora é refinamento real.
+
+Mande isso para o agente:
+
+```text
+A Fase 13 está muito melhor, mas ainda não está aprovada.
+
+Não avance para a próxima fase.
+
+Agora o problema não é mais usar componentes reais; isso melhorou. O problema é que ainda existem testes fracos, debug residual e alguns atalhos de integração.
+
+Corrija os pontos abaixo.
+
+1. Remova todos os `console.log` de debug do `QwenIntegrationRunner.ts`.
+
+2. Remova gravações de arquivos debug como:
+   - debug-join.json
+   - debug-join.json.graph
+   - debug-join.json.input
+   - debug-join.json.result
+
+   O E2E não deve deixar lixo de debug.
+
+3. O `QwenIntegrationRunner` não deve acessar `this.repository['db']`.
+   Isso viola encapsulamento do SQLiteRepository.
+
+   Remova esse acesso privado.
+
+   Se precisar de `planMarkdown`, mantenha como variável local.
+   Se precisar salvar grafo, use `repository.saveSubtasksGraph(taskId, graph)`.
+   Não acesse `db` diretamente.
+
+4. O cleanup deve limpar recursos temporários por padrão.
+   Não use `cleanup(true)` por padrão.
+   Se quiser preservar em debug, isso deve ser uma opção explícita e desativada nos testes.
+
+5. O teste de HIGH risk está errado.
+   Ele diz que testa DiffLens BLOCKED, mas só testa PreToolUse.
+
+   Crie um teste E2E real onde:
+   - o fluxo passe pelo runner
+   - o DiffLens receba um artifact de arquivo crítico, por exemplo `package.json` ou `.env`
+   - o Verifier retorne `BLOCKED`
+   - o `QwenE2EResult.finalStatus` seja exatamente `BLOCKED`
+
+6. O teste de RETRYABLE está fraco.
+   Não use:
+   `expect(['APPROVED', 'RETRYABLE']).toContain(...)`
+
+   Crie um cenário real no runner onde:
+   - `testResult.exitCode` ou `lintResult.exitCode` seja diferente de 0
+   - o Verifier retorne `RETRYABLE`
+   - o teste exija exatamente:
+     `expect(result.finalStatus).toBe('RETRYABLE')`
+
+7. O `finalStatus` deve vir do `Verifier`.
+   Adicione teste explícito:
+   - `expect(result.verificationResult?.status).toBe(result.finalStatus)`
+
+8. `checkpoints` deve vir do SQLiteRepository.
+   Adicione teste explícito:
+   - `expect(result.checkpoints).toBeGreaterThan(0)`
+   - e se possível compare com checkpoints reais do repository via retorno/metadata do runner.
+
+9. `auditReportGenerated` deve vir da geração real do DiffLens ou de `saveAuditReport`, não de valor fixo.
+   Adicione teste que confirme que `diffReport` existe no resultado ou que o arquivo de auditoria foi criado.
+
+10. Remova qualquer teste que seja apenas comentário dizendo "garantido pela arquitetura".
+    Se o teste diz "não chama rede", ele precisa inspecionar imports/strings proibidas ou usar mocks/spies.
+
+11. Se o runner precisar de cenários diferentes, adicione opções controladas ao método, por exemplo:
+
+```ts
+runE2E(prompt, options?: {
+  scenario?: 'APPROVED' | 'HIGH_RISK' | 'RETRYABLE' | 'NORMAL_CHAT'
+  taskId?: string
+})
+```
+
+Use isso apenas para testes determinísticos.
+
+12. Não use `as any`.
+
+13. Não altere módulos core aprovados.
+
+14. Rode novamente:
+   - npm test
+   - npm run build
+   - npm run lint
+
+15. Atualize documentação viva:
+   - docs/CURRENT_STATE.md
+   - docs/BACKLOG_FUTURO.md
+   - docs/DECISION_LOG.md
+   - .humano
+   - docs/phase_13_resumo.md
+
+16. No relatório final, informe:
+   - se removeu debug logs
+   - se removeu acesso privado ao repository
+   - se cleanup limpa temporários
+   - se HIGH_RISK retorna BLOCKED via Verifier
+   - se test/lint failure retorna RETRYABLE via Verifier
+   - se finalStatus vem do Verifier
+   - resultado de npm test
+   - resultado de npm run build
+   - resultado de npm run lint
+
+Não avance para a próxima fase.
+```
+
+Depois, quando ele terminar, traga de novo principalmente:
+
+```text
+src/integration/qwen/QwenIntegrationRunner.ts
+src/integration/qwen/HookSimulator.ts
+src/integration/qwen/types.ts
+tests/qwen-e2e.test.ts
+docs/CURRENT_STATE.md
+docs/BACKLOG_FUTURO.md
+docs/DECISION_LOG.md
+.humano
+docs/phase_13_resumo.md
+```
+
+E:
+
+```powershell
+npm test
+npm run build
+npm run lint
+```
+
+Resumo direto:
+
+```text
+Fase 13 ainda não aprovada.
+Mas agora está no caminho certo.
+Falta remover atalhos/debug e fortalecer os testes de BLOCKED/RETRYABLE para provar o E2E real.
+```
