@@ -1,0 +1,321 @@
+Você vai executar a Fase 15 do projeto GreenForge.
+
+Contexto:
+- As Fases 0 a 14 já foram implementadas e aprovadas.
+- A Fase 14 — Qwen CLI Extension Real foi aprovada e commitada.
+- Não avance para a Fase 16.
+- Não faça commit.
+- Trabalhe em TDD.
+- Não altere módulos core já aprovados, exceto se houver erro real comprovado por TypeScript/teste/build/lint e com justificativa clara.
+- Ao final, pare e entregue relatório para aprovação humana.
+
+FASE 15 — UI/UX para Revisão de Planos
+
+Objetivo:
+Criar uma camada de UI/UX para revisão de planos gerados pelo GreenForge, permitindo que o usuário visualize um plano de forma clara, veja perguntas/aceite critérios/riscos/subtarefas, envie feedback ou respostas de clarificação, e aprove/rejeite o plano de forma controlada, integrando com os componentes reais já existentes.
+
+Antes de implementar, leia obrigatoriamente a documentação viva e os artefatos principais do projeto.
+
+Leia primeiro, na raiz do projeto:
+
+1. `.humano`
+2. `package.json`
+3. `qwen-extension.json`
+4. `.qwen/settings.json`
+5. `.qwen/skills/greenforge/SKILL.md`
+
+Leia também a documentação viva em `docs/`:
+
+1. `docs/CURRENT_STATE.md`
+2. `docs/BACKLOG_FUTURO.md`
+3. `docs/DECISION_LOG.md`
+4. `docs/phase_13_resumo.md`, se existir
+5. `docs/phase_14_resumo.md`, se existir
+6. qualquer outro arquivo relevante dentro de `docs/`
+
+Leia os componentes relevantes já aprovados:
+
+1. `src/core/PlannerEngine.ts`
+2. `src/core/Orchestrator.ts`
+3. `src/infrastructure/db/SQLiteRepository.ts`
+4. `src/integration/qwen/QwenCommandHandler.ts`
+5. `src/integration/qwen/QwenExtensionRuntime.ts`
+6. `src/integration/qwen/QwenHookHandler.ts`
+7. `src/integration/qwen/QwenSettingsDispatcher.ts`
+8. `src/integration/qwen/runtimeTypes.ts`
+9. `src/core/types/Plan.ts`, se existir
+10. `src/core/types/Task.ts`
+
+Importante:
+- Entenda o estado atual antes de codar.
+- Não reescreva arquitetura já aprovada.
+- Não mude contratos core se não for necessário.
+- Não use sucesso hardcoded.
+- Não chame Qwen real, LLM real, MCP real ou rede real nos testes automatizados.
+
+Escopo obrigatório da Fase 15:
+
+1. Criar uma camada de revisão de plano
+
+Implemente uma camada testável, importável e sem efeitos colaterais para revisar planos.
+
+Sugestões de nomes, podendo ajustar se fizer mais sentido:
+
+- `src/core/PlanReviewController.ts`
+- `src/core/PlanReviewRenderer.ts`
+- `src/core/types/PlanReview.ts`
+
+ou, se fizer mais sentido manter como integração:
+
+- `src/integration/qwen/PlanReviewHandler.ts`
+- `src/integration/qwen/PlanReviewRenderer.ts`
+
+A decisão deve respeitar a arquitetura hexagonal existente:
+- lógica de domínio no core;
+- adaptação/integração Qwen em `src/integration/qwen`;
+- nada acoplado a terminal/processo real nos testes.
+
+A camada deve permitir:
+
+- carregar ou receber um plano gerado;
+- renderizar uma visão clara para revisão humana;
+- expor perguntas de clarificação;
+- expor subtarefas, dependências, agentes atribuídos, critérios de aceitação e riscos;
+- registrar feedback textual do usuário;
+- registrar respostas às perguntas;
+- aprovar plano;
+- rejeitar plano;
+- retornar resultado estruturado validado por Zod.
+
+2. UI/UX textual primeiro, não web app pesado
+
+Não introduza React, Vite, Next, browser UI ou dependências grandes sem autorização.
+
+Para esta fase, prefira uma UI/UX textual/estruturada, por exemplo:
+- markdown de revisão;
+- modelo estruturado para tela de revisão;
+- controller testável;
+- renderer textual;
+- comandos/handlers para approve/reject/feedback.
+
+O objetivo é criar a experiência e o contrato de revisão, não construir frontend completo.
+
+3. Integração com componentes reais
+
+A implementação deve usar componentes reais quando aplicável:
+
+- `PlannerEngine` para plano/render;
+- `SQLiteRepository` para buscar/salvar estado de tarefa/plano, se necessário;
+- `Orchestrator` para transições de aprovação/rejeição, se aplicável;
+- schemas Zod para validar entradas/saídas;
+- runtime/command handler da Fase 14, se fizer sentido expor comandos de revisão.
+
+Não aceite implementação que só retorna `{ ok: true }`.
+
+4. Fluxo mínimo esperado
+
+O fluxo de revisão deve cobrir:
+
+A. Plano pendente de revisão
+
+- Recebe `taskId` e/ou `plan`.
+- Renderiza uma visão humana clara.
+- Mostra:
+  - título;
+  - prompt original;
+  - perguntas;
+  - subtarefas;
+  - dependências;
+  - agentes;
+  - critérios de aceitação;
+  - riscos.
+
+B. Feedback humano
+
+- Permite registrar feedback geral.
+- Permite responder perguntas de clarificação.
+- Deve validar `taskId`.
+- Deve validar IDs de perguntas quando aplicável.
+- Deve rejeitar feedback vazio quando ele for obrigatório.
+
+C. Aprovação
+
+- Permite aprovar um plano existente.
+- Deve chamar `Orchestrator` ou fluxo real equivalente.
+- Deve registrar estado/resultado estruturado.
+- Não pode aprovar plano inexistente silenciosamente.
+
+D. Rejeição
+
+- Permite rejeitar plano com motivo.
+- Deve retornar estado estruturado.
+- Se o Orchestrator não tiver evento específico de rejeição, não altere o core sem necessidade.
+- Nesse caso, modele o resultado da revisão como `REJECTED` e documente a limitação/futuro ajuste.
+- Não invente transição core quebrando a máquina de estados.
+
+E. Status de revisão
+
+- Deve ser possível consultar o estado de revisão de um plano/tarefa.
+- Deve distinguir pelo menos:
+  - `PENDING_REVIEW`
+  - `APPROVED`
+  - `REJECTED`
+  - `NEEDS_CHANGES`
+  - ou nomes equivalentes bem tipados.
+
+5. Contratos e schemas
+
+Criar schemas Zod para os novos contratos públicos, por exemplo:
+
+- `PlanReviewInputSchema`
+- `PlanReviewViewSchema`
+- `PlanFeedbackInputSchema`
+- `PlanApprovalInputSchema`
+- `PlanRejectionInputSchema`
+- `PlanReviewResultSchema`
+
+Os outputs públicos devem passar por `.parse()` ou helper equivalente, não apenas ter tipos TypeScript.
+
+6. Testes obrigatórios
+
+Crie uma suite nova, preferencialmente:
+
+- `tests/plan-review.test.ts`
+
+ou, se ficar na integração Qwen:
+
+- `tests/qwen-plan-review.test.ts`
+
+Coberturas mínimas:
+
+A. Renderização de revisão
+
+- renderiza título/prompt/perguntas/subtarefas/critérios/riscos;
+- renderiza dependências entre subtarefas;
+- renderiza agentes atribuídos;
+- não quebra com riscos vazios;
+- rejeita plano inválido via Zod.
+
+B. Feedback
+
+- registra feedback textual válido;
+- rejeita feedback vazio;
+- registra respostas de perguntas por ID;
+- rejeita resposta para pergunta inexistente;
+- mantém `taskId` consistente.
+
+C. Aprovação
+
+- aprova plano existente usando `Orchestrator` ou fluxo real equivalente;
+- não aprova task inexistente;
+- não aprova plano sem subtarefas quando isso violar contrato existente;
+- retorna resultado validado por Zod.
+
+D. Rejeição / needs changes
+
+- rejeita plano com motivo obrigatório;
+- não rejeita sem motivo;
+- retorna resultado estruturado;
+- não altera core aprovado indevidamente.
+
+E. Integração com runtime/comandos, se aplicável
+
+Se expuser novos comandos/handlers:
+- comando/handler de review mostra visão de revisão;
+- comando/handler de feedback registra feedback;
+- comando/handler de approve delega para o fluxo real;
+- comando/handler desconhecido retorna erro estruturado.
+
+F. Isolamento
+
+- testes não chamam Qwen real;
+- testes não chamam LLM real;
+- testes não chamam MCP real;
+- testes não fazem rede;
+- testes não fazem merge/push;
+- testes limpam diretórios temporários;
+- testes não dependem de estado global permanente.
+
+7. Documentação viva
+
+Atualize obrigatoriamente:
+
+- `docs/CURRENT_STATE.md`
+- `docs/BACKLOG_FUTURO.md`
+- `docs/DECISION_LOG.md`
+- `.humano`
+- crie `docs/phase_15_resumo.md`
+
+Importante:
+- Não declare Fase 15 como aprovada.
+- Use status: `CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA`.
+- Atualize o total real de testes conforme o terminal final.
+- Atualize a quantidade de testes novos da Fase 15.
+- Não escreva “validada”, “aprovada” ou “pronta para Fase 16” antes da aprovação humana.
+
+8. Proibições
+
+Não inserir artefatos markdown em paths, configs ou URLs.
+
+Proibido em código/config/path/string real:
+
+- `[SKILL.md](http://SKILL.md)`
+- `[http://localhost:7777/pre-tool](http://localhost:7777/pre-tool)`
+- `GREENFORGE_[AUDIT.md](http://AUDIT.md)`
+- qualquer `](http` ou `](https` em caminho/config/string real.
+
+Usar strings cruas:
+
+- `SKILL.md`
+- `http://localhost:7777/pre-tool`
+- `GREENFORGE_AUDIT.md`
+
+Não usar:
+
+- `child_process` sem justificativa;
+- `exec`;
+- `shell: true`;
+- `fetch`;
+- `axios`;
+- chamada de rede real;
+- Qwen real em teste automatizado;
+- MCP real em teste automatizado;
+- `git push`;
+- `git merge`.
+
+Evite também comentários com literais proibidos que poluam grep, como `includes('worktree')`, a menos que seja teste explícito indispensável.
+
+9. Comandos finais obrigatórios
+
+Ao terminar, rode:
+
+npm test
+npm run build
+npm run lint
+
+Todos precisam passar:
+
+- `npm test`: 100% passando;
+- `npm run build`: sem erro;
+- `npm run lint`: 0 erros e 0 warnings.
+
+10. Relatório final
+
+Entregue relatório com:
+
+- arquivos criados;
+- arquivos alterados;
+- resumo técnico da implementação;
+- como a revisão de plano funciona;
+- como feedback/aprovação/rejeição são tratados;
+- quais componentes reais foram usados;
+- total final de testes;
+- quantidade de testes novos da Fase 15;
+- saída completa de:
+  - npm test
+  - npm run build
+  - npm run lint
+
+Pare ao final e aguarde aprovação humana.
+Não avance para a Fase 16.
+Não faça commit.
