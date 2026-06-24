@@ -1,0 +1,478 @@
+Ainda **não aprovo a Fase 14**.
+
+Ela avançou bastante e os comandos finais passaram, mas encontrei bloqueadores reais no código/contrato da fase. Não é caso de commit ainda.
+
+## O que passou
+
+Evidências boas:
+
+```text
+Test Files  15 passed (15)
+Tests       229 passed (229)
+```
+
+```text
+npm run build
+> tsc
+```
+
+Passou.
+
+```text
+npm run lint
+> eslint src/**/*.ts
+```
+
+Passou sem warnings.
+
+Também vi uso real de componentes:
+
+- `QwenRouter`
+- `PlannerEngine`
+- `SQLiteRepository`
+- `Orchestrator`
+- handlers de hooks
+- handlers de comandos
+- runtime/entrypoint importável
+
+Isso é bom. Mas ainda não fecha o contrato da Fase 14.
+
+---
+
+# Bloqueadores
+
+## 1. Arquivo de `node_modules` foi alterado
+
+No `git status` apareceu:
+
+```text
+ M node_modules/.vite/vitest/results.json
+```
+
+Isso não pode entrar no commit da fase.
+
+Precisa reverter:
+
+```powershell
+git restore ".\node_modules\.vite\vitest\results.json"
+```
+
+E confirmar que não vai ser commitado.
+
+Também apareceram coisas fora do projeto:
+
+```text
+?? ../.agent/
+?? ../.claude/
+?? ../tarefas/32
+```
+
+Essas pastas podem existir, mas **não devem entrar no commit do GreenForge**.
+
+---
+
+## 2. Markdown artifact real encontrado no teste
+
+O comando de busca encontrou isto:
+
+```text
+tests\qwen-real-extension.test.ts:80:
+it('4. no paths/configs contain markdown artifacts like [[SKILL.md](http://SKILL.md)]([http://SKILL.md](http://SKILL.md))', async () => {
+```
+
+Esse não é só renderização do chat, porque apareceu no `Select-String`.
+
+Mesmo sendo descrição de teste, é um artefato markdown dentro de código. A gente já teve problema grave com isso antes. Precisa remover.
+
+Trocar por algo como:
+
+```ts
+it('4. no paths/configs contain markdown artifacts', async () => {
+```
+
+Depois rodar de novo a busca de padrões proibidos.
+
+---
+
+## 3. Fase 14 ainda não está realmente ligada aos hooks declarados em `.qwen/settings.json`
+
+O runtime/handler foi criado, mas eu não vi prova de que os hooks declarados no settings realmente são despachados para esses handlers.
+
+Hoje `.qwen/settings.json` declara coisas como:
+
+```json
+"command": "greenforge-init"
+```
+
+e hooks HTTP tipo:
+
+```json
+"http://localhost:7777/pre-tool"
+```
+
+Mas a implementação entregue só criou classes importáveis:
+
+- `QwenExtensionRuntime`
+- `QwenHookHandler`
+- `QwenCommandHandler`
+- `QwenExtensionEntrypoint`
+
+Isso é útil, mas ainda falta a ponte entre o que o Qwen declararia no settings e o handler real.
+
+Para Fase 14, eu esperava pelo menos um dispatcher/adapter testável, por exemplo:
+
+```ts
+QwenSettingsDispatcher
+```
+
+ou equivalente, que prove:
+
+- `SessionStart` declarado no settings chama `handleSessionStart`;
+- `UserPromptSubmit` declarado no settings chama `handleUserPromptSubmit`;
+- `PreToolUse` declarado no settings chama `handlePreToolUse`;
+- `PostToolUse` declarado no settings chama `handlePostToolUse`;
+- `SessionEnd` declarado no settings chama `handleSessionEnd`;
+- comandos locais como `greenforge-init` e `greenforge-cleanup` têm handler correspondente ou falham explicitamente;
+- endpoints HTTP declarados são mapeáveis para handlers sem precisar abrir rede nos testes.
+
+Não precisa subir servidor real nem chamar rede no teste. Mas precisa existir uma camada que prove o vínculo entre configuração declarada e runtime real.
+
+Hoje está muito perto de “handlers bons, mas não conectados à extensão declarada”.
+
+---
+
+## 4. `PostToolUse` não registra checkpoint real
+
+O código atual faz:
+
+```ts
+this.runtime.getRepository();
+
+const now = Date.now();
+
+return {
+  ok: true,
+  action: 'ALLOW',
+  reason: 'Checkpoint registered',
+  metadata: { checkpoint: now, tool: parsed.data.tool }
+};
+```
+
+Isso não registra checkpoint no `SQLiteRepository`. Só retorna um timestamp.
+
+O contrato dizia:
+
+> `PostToolUse` registra ou encaminha checkpoint/evento real.
+
+Então precisa fazer algo real quando houver `taskId`/contexto suficiente no payload.
+
+Exemplo aceitável:
+
+- expandir schema do `PostToolUsePayloadSchema` para aceitar `taskId`;
+- se `taskId` existir, chamar API real de checkpoint do repository/orchestrator;
+- teste prova que o checkpoint foi persistido;
+- se não houver `taskId`, retornar `ALLOW` com motivo claro tipo “no task context”, mas não fingir que registrou checkpoint.
+
+O teste atual só verifica:
+
+```ts
+expect(result.metadata?.checkpoint).toBeDefined();
+```
+
+Isso é fraco.
+
+---
+
+## 5. `list` command ainda é hardcoded
+
+No `QwenCommandHandler`:
+
+```ts
+private async handleList(args: string[]): Promise<CommandHandlerResult> {
+  this.runtime.ensureInitialized();
+
+  return {
+    ok: true,
+    command: 'list',
+    result: 'Tasks listed',
+    data: {
+      tasks: [],
+      filter: args.join(' ') || 'all'
+    }
+  };
+}
+```
+
+Isso é hardcoded.
+
+O contrato da fase dizia:
+
+> comando de status/list consulta estado real no repository ou runtime.
+
+`status` até pode ser runtime-level, mas `list` não pode retornar `[]` sempre.
+
+Precisa ter teste assim:
+
+1. chama `start`;
+2. chama `list`;
+3. verifica que a task criada aparece na lista.
+
+---
+
+## 6. Runtime cria `tempDir`, mas não garante diretório nem cleanup completo
+
+No runtime:
+
+```ts
+this.tempDir = this.options.tempDir ?? join(tmpdir(), `greenforge-runtime-${Date.now()}`);
+this.dbPath = join(this.tempDir, 'runtime.db');
+```
+
+Mas não vi `mkdirSync(this.tempDir, { recursive: true })` antes de criar o SQLite.
+
+Nos testes, isso passa porque `tempDir` é criado por `createTempWorktree()`. Mas no uso real/default, `getRepository()` pode tentar criar SQLite dentro de um diretório que ainda não existe.
+
+Além disso, `cleanup()` fecha repository, mas não remove `tempDir`:
+
+```ts
+cleanup(): void {
+  try {
+    if (this.repository) {
+      this.repository.close();
+      this.repository = null;
+    }
+  } catch {
+    // Ignore cleanup errors
+  }
+
+  this.closed = true;
+}
+```
+
+Para runtime que cria diretório temporário automaticamente, precisa limpar esse diretório. Para `tempDir` injetado, pode preservar ou controlar via opção, mas isso precisa estar explícito e testado.
+
+---
+
+## 7. Outputs públicos não estão sendo validados por Zod
+
+Você criou schemas:
+
+```ts
+HookHandlerResultSchema
+CommandHandlerResultSchema
+```
+
+Mas os handlers retornam objetos diretamente. Exemplo:
+
+```ts
+return {
+  ok: true,
+  action: 'ALLOW',
+  reason: 'Session initialized safely',
+  metadata: { initialized: true }
+};
+```
+
+O contrato dizia:
+
+> Use Zod para validar entradas e saídas públicas da nova camada.
+
+Entradas estão sendo validadas. Saídas não estão.
+
+Precisa usar helpers internos, por exemplo:
+
+```ts
+private result(input: unknown): HookHandlerResult {
+  return HookHandlerResultSchema.parse(input);
+}
+```
+
+e o mesmo para comandos.
+
+Ou exportar factories:
+
+```ts
+createHookHandlerResult(...)
+createCommandHandlerResult(...)
+```
+
+E adicionar testes provando que outputs reais dos handlers passam pelos schemas, não apenas um objeto de exemplo.
+
+---
+
+## 8. Documentação ainda tem inconsistência histórica da Fase 13
+
+No `DECISION_LOG.md` aparece:
+
+```text
+F13 | ADD | Qwen E2E Tests | Testes de integração controlada cobrindo 20 cenários obrigatórios
+```
+
+Mas a Fase 13 terminou com:
+
+```text
+22 testes em qwen-e2e.test.ts
+```
+
+Também no `.humano`, a Fase 13 ainda aparece como:
+
+```text
+CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA
+```
+
+Mas a Fase 13 já foi aprovada por nós.
+
+Isso precisa ser corrigido na documentação viva.
+
+Sugestão:
+
+```text
+Fase 13 — Status: CONCLUÍDA E VALIDADA (200 testes totais)
+```
+
+E no `DECISION_LOG.md`:
+
+```text
+F13 | ADD | Qwen E2E Tests | Testes de integração controlada cobrindo 22 cenários obrigatórios
+```
+
+---
+
+# Mensagem para passar ao executor
+
+Copie e cole:
+
+```text
+A Fase 14 ainda não está aprovada. Não avance para a Fase 15. Não faça commit.
+
+Apesar de npm test/build/lint passarem, ainda há bloqueadores reais de contrato.
+
+Corrija somente os pontos abaixo:
+
+1. Git hygiene
+
+- Reverter alteração em:
+  node_modules/.vite/vitest/results.json
+
+Comando sugerido:
+  git restore ".\node_modules\.vite\vitest\results.json"
+
+- Não incluir no commit:
+  ../.agent/
+  ../.claude/
+  ../tarefas/32
+
+2. Remover markdown artifact real em teste
+
+O grep encontrou:
+
+  tests/qwen-real-extension.test.ts:80
+
+Remover a string com:
+  [[SKILL.md](http://SKILL.md)]([http://SKILL.md](http://SKILL.md))
+
+Trocar o nome do teste por algo simples, por exemplo:
+  it('4. no paths/configs contain markdown artifacts', async () => {
+
+Rode novamente a busca de padrões proibidos e ela precisa retornar:
+  OK: nenhum padrão proibido encontrado.
+
+3. Conectar settings/manifest aos handlers reais
+
+A Fase 14 não pode ter apenas classes importáveis.
+
+Adicionar uma camada testável que mapeie o que está declarado em `.qwen/settings.json` para os handlers reais.
+
+Pode ser algo como:
+  QwenSettingsDispatcher.ts
+  ou equivalente.
+
+Ela deve provar em teste que:
+- SessionStart declarado no settings chama handleSessionStart;
+- UserPromptSubmit declarado no settings chama handleUserPromptSubmit;
+- PreToolUse declarado no settings chama handlePreToolUse;
+- PostToolUse declarado no settings chama handlePostToolUse;
+- SessionEnd declarado no settings chama handleSessionEnd;
+- comandos locais como greenforge-init e greenforge-cleanup têm handler correspondente ou falham explicitamente;
+- URLs/hooks declarados podem ser roteados internamente para handlers sem chamada real de rede.
+
+Não precisa abrir servidor HTTP real nos testes.
+Não pode chamar rede real.
+
+4. PostToolUse precisa registrar checkpoint real quando houver taskId
+
+Hoje ele só retorna Date.now().
+
+Corrija para:
+- aceitar taskId no PostToolUsePayloadSchema, se aplicável;
+- quando taskId existir, registrar checkpoint real no SQLiteRepository ou via componente core apropriado;
+- teste deve provar que o checkpoint foi persistido;
+- se não houver taskId, não fingir “Checkpoint registered”; retornar motivo claro.
+
+5. list command não pode retornar tasks: [] hardcoded
+
+Hoje handleList retorna lista vazia fixa.
+
+Corrija para consultar o repository/runtime real.
+
+Adicionar teste:
+- chama start;
+- chama list;
+- list contém a task criada.
+
+6. Runtime tempDir/cleanup
+
+Corrija QwenExtensionRuntime para:
+- criar tempDir com mkdirSync antes de usar SQLite;
+- limpar recursos temporários criados automaticamente no cleanup;
+- definir semântica clara para tempDir injetado;
+- adicionar testes provando cleanup real.
+
+7. Validar outputs públicos com Zod
+
+Os schemas existem, mas os handlers retornam objetos diretamente.
+
+Use HookHandlerResultSchema.parse(...) e CommandHandlerResultSchema.parse(...) nos retornos públicos, ou helpers/factories equivalentes.
+
+Adicionar testes provando que outputs reais dos handlers/commands passam pelos schemas.
+
+8. Corrigir documentação histórica
+
+- docs/DECISION_LOG.md:
+  F13 deve dizer 22 testes, não 20.
+
+- .humano:
+  Fase 13 já foi aprovada.
+  Trocar "CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA" por "CONCLUÍDA E VALIDADA" ou equivalente.
+
+- Fase 14 deve continuar como:
+  CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA
+
+Depois rode:
+
+npm test
+npm run build
+npm run lint
+
+E entregue a saída completa, junto com:
+- git status --short
+- busca de padrões markdown/link malformados
+- arquivos alterados/criados
+```
+
+---
+
+# Resumo
+
+A Fase 14 tem uma boa base, mas ainda está **mais parecida com “runtime e handlers criados” do que com “extensão real declarada conectada ao runtime”**.
+
+Então meu veredito é:
+
+**Fase 14 ainda não aprovada.**
+
+Principais motivos: artefato markdown real, `node_modules` modificado, falta de dispatcher entre settings e handlers, `PostToolUse` sem checkpoint real, `list` hardcoded e cleanup/tempDir incompleto.
+
+----
+
+Leia a documentação do projeto para você ter uma boa base e para que as implementações fiquem de acordo com a documentação.
+Documentação disponível em c:\Users\Usuario\Desktop\xgeneric-storage\documentacao

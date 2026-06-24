@@ -1,0 +1,231 @@
+Você vai executar a Fase 14 do projeto GreenForge.
+
+Contexto:
+- A Fase 13 — Qwen Integration E2E Controlada foi aprovada.
+- Não avance para a Fase 15.
+- Não faça commit.
+- Trabalhe em TDD.
+- Não altere módulos core já aprovados, exceto se houver erro real comprovado de TypeScript/teste/build/lint e com justificativa clara.
+- Ao final, pare e entregue relatório para aprovação humana.
+
+FASE 14 — Qwen CLI Extension Real
+
+Objetivo:
+Implementar a camada real de integração da extensão Qwen CLI com o GreenForge, usando os hooks e comandos já declarados nos artefatos da Fase 12 e a base E2E controlada validada na Fase 13.
+
+Antes de implementar, leia obrigatoriamente:
+
+1. docs/CURRENT_STATE.md
+2. docs/BACKLOG_FUTURO.md
+3. docs/DECISION_LOG.md
+4. .humano
+5. docs/phase_13_resumo.md
+6. qwen-extension.json
+7. .qwen/settings.json
+8. .qwen/skills/greenforge/SKILL.md
+9. src/integration/qwen/manifestSchemas.ts
+10. src/integration/qwen/types.ts
+11. src/integration/qwen/HookSimulator.ts
+12. src/integration/qwen/QwenIntegrationRunner.ts
+13. /documentacao
+
+Escopo obrigatório da Fase 14:
+
+1. Criar a camada real de runtime/handler da extensão Qwen
+
+Implemente uma camada em `src/integration/qwen/` que exponha handlers reais e tipados para a extensão Qwen CLI.
+
+Sugestões de nomes, podendo ajustar se fizer mais sentido:
+- `QwenExtensionRuntime.ts`
+- `QwenHookHandler.ts`
+- `QwenCommandHandler.ts`
+- `QwenExtensionEntrypoint.ts`
+
+A camada deve:
+- carregar/validar `qwen-extension.json`;
+- carregar/validar `.qwen/settings.json`;
+- validar `SKILL.md` usando os schemas existentes;
+- expor handler para hooks:
+  - `SessionStart`
+  - `UserPromptSubmit`
+  - `PreToolUse`
+  - `PostToolUse`
+  - `SessionEnd`
+- expor handler para comandos declarados no manifesto/SKILL, por exemplo `greenforge.plan`, `greenforge.approve`, `greenforge.status`, ou os nomes reais que já existirem nos arquivos;
+- não inventar comandos que não estejam declarados;
+- garantir que todo comando declarado tenha handler correspondente ou falhe explicitamente em teste.
+
+2. Integração com componentes reais do GreenForge
+
+A Fase 14 não pode ser só hardcoded success.
+
+Use componentes reais já aprovados quando aplicável:
+- `QwenRouter`
+- `PlannerEngine`
+- `SQLiteRepository`
+- `Orchestrator`
+- `WorktreeManager`, se necessário
+- `SafeResolve` / `safeResolveForWrite`
+- `AtomicWrite`, se necessário
+- `QwenIntegrationRunner`, quando fizer sentido como ponte para fluxo controlado
+- schemas Zod existentes
+
+Os testes podem continuar usando mocks/fakes para LLM, MCP e diretórios temporários, mas os handlers precisam chamar a lógica real da camada GreenForge, não apenas retornar `{ ok: true }`.
+
+3. Segurança obrigatória em hooks
+
+O hook `PreToolUse` deve manter ou reaproveitar a validação segura da Fase 13:
+
+- ferramentas sensíveis como `Write`, `WriteFile`, `Edit`, `MultiEdit`, `Bash` devem exigir `allowedRoot` ou `worktreeRoot`;
+- se não houver root permitido, bloquear;
+- validar path usando `path.resolve` + `path.relative` ou `safeResolveForWrite`;
+- bloquear path fora do root;
+- bloquear path que contenha a palavra `worktree` mas esteja fora do root real;
+- não usar `includes('worktree')` como critério de segurança;
+- não usar validação textual frágil.
+
+4. Entrypoint local da extensão
+
+Se o manifesto/settings apontarem para comandos locais, crie um entrypoint real e testável.
+
+Requisitos:
+- deve ser importável em teste sem executar efeitos colaterais;
+- se houver CLI/script, ele deve delegar para funções puras/testáveis;
+- não deve chamar Qwen real em testes automatizados;
+- não deve fazer rede em testes automatizados;
+- não deve fazer `git push`, `git merge` ou operações destrutivas;
+- não deve usar `shell: true`;
+- se precisar executar processo local, justificar e usar API segura, mas prefira testar handlers diretamente.
+
+5. Testes obrigatórios
+
+Crie ou atualize testes, preferencialmente em:
+
+- `tests/qwen-extension-runtime.test.ts`
+ou
+- `tests/qwen-real-extension.test.ts`
+
+Coberturas mínimas:
+
+A. Manifest/settings/SKILL
+- runtime carrega e valida `qwen-extension.json`;
+- runtime carrega e valida `.qwen/settings.json`;
+- runtime valida `.qwen/skills/greenforge/SKILL.md`;
+- nenhum caminho/URL deve conter artefato markdown como `[SKILL.md](http://SKILL.md)`.
+
+B. Hooks reais
+- `SessionStart` valida ambiente/config e retorna ALLOW quando válido;
+- `UserPromptSubmit` usa `QwenRouter` real com LLM mockado;
+- `UserPromptSubmit` retorna NOOP para `NORMAL_CHAT`;
+- `UserPromptSubmit` inicia/roteia fluxo GreenForge para tarefa técnica, sem hardcoded success;
+- `PreToolUse` permite operação dentro de `allowedRoot`;
+- `PreToolUse` bloqueia sem `allowedRoot`;
+- `PreToolUse` bloqueia fora de `allowedRoot`;
+- `PreToolUse` bloqueia path falso contendo `worktree` fora do root;
+- `PostToolUse` registra ou encaminha checkpoint/evento real;
+- `SessionEnd` executa cleanup/fechamento de recursos quando aplicável.
+
+C. Comandos da extensão
+- todo comando declarado no manifesto/SKILL possui handler;
+- comando de plano chama `PlannerEngine` ou fluxo real equivalente;
+- comando de aprovação chama `Orchestrator` ou fluxo real equivalente;
+- comando de status consulta estado real no repository ou runtime;
+- comando desconhecido retorna erro estruturado, não sucesso silencioso.
+
+D. Isolamento
+- testes não chamam Qwen real;
+- testes não chamam MCP real;
+- testes não chamam LLM real;
+- testes não fazem rede;
+- testes não fazem merge/push;
+- testes limpam diretórios temporários;
+- nenhum teste depende de estado global permanente.
+
+6. Contratos e schemas
+
+Use Zod para validar entradas e saídas públicas da nova camada.
+
+Se criar novos types, coloque em arquivo apropriado, por exemplo:
+- `src/integration/qwen/runtimeTypes.ts`
+ou
+- expandir `src/integration/qwen/types.ts`, se fizer sentido.
+
+Não quebre os contratos existentes da Fase 13.
+
+7. Documentação viva
+
+Atualize obrigatoriamente:
+
+- `docs/CURRENT_STATE.md`
+- `docs/BACKLOG_FUTURO.md`
+- `docs/DECISION_LOG.md`
+- `.humano`
+- se fizer sentido, crie `docs/phase_14_resumo.md`
+
+Importante:
+- Não declare Fase 14 como aprovada.
+- Use status: `CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA`.
+- Atualize o total real de testes conforme o terminal final.
+- Atualize a quantidade de testes da nova suite.
+- Não escreva “validada”, “aprovada” ou “pronta para Fase 15” antes da aprovação humana.
+
+8. Proibições
+
+Não inserir artefatos markdown em paths, configs ou URLs.
+
+Proibido:
+- `[SKILL.md](http://SKILL.md)`
+- `[http://localhost:7777/pre-tool](http://localhost:7777/pre-tool)`
+- `GREENFORGE_[AUDIT.md](http://AUDIT.md)`
+- qualquer `](http` ou `](https` em caminho/config/string real.
+
+Usar strings cruas:
+- `SKILL.md`
+- `http://localhost:7777/pre-tool`
+- `GREENFORGE_AUDIT.md`
+
+Não usar:
+- `child_process` sem justificativa;
+- `exec`;
+- `shell: true`;
+- `fetch`;
+- `axios`;
+- chamada de rede real;
+- Qwen real em teste automatizado;
+- MCP real em teste automatizado;
+- `git push`;
+- `git merge`.
+
+9. Comandos finais obrigatórios
+
+Ao terminar, rode:
+
+npm test
+npm run build
+npm run lint
+
+Todos precisam passar:
+- `npm test`: 100% passando;
+- `npm run build`: sem erro;
+- `npm run lint`: 0 erros e 0 warnings.
+
+10. Relatório final
+
+Entregue relatório com:
+
+- arquivos criados;
+- arquivos alterados;
+- resumo técnico da implementação;
+- como os hooks reais foram ligados;
+- como os comandos da extensão foram ligados;
+- como a segurança de `PreToolUse` foi preservada;
+- total final de testes;
+- quantidade de testes novos da Fase 14;
+- saída completa de:
+  - npm test
+  - npm run build
+  - npm run lint
+
+Pare ao final e aguarde aprovação humana.
+Não avance para a Fase 15.
+Não faça commit.

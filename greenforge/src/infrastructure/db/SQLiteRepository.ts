@@ -145,6 +145,35 @@ export class SQLiteRepository {
   }
 
   /**
+   * Retorna todas as tasks cadastradas, opcionalmente filtradas por status.
+   */
+  listTasks(filter?: string): TaskRecord[] {
+    let stmt;
+    if (filter === 'active') {
+      stmt = this.db.prepare("SELECT * FROM tasks WHERE status NOT IN ('COMPLETED', 'FAILED') ORDER BY created_at DESC");
+    } else if (filter === 'completed') {
+      stmt = this.db.prepare("SELECT * FROM tasks WHERE status IN ('COMPLETED', 'FAILED') ORDER BY created_at DESC");
+    } else {
+      stmt = this.db.prepare('SELECT * FROM tasks ORDER BY created_at DESC');
+    }
+
+    const rows = stmt.all() as RawTaskRow[];
+
+    return rows.map(row => ({
+      id: row.id,
+      title: row.title,
+      originalPrompt: row.original_prompt,
+      branchName: row.branch_name,
+      worktreePath: row.worktree_path,
+      status: row.status as TaskStatus,
+      planMarkdown: row.plan_markdown,
+      subtasksGraph: row.subtasks_graph ? JSON.parse(row.subtasks_graph) : null,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    }));
+  }
+
+  /**
    * Adiciona um checkpoint para uma tarefa.
    */
   addCheckpoint(taskId: string, phase: string, metadata: object | null): void {

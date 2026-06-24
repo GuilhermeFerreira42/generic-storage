@@ -60,9 +60,20 @@ F12 | CFG | Configuração declarativa da extensão | Definição de skills, hoo
 F13 | ADD | HookSimulator | Simulador de eventos de hooks Qwen (SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, SessionEnd) | `src/integration/qwen/HookSimulator.ts`
 F13 | ADD | QwenIntegrationRunner | Orquestrador de fluxo E2E simulado conectando hooks ao core via mocks | `src/integration/qwen/QwenIntegrationRunner.ts`
 F13 | ADD | Qwen E2E Types | Contratos Zod para HookSimulationInput, HookSimulationResult, QwenE2EResult | `src/integration/qwen/types.ts`
-F13 | ADD | Qwen E2E Tests | Testes de integração controlada cobrindo 20 cenários obrigatórios | `tests/qwen-e2e.test.ts`
+F13 | ADD | Qwen E2E Tests | Testes de integração controlada cobrindo 22 cenários obrigatórios | `tests/qwen-e2e.test.ts`
 F13 | RULE | Isolamento Total de Testes E2E | Nenhum teste chama Qwen real, MCP real, LLM real, rede, merge ou push | `tests/qwen-e2e.test.ts`
 F13 | RULE | Mock-First Architecture | Uso de mocks, fakes e diretórios temporários para todos os componentes core | `src/integration/qwen/QwenIntegrationRunner.ts`
 F13 | FIX | Cleanup de Recursos Temporários | `QwenIntegrationRunner` usa `try/catch/finally` para garantir limpeza de `tempDir` e `SQLiteRepository` em todos os caminhos (sucesso, NORMAL_CHAT, BLOCKED, RETRYABLE, exceção). `preserveOnError` só preserva em caso de exceção real. | `src/integration/qwen/QwenIntegrationRunner.ts`
 F13 | FIX | Validação Robusta de PreToolUse | `HookSimulator.handlePreToolUse` valida `allowedRoot` usando `path.resolve` e `path.relative` para prevenir Path Traversal | `src/integration/qwen/HookSimulator.ts`
 F13 | FIX | Tipagem sem `any` | `repository` e `orchestrator` tipados como `SQLiteRepository | null` e `Orchestrator | null` com guards internos `getRepository()` e `getOrchestrator()` | `src/integration/qwen/QwenIntegrationRunner.ts`
+
+### Fase 14 — Qwen CLI Extension Real
+F14 | ADD | QwenExtensionRuntime | Runtime real que carrega/valida manifest, settings, SKILL.md e provê componentes core (QwenRouter, PlannerEngine, SQLiteRepository, Orchestrator) | `src/integration/qwen/QwenExtensionRuntime.ts`
+F14 | ADD | QwenHookHandler | Handlers reais para 5 hooks Qwen (SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, SessionEnd) | `src/integration/qwen/QwenHookHandler.ts`
+F14 | ADD | QwenCommandHandler | Implementação dos comandos da extensão: start, status, list, approve, abort | `src/integration/qwen/QwenCommandHandler.ts`
+F14 | ADD | QwenExtensionEntrypoint | Entrypoint importável sem side effects + factory `createExtension()` | `src/integration/qwen/QwenExtensionEntrypoint.ts`
+F14 | ADD | runtimeTypes | Schemas Zod para RuntimeOptions, HookHandlerResult, CommandHandlerResult e payloads | `src/integration/qwen/runtimeTypes.ts`
+F14 | RULE | Segurança PreToolUse | Validação de path via path.resolve + path.relative, sem validação textual frágil | `src/integration/qwen/QwenHookHandler.ts`
+F14 | RULE | InternalMockLLMProvider | Zero chamadas a Qwen real, LLM real, rede, merge/push em testes | `src/integration/qwen/QwenExtensionRuntime.ts`
+F14 | RULE | Entrypoint sem side effects | QwenExtensionEntrypoint importável sem IIFE ou execução top-level | `src/integration/qwen/QwenExtensionEntrypoint.ts`
+F14 | TECH | Isolation introspection | usesRealQwen(), usesRealLLM(), makesNetworkCalls(), canDoDestructiveGitOps() para asserções de isolamento | `src/integration/qwen/QwenExtensionRuntime.ts`

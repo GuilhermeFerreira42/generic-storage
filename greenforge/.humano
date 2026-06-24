@@ -54,8 +54,12 @@ HISTÓRICO DE APROVAÇÕES
 - Próxima parada: Onda 4 - Fase 13 (Qwen Integration E2E / Execution).
 
 ### [2026-06-23] Fase 13 — Qwen Integration E2E Controlada
-- Status: CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA (200 testes totais).
+- Status: CONCLUÍDA E VALIDADA (200 testes totais).
 - Destaque: Implementação de HookSimulator, QwenIntegrationRunner, types.ts com contratos Zod, e qwen-e2e.test.ts com 22 testes cobrindo todos os cenários obrigatórios. Fluxo E2E mínimo atinge APPROVED. Zero chamadas a Qwen real, MCP real, LLM real, rede, merge ou push. Recursos temporários limpos em todos os caminhos (sucesso, NORMAL_CHAT, BLOCKED, RETRYABLE, exceção).
+
+### [2026-06-24] Fase 14 — Qwen CLI Extension Real
+- Status: CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA (246 testes totais).
+- Destaque: Implementação de QwenExtensionRuntime com InternalMockLLMProvider, QwenHookHandler com segurança path.resolve+path.relative, QwenCommandHandler implementando todos os comandos do SKILL.md, QwenExtensionEntrypoint importável sem side effects, QwenSettingsDispatcher ponte entre settings e handlers. 46 novos testes (Fase 14) + 246 total. Build, lint e testes 100% limpos. Zero Qwen/LLM/network/merge/push reais.
 
 ───────────────────────────────────────────────────────
 GUIA RÁPIDO PARA O USUÁRIO

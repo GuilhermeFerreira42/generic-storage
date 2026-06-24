@@ -1,12 +1,18 @@
 # BACKLOG_FUTURO — GreenForge
 
 ## Fase 14 — Qwen CLI Extension (Real)
-- **Objetivo:** Integrar a extensão Qwen CLI com o GreenForge real, usando os hooks e comandos definidos.
-- **Requisitos:**
-    - Implementar a lógica de cada hook (`SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `SessionEnd`) para interagir com o `QwenIntegrationRunner` real.
-    - Mapear os comandos da extensão (`greenforge.plan`, `greenforge.approve`, etc.) para as chamadas correspondentes no `Orchestrator`.
-    - Garantir que a extensão respeite as restrições de segurança e isolamento do GreenForge.
-    - Testes de integração reais com a Qwen CLI (requer ambiente Qwen CLI configurado).
+- **Status:** ✅ CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA (2026-06-24)
+- **Entregáveis:**
+    - `QwenExtensionRuntime.ts` — Runtime real que carrega/valida manifest, settings, SKILL.md e provê acesso a QwenRouter, PlannerEngine, SQLiteRepository, Orchestrator.
+    - `QwenHookHandler.ts` — Handlers reais para todos os 5 hooks (SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, SessionEnd) delegando a componentes core.
+    - `QwenCommandHandler.ts` — Implementação real dos comandos definidos no SKILL.md: start, status, list, approve, abort.
+    - `QwenExtensionEntrypoint.ts` — Entrypoint importável sem side effects, factory `createExtension()`.
+    - `QwenSettingsDispatcher.ts` — ponte entre settings.json e handlers reais, sem rede real em testes.
+    - `runtimeTypes.ts` — Schemas Zod para RuntimeOptions, HookHandlerResult, CommandHandlerResult e payloads de hooks.
+    - `tests/qwen-real-extension.test.ts` — 46 testes (A-J: Manifest, Hooks, Commands, Isolation, Contracts, Dispatcher, Checkpoint, List, Zod, TempDir).
+    - PreToolUse com segurança via path.resolve + path.relative, sem validação textual frágil.
+    - InternalMockLLMProvider: zero chamadas a Qwen real, LLM real, rede, merge ou push.
+    - build, lint e 246/246 testes passando.
 
 ## Fase 15 — UI/UX para Revisão de Planos
 - **Objetivo:** Desenvolver uma interface de usuário para facilitar a revisão e aprovação de planos gerados pelo `PlannerEngine`.

@@ -1,5 +1,5 @@
 # CURRENT_STATE — GreenForge
-> Última atualização: Fase 13 (Refinada) | 2026-06-23
+> Última atualização: Fase 14 | 2026-06-24
 
 ## Arquitetura Ativa
 - **Arquitetura Hexagonal:** Desacoplamento total via portas e adaptadores.
@@ -9,6 +9,7 @@
 - **Visualização e Auditoria:** DiffLens Engine gerando relatórios de risco e alinhamento refinados.
 - **Validação de Ciclo de Vida (Qwen CLI):** Extensão integrada estaticamente com manifesto de skills e configurações de hooks validadas via Zod.
 - **Integração E2E Controlada (Fase 13):** Simulador de hooks Qwen e runner de integração validando fluxo completo sem Qwen real, MCP real, LLM real, rede ou merge/push. Inclui validação de segurança de `allowedRoot` para operações de escrita e limpeza de recursos temporários em todos os caminhos (sucesso, NORMAL_CHAT, BLOCKED, RETRYABLE, exceção).
+- **Camada Real de Runtime Qwen (Fase 14):** Runtime real com QwenExtensionRuntime, QwenHookHandler, QwenCommandHandler e QwenExtensionEntrypoint. Integração com componentes reais do GreenForge (QwenRouter, PlannerEngine, SQLiteRepository, Orchestrator) usando InternalMockLLMProvider. Segurança em PreToolUse com path.resolve + path.relative. Entrypoint importável sem efeitos colaterais, sem chamadas de rede, sem git push/merge.
 
 ## Módulos e Contratos Vigentes
 | Módulo | Arquivo | Contrato Público | Desde |
@@ -29,6 +30,11 @@
 | `ManifestSchemas` | `src/integration/qwen/manifestSchemas.ts` | `validateQwenExtensionManifest(input)`, `validateQwenSettings(input)`, `validateSkillManifest(markdown)` | Fase 12 |
 | `HookSimulator` | `src/integration/qwen/HookSimulator.ts` | `simulate(input: HookSimulationInput): Promise<HookSimulationResult>` | Fase 13 |
 | `QwenIntegrationRunner` | `src/integration/qwen/QwenIntegrationRunner.ts` | `runE2E(prompt: string): Promise<QwenE2EResult>` | Fase 13 |
+| `QwenExtensionRuntime` | `src/integration/qwen/QwenExtensionRuntime.ts` | `initialize()`, `getRouter()`, `getPlanner()`, `getRepository()`, `getOrchestrator()`, `cleanup()` | Fase 14 |
+| `QwenHookHandler` | `src/integration/qwen/QwenHookHandler.ts` | `handleSessionStart`, `handleUserPromptSubmit`, `handlePreToolUse`, `handlePostToolUse`, `handleSessionEnd` | Fase 14 |
+| `QwenCommandHandler` | `src/integration/qwen/QwenCommandHandler.ts` | `handle(name, args)`, `hasHandler(name)` | Fase 14 |
+| `QwenExtensionEntrypoint` | `src/integration/qwen/QwenExtensionEntrypoint.ts` | `init()`, hook handlers, `handleCommand`, `cleanup()`, `createExtension(options)` | Fase 14 |
+| `QwenSettingsDispatcher` | `src/integration/qwen/QwenSettingsDispatcher.ts` | `getDeclaredHookRoutes()`, `dispatchHook()`, `resolveLocalCommand()`, `resolveAllLocalCommands()`, `getDeclaredHttpRoutes()` | Fase 14 |
 
 ## Fluxo Principal
 1. Router identifica tarefa técnica.
@@ -40,6 +46,7 @@
 7. **Verifier** consolida todos os sinais técnicos, valida a consistência do identificador da tarefa e gera o veredito final estruturado (`APPROVED` | `BLOCKED` | `RETRYABLE`).
 8. **Qwen CLI Extension Layer** mapeia hooks locais do host e expõe comandos estáticos definidos via `SKILL.md`.
 9. **Fase 13 — E2E Controlado:** `HookSimulator` simula eventos `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `SessionEnd`; `QwenIntegrationRunner` orquestra fluxo completo simulado conectando ao core (Router, Planner, SQLite, Orchestrator, JoinGate, DiffLens, Verifier) via mocks. PreToolUse valida `allowedRoot` com `path.resolve` + `path.relative`. Recursos temporários são limpos em todos os caminhos via `try/catch/finally`.
+10. **Fase 14 — Runtime Real:** `QwenExtensionRuntime` carrega e valida manifest/settings/SKILL.md. `QwenHookHandler` contém handlers reais delegando a QwenRouter, Orchestrator, SQLiteRepository. `QwenCommandHandler` implementa os comandos start/status/list/approve/abort do SKILL.md. `QwenExtensionEntrypoint` provê entrypoint importável sem side effects. `InternalMockLLMProvider` isola testes de LLM/network reais.
 
 ## Invariantes Globais
 1. **No-Shell Policy:** `execa` sem shell.
@@ -58,9 +65,10 @@
 ## Testes Obrigatórios
 | Suite | Arquivo | Cobertura Aproximada | Comando |
 |-------|---------|----------------------|---------|
-| Total Suíte | `tests/*.test.ts` | 200 testes ativos | `npm test` |
+| Total Suíte | `tests/*.test.ts` | 246 testes ativos | `npm test` |
 | Qwen Integration (Static) | `tests/qwen-integration.test.ts` | 24 testes (Estáticos) | `npm test` |
 | Qwen Integration (E2E) | `tests/qwen-e2e.test.ts` | 22 testes (E2E Controlado) | `npm test` |
+| Qwen Real Extension | `tests/qwen-real-extension.test.ts` | 46 testes (Runtime Real) | `npm test` |
 | DiffLens | `tests/difflens.test.ts` | 13 testes (Refinados) | `npm test` |
 | Verifier | `tests/verifier.test.ts` | 21 testes (Unitários) | `npm test` |
 

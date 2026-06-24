@@ -1,0 +1,349 @@
+Ainda **não aprovo a Fase 14**.
+
+Os testes/build/lint passaram, e a implementação melhorou bastante. Mas o PowerShell mostrou alguns bloqueadores reais. **Não faça commit ainda.**
+
+## Evidências boas
+
+Passou:
+
+```text
+Test Files  15 passed (15)
+Tests       246 passed (246)
+```
+
+Build passou:
+
+```text
+npm run build
+> tsc
+```
+
+Lint passou:
+
+```text
+npm run lint
+> eslint src/**/*.ts
+```
+
+Também vi que agora existem:
+
+- `QwenSettingsDispatcher.ts`
+- `PostToolUse` com `repo.addCheckpoint(...)`
+- `list` usando `repo.listTasks(...)`
+- outputs passando por `HookHandlerResultSchema.parse(...)`
+- outputs passando por `CommandHandlerResultSchema.parse(...)`
+- cleanup de `tempDir` auto-criado
+
+Isso é bom.
+
+Mas ainda não fecha.
+
+---
+
+# Bloqueadores
+
+## 1. `node_modules` ainda está modificado
+
+O `git status` mostrou:
+
+```text
+ M node_modules/.vite/vitest/results.json
+```
+
+Isso não pode entrar no commit.
+
+Corrigir:
+
+```powershell
+git restore -- ".\node_modules\.vite\vitest\results.json"
+```
+
+Depois confirmar que sumiu do `git status`.
+
+---
+
+## 2. Um módulo core aprovado foi alterado sem validação/autorização
+
+Apareceu:
+
+```text
+ M src/infrastructure/db/SQLiteRepository.ts
+```
+
+Isso é importante.
+
+`SQLiteRepository` é da **Fase 4**, já aprovada. Pelo nosso protocolo, o executor **não pode alterar core aprovado** sem:
+
+1. evidência concreta da necessidade;
+2. justificativa;
+3. autorização humana;
+4. inspeção do diff.
+
+Provavelmente ele adicionou `listTasks()` para a Fase 14. Pode até ser uma alteração aceitável, mas **eu preciso ver o diff antes de aprovar**.
+
+Peça para trazer:
+
+```powershell
+git diff -- ".\src\infrastructure\db\SQLiteRepository.ts"
+```
+
+Sem isso, não aprovo.
+
+---
+
+## 3. Documentação está inconsistente com o terminal final
+
+Terminal final:
+
+```text
+246 testes
+qwen-real-extension.test.ts (46)
+```
+
+Mas `CURRENT_STATE.md` ainda diz:
+
+```text
+229 testes ativos
+Qwen Real Extension ... 29 testes
+```
+
+`BACKLOG_FUTURO.md` ainda diz:
+
+```text
+29 testes
+229/229 testes passando
+```
+
+`.humano` ainda diz:
+
+```text
+Fase 14 ... 229 testes totais
+29 novos testes
+```
+
+Precisa atualizar tudo para:
+
+```text
+246 testes totais
+46 testes em qwen-real-extension.test.ts
+```
+
+---
+
+## 4. `phase_14_resumo.md` overclaim: declarou validada antes da aprovação
+
+Está assim:
+
+```text
+Status: CONCLUÍDA E VALIDADA
+```
+
+E:
+
+```text
+A Fase 14 está concluída e validada.
+```
+
+Não pode. Eu ainda não aprovei.
+
+Status correto por enquanto:
+
+```text
+CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA
+```
+
+Depois que eu aprovar, aí sim pode virar validada.
+
+---
+
+## 5. `CURRENT_STATE.md` não lista `QwenSettingsDispatcher`
+
+Você criou:
+
+```text
+src/integration/qwen/QwenSettingsDispatcher.ts
+```
+
+Mas a tabela de módulos vigentes em `CURRENT_STATE.md` não inclui esse módulo.
+
+Adicionar algo como:
+
+```md
+| `QwenSettingsDispatcher` | `src/integration/qwen/QwenSettingsDispatcher.ts` | `getDeclaredHookRoutes()`, `dispatchHook()`, `resolveLocalCommand()`, `resolveAllLocalCommands()`, `getDeclaredHttpRoutes()` | Fase 14 |
+```
+
+---
+
+## 6. `BACKLOG_FUTURO.md` também está desatualizado
+
+Além dos números, ele não cita o dispatcher como entregável.
+
+Precisa incluir:
+
+```text
+QwenSettingsDispatcher.ts — ponte entre settings.json e handlers reais, sem rede real em testes.
+```
+
+E atualizar:
+
+```text
+46 testes
+246/246 testes passando
+```
+
+---
+
+## 7. Busca de literais proibidos ainda acusou falsos positivos
+
+A busca retornou várias ocorrências de:
+
+```text
+includes('worktree')
+shell: true
+git push
+git merge
+```
+
+Eu entendo que são comentários/documentação dizendo “não usar”. Não parece chamada real.
+
+Mas como nosso comando de validação usa busca simples, isso polui a revisão.
+
+Não é o maior bloqueador, mas eu recomendo limpar nas áreas novas da Fase 14:
+
+Em vez de:
+
+```ts
+not includes('worktree')
+```
+
+usar:
+
+```ts
+não usa validação textual frágil baseada no nome do diretório
+```
+
+Em vez de:
+
+```ts
+No git push, no git merge, no shell: true
+```
+
+usar:
+
+```ts
+sem operações destrutivas de Git e sem shell explícito
+```
+
+Assim a busca fica limpa.
+
+---
+
+# Mensagem para passar ao executor
+
+Copie e cole:
+
+```text
+A Fase 14 ainda não está aprovada. Não avance para a Fase 15. Não faça commit.
+
+Os testes/build/lint passaram, mas ainda há bloqueadores de revisão.
+
+Corrija somente os pontos abaixo:
+
+1. Git hygiene
+
+Remova alteração de node_modules:
+
+  git restore -- ".\node_modules\.vite\vitest\results.json"
+
+Confirme que não aparece mais no git status.
+
+Não incluir no commit:
+- ../.agent/
+- ../.claude/
+- ../tarefas/32
+- ../tarefas/33
+
+2. SQLiteRepository alterado
+
+O arquivo core aprovado foi alterado:
+
+  src/infrastructure/db/SQLiteRepository.ts
+
+Traga o diff e justificativa.
+
+Comando:
+
+  git diff -- ".\src\infrastructure\db\SQLiteRepository.ts"
+
+Se a alteração for apenas `listTasks()`, explique por que foi necessário para a Fase 14.
+Não altere mais nada nesse core sem autorização.
+
+3. Atualizar documentação para 246/46
+
+Atualize:
+
+- docs/CURRENT_STATE.md
+  - Total: 246 testes ativos
+  - Qwen Real Extension: 46 testes
+  - incluir QwenSettingsDispatcher na tabela de módulos
+
+- docs/BACKLOG_FUTURO.md
+  - incluir QwenSettingsDispatcher nos entregáveis
+  - trocar 29 testes por 46 testes
+  - trocar 229/229 por 246/246
+
+- .humano
+  - Fase 14: 246 testes totais
+  - 46 novos testes da Fase 14
+  - manter “CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA”
+
+- docs/phase_14_resumo.md
+  - trocar “CONCLUÍDA E VALIDADA” por “CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA”
+  - trocar conclusão para “aguardando aprovação humana”
+  - manter 246/46 se já estiver correto
+
+4. Evitar falsos positivos de padrões proibidos
+
+Nos arquivos novos da Fase 14, reescreva comentários/docs que contêm literalmente:
+
+- includes('worktree')
+- includes("worktree")
+- shell: true
+- git push
+- git merge
+
+Use frases descritivas sem esses literais, por exemplo:
+“não usa validação textual frágil baseada no nome do diretório”
+“sem operações destrutivas de Git”
+“sem shell explícito”
+
+5. Rode novamente:
+
+npm test
+npm run build
+npm run lint
+
+E entregue:
+
+- git status --short
+- git diff --name-only
+- git diff -- src/infrastructure/db/SQLiteRepository.ts
+- trechos atualizados dos docs
+- busca de markdown/link proibido
+- npm test/build/lint
+```
+
+---
+
+# Veredito atual
+
+**Fase 14 quase pronta, mas ainda não aprovada.**
+
+Os blockers principais agora são:
+
+1. `node_modules` modificado;
+2. alteração não revisada em `SQLiteRepository.ts`;
+3. documentação stale/overclaim;
+4. falsos positivos de busca em comentários/docs novos.
+
+Depois que isso for corrigido e eu vir o diff do `SQLiteRepository.ts`, provavelmente a aprovação vem na próxima rodada.
