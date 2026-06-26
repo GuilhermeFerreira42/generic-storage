@@ -88,3 +88,15 @@ F15 | RULE | Rejeição modelada como resultado | Rejeição não altera máquin
 F15 | RULE | Todos outputs validados por Zod | buildReviewView, submitFeedback, approvePlan, rejectPlan, requestChanges, getReviewStatus retornam dados passando por .parse() | `src/core/PlanReviewController.ts`
 F15 | TECH | UI/UX textual, não web app | Renderer markdown ao invés de React/Vite/Next. Experiência de revisão via texto estruturado | `src/core/PlanReviewRenderer.ts`
 F15 | TECH | Perguntas de fallback | Quando planMarkdown não contém perguntas suficientes, o controller gera 5 perguntas padrão | `src/core/PlanReviewController.ts`
+
+### Fase 16 — Agente de Refatoração
+F16 | ADD | RefactorAgent | Agente especialista em refatoração herdando de BaseAgent, role REFACTORER, ferramenta refactor_code via MCP mockado, artifact DIFF | `src/core/agents/RefactorAgent.ts`
+F16 | ADD | Role REFACTORER | Nova role de agente adicionada à union AgentRole e aos schemas Zod (AgentResultSchema, SubtaskNode, SubtaskNodeJoinSchema, PlanReviewViewSchema) | `src/core/types/Agent.ts`, `src/core/types/Task.ts`, `src/core/types/Join.ts`, `src/core/types/PlanReview.ts`
+F16 | MOD | AgentRole expandido | AgentRole alterado de `'CODER' | 'TESTER' | 'REVIEWER'` para `'CODER' | 'TESTER' | 'REVIEWER' | 'REFACTORER'` — necessário para suportar o novo agente sem quebrar contratos existentes | `src/core/types/Agent.ts`
+F16 | MOD | SubtaskNode.assignedAgent expandido | Adicionado `'REFACTORER'` à union de assignedAgent em Task.ts, Join.ts e PlannerEngine.ts — necessário para que planos possam atribuir subtarefas ao RefactorAgent | `src/core/types/Task.ts`, `src/core/types/Join.ts`, `src/core/PlannerEngine.ts`
+F16 | MOD | PlanReviewViewSchema expandido | Adicionado `'REFACTORER'` aos enums assignedAgent e agents em PlanReview.ts — necessário para compatibilidade de tipo com SubtaskNode atualizado | `src/core/types/PlanReview.ts`
+F16 | MOD | PlanReviewController agentsSet expandido | Tipo do Set de agentes atualizado para incluir `'REFACTORER'` — necessário para compatibilidade com SubtaskNode.assignedAgent | `src/core/PlanReviewController.ts`
+F16 | RULE | RefactorAgent segue padrão arquitetural | Herda BaseAgent, usa McpClientPort, respeita allowedTools, valida contexto e resultado via Zod, trata sucesso (DONE) e falha (FAILED) | `src/core/agents/RefactorAgent.ts`
+F16 | RULE | Validação de conteúdo MCP | RefactorContentSchema (Zod) valida que o conteúdo retornado por refactor_code contém summary (não vazio) e diff (não vazio). Formato inválido resulta em FAILED com INVALID_FORMAT | `src/core/agents/RefactorAgent.ts`
+F16 | RULE | Compatibilidade retroativa | CODER, TESTER, REVIEWER continuam funcionando. AgentResultSchema aceita todas as 4 roles. JoinGate aceita REFACTORER como assignedAgent válido | `tests/refactor-agent.test.ts`
+F16 | RULE | Isolamento de testes | Nenhum teste chama Qwen real, LLM real, MCP real, rede, merge ou push. Todos usam MockMcpClient | `tests/refactor-agent.test.ts`

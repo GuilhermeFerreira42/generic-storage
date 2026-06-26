@@ -29,11 +29,13 @@
 - **Limitação documentada:** Orchestrator não possui evento REJECT_PLAN. Rejeição é modelada no controller de revisão.
 
 ## Fase 16 — Agente de Refatoração
-- **Objetivo:** Adicionar um novo agente especializado em refatoração de código.
-- **Requisitos:**
-    - Definir as capacidades e ferramentas do `RefactorAgent`.
-    - Integrar o `RefactorAgent` no fluxo do `Orchestrator` e `PlannerEngine`.
-    - Desenvolver testes específicos para o `RefactorAgent`.
+- **Status:** ✅ CONCLUÍDA E VALIDADA (2026-06-26)
+- **Entregáveis:**
+    - `RefactorAgent.ts` — Agente especialista em refatoração herdando de BaseAgent, usando McpClientPort, chamando ferramenta `refactor_code` via MCP mockado.
+    - Nova role `REFACTORER` adicionada a AgentRole, AgentResultSchema, SubtaskNode, SubtaskNodeJoinSchema, PlanReviewViewSchema.
+    - `tests/refactor-agent.test.ts` — 39 testes cobrindo instanciação/contrato, sucesso, ferramentas permitidas, falha MCP, compatibilidade com agentes existentes, compatibilidade com JoinGate, e isolamento.
+    - Compatibilidade retroativa: CODER, TESTER, REVIEWER continuam funcionando. Planos antigos continuam válidos. JoinGate continua validando artifacts corretamente.
+    - build, lint e 359/359 testes passando.
 
 ## Fase 17 — Suporte a Múltiplos LLMs
 - **Objetivo:** Permitir que o GreenForge utilize diferentes provedores de LLM (e.g., OpenAI, Claude, Gemini).

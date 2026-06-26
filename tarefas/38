@@ -1,0 +1,148 @@
+Copie e cole este comando para o agente verificar se está tudo certo antes do commit da Fase 16:
+
+```text
+Você vai fazer uma verificação final pré-commit da Fase 16 do projeto GreenForge.
+
+Contexto:
+- A Fase 16 — RefactorAgent já foi implementada.
+- A fase foi revisada e aprovada tecnicamente.
+- Antes do commit, precisamos garantir que o repositório está limpo, que só os arquivos corretos serão commitados e que testes/build/lint continuam passando.
+- Não implemente nada novo.
+- Não avance para Fase 17.
+- Não faça commit.
+- Não altere código, a menos que encontre um erro real impeditivo e informe antes.
+
+Objetivo:
+Validar que o commit da Fase 16 conterá somente os arquivos corretos e que o projeto continua passando em test/build/lint.
+
+Execute no PowerShell:
+
+```powershell
+cd "C:\Users\Usuario\Desktop\xgeneric-storage\greenforge"
+
+Write-Host "===== GIT STATUS =====" -ForegroundColor Cyan
+git status --short
+
+Write-Host "`n===== GIT DIFF --NAME-ONLY =====" -ForegroundColor Cyan
+git diff --name-only
+
+Write-Host "`n===== UNTRACKED FILES =====" -ForegroundColor Cyan
+git ls-files --others --exclude-standard
+
+Write-Host "`n===== VERIFICAR ARQUIVOS PROIBIDOS NO STATUS =====" -ForegroundColor Cyan
+$status = git status --short
+$bad = $status | Select-String -Pattern "node_modules|dist/|\\dist\\|\.agent|\.claude|tarefas|coverage|\.cache|\.turbo|\.vite|\.vitest"
+if ($bad) {
+  Write-Host "ATENÇÃO: arquivos/pastas proibidos apareceram no status:" -ForegroundColor Red
+  $bad
+} else {
+  Write-Host "OK: nenhum arquivo proibido no status." -ForegroundColor Green
+}
+
+Write-Host "`n===== VERIFICAR ARQUIVOS ESPERADOS DA FASE 16 =====" -ForegroundColor Cyan
+$expected = @(
+  ".humano",
+  "docs/BACKLOG_FUTURO.md",
+  "docs/CURRENT_STATE.md",
+  "docs/DECISION_LOG.md",
+  "docs/phase_16_resumo.md",
+  "src/core/PlanReviewController.ts",
+  "src/core/PlannerEngine.ts",
+  "src/core/types/Agent.ts",
+  "src/core/types/Join.ts",
+  "src/core/types/PlanReview.ts",
+  "src/core/types/Task.ts",
+  "src/core/agents/RefactorAgent.ts",
+  "tests/refactor-agent.test.ts"
+)
+
+foreach ($file in $expected) {
+  if (Test-Path $file) {
+    Write-Host "OK: $file" -ForegroundColor Green
+  } else {
+    Write-Host "FALTANDO: $file" -ForegroundColor Red
+  }
+}
+
+Write-Host "`n===== CHECK REFACTORAGENT =====" -ForegroundColor Cyan
+Select-String -Path ".\src\core\agents\RefactorAgent.ts" `
+  -Pattern "class RefactorAgent|extends BaseAgent|REFACTORER|refactor_code|AgentResult|AgentResultSchema|INVALID_FORMAT|DIFF|allowedTools|callTool" `
+  -Context 1,1 -ErrorAction SilentlyContinue
+
+Write-Host "`n===== CHECK ROLE REFACTORER NOS CONTRATOS =====" -ForegroundColor Cyan
+Select-String -Path ".\src\core\types\Agent.ts", ".\src\core\types\Task.ts", ".\src\core\types\Join.ts", ".\src\core\PlannerEngine.ts", ".\src\core\types\PlanReview.ts", ".\src\core\PlanReviewController.ts" `
+  -Pattern "REFACTORER" `
+  -Context 1,1 -ErrorAction SilentlyContinue
+
+Write-Host "`n===== CHECK TESTES REFACTOR =====" -ForegroundColor Cyan
+Select-String -Path ".\tests\refactor-agent.test.ts" `
+  -Pattern "RefactorAgent|REFACTORER|refactor_code|DONE|FAILED|INVALID_FORMAT|CoderAgent|TesterAgent|ReviewerAgent|JoinGate|AgentResultSchema" `
+  -Context 1,1 -ErrorAction SilentlyContinue
+
+Write-Host "`n===== CHECK MARKDOWN/LINK MALFORMADO =====" -ForegroundColor Cyan
+$files = Get-ChildItem ".\src", ".\tests", ".\docs", ".\.humano", ".\.qwen" -Recurse -File -ErrorAction SilentlyContinue |
+  Where-Object {
+    $_.FullName -notmatch "\\node_modules\\" -and
+    $_.FullName -notmatch "\\dist\\" -and
+    $_.FullName -notmatch "\\coverage\\" -and
+    $_.FullName -notmatch "\\\.git\\"
+  }
+
+$lb = [char]91
+$rb = [char]93
+$lp = [char]40
+$http = "http" + "://"
+$https = "https" + "://"
+
+$patterns = @(
+  $lb + "SKILL.md" + $rb,
+  $lb + $http,
+  $lb + $https,
+  $rb + $lp + "http",
+  $rb + $lp + "https",
+  $lp + $http,
+  $lp + $https,
+  "GREENFORGE_" + $lb + "AUDIT"
+)
+
+$foundMarkdown = $false
+foreach ($pattern in $patterns) {
+  $matches = $files | Select-String -SimpleMatch $pattern -ErrorAction SilentlyContinue
+  foreach ($m in $matches) {
+    $foundMarkdown = $true
+    "$($m.Path):$($m.LineNumber): $($m.Line)"
+  }
+}
+if (-not $foundMarkdown) {
+  Write-Host "OK: nenhum padrão markdown/link proibido encontrado." -ForegroundColor Green
+}
+
+Write-Host "`n===== CHECK CHAMADAS PROIBIDAS =====" -ForegroundColor Cyan
+Select-String -Path ".\src\**\*.ts", ".\tests\*.test.ts" `
+  -Pattern "child_process|exec\(|shell:\s*true|fetch\(|axios|http\.request|https\.request|git push|git merge" `
+  -AllMatches -ErrorAction SilentlyContinue
+
+Write-Host "`n===== NPM TEST =====" -ForegroundColor Green
+npm test
+
+Write-Host "`n===== NPM RUN BUILD =====" -ForegroundColor Green
+npm run build
+
+Write-Host "`n===== NPM RUN LINT =====" -ForegroundColor Green
+npm run lint
+```
+
+Relatório esperado:
+- Informe se `git status` contém somente arquivos da Fase 16.
+- Informe se algum arquivo proibido apareceu.
+- Informe se todos os arquivos esperados existem.
+- Informe o resultado de `npm test`, `npm run build`, `npm run lint`.
+- Não faça commit.
+- Pare e aguarde aprovação humana.
+```
+
+Se ele trouxer isso limpo, você pode commitar com:
+
+```bash
+git commit -m "feat(agents): complete phase 16 refactor agent"
+```

@@ -1,0 +1,338 @@
+```text
+Você vai executar a Fase 16 do projeto GreenForge.
+
+Contexto:
+- As Fases 0 a 15 já foram implementadas, validadas e commitadas.
+- A Fase 15 entregou a UI/UX de Revisão de Planos.
+- Agora você executará SOMENTE a Fase 16.
+- Não avance para a Fase 17.
+- Não faça commit.
+- Trabalhe em TDD.
+- Não altere módulos core aprovados sem necessidade real comprovada.
+- Ao final, pare e entregue relatório para aprovação humana.
+
+FASE 16 — Agente de Refatoração
+
+Objetivo:
+Adicionar um agente especialista em refatoração de código ao GreenForge, integrado à arquitetura de agentes existente, sem quebrar os contratos já aprovados de CoderAgent, TesterAgent, ReviewerAgent, PlannerEngine, JoinGate, Orchestrator e tipos Zod.
+
+Antes de implementar, leia obrigatoriamente:
+
+1. `.humano`
+2. `docs/CURRENT_STATE.md`
+3. `docs/BACKLOG_FUTURO.md`
+4. `docs/DECISION_LOG.md`
+5. `docs/phase_15_resumo.md`
+6. `package.json`
+7. `src/core/types/Agent.ts`
+8. `src/core/types/Task.ts`
+9. `src/core/types/Plan.ts`
+10. `src/core/agents/BaseAgent.ts`
+11. `src/core/agents/CoderAgent.ts`
+12. `src/core/agents/TesterAgent.ts`
+13. `src/core/agents/ReviewerAgent.ts`
+14. `src/infrastructure/mcp/MockMcpClient.ts`
+15. `src/core/ports/McpClientPort.ts`
+16. `src/core/PlannerEngine.ts`
+17. `src/core/JoinGate.ts`
+18. `src/core/Orchestrator.ts`
+19. `tests/agents.test.ts`
+20. `tests/planner.test.ts`
+21. `tests/join-gate.test.ts`
+
+Atenção:
+- Entenda o padrão real dos agentes existentes antes de codar.
+- O novo agente deve seguir o mesmo estilo arquitetural.
+- Não reescreva agentes existentes.
+- Não reescreva o Orchestrator.
+- Não redesenhe o fluxo de execução.
+- Não crie Fase 17.
+- Não faça commit.
+
+Escopo obrigatório da Fase 16:
+
+1. Criar o RefactorAgent
+
+Crie:
+
+- `src/core/agents/RefactorAgent.ts`
+
+O agente deve:
+
+- herdar de `BaseAgent`;
+- usar `McpClientPort`;
+- respeitar `allowedTools`;
+- chamar ferramentas via `mcpClient.callTool`;
+- retornar `AgentResult` compatível com o contrato existente;
+- validar ou passar por `AgentResultSchema`, se esse for o padrão atual;
+- tratar sucesso com status `DONE`;
+- tratar falha com status `FAILED`;
+- produzir artifacts compatíveis com os tipos existentes, preferencialmente `DIFF`, se for suficiente;
+- não chamar Qwen real;
+- não chamar LLM real;
+- não chamar MCP real;
+- não fazer rede;
+- não fazer operações reais destrutivas de filesystem/Git.
+
+O comportamento mínimo esperado do RefactorAgent:
+
+- ler/inspecionar contexto da subtarefa;
+- solicitar/gerar uma refatoração via ferramenta MCP mockada;
+- retornar resumo da refatoração;
+- retornar artifact de refatoração;
+- falhar de forma estruturada se ferramenta necessária estiver ausente ou retornar erro.
+
+2. Expansão controlada de tipos/roles
+
+Antes de alterar qualquer contrato core, faça uma busca no projeto por roles de agentes:
+
+- `CODER`
+- `TESTER`
+- `REVIEWER`
+- `assignedAgent`
+- `AgentRole`
+- `AgentResultSchema`
+- schemas Zod de Plan/Task/Agent
+
+Se a role de agente for uma union/enum fechado, adicione a nova role de forma mínima.
+
+Sugestão de nova role:
+
+- `REFACTORER`
+
+Mas use o nome que melhor se encaixar no padrão existente.
+
+Se alterar tipos/schemas, atualize apenas o necessário, por exemplo:
+
+- `src/core/types/Agent.ts`
+- `src/core/types/Task.ts`
+- `src/core/types/Plan.ts`
+
+Somente se for realmente necessário.
+
+Você deve garantir retrocompatibilidade:
+
+- `CODER` continua funcionando;
+- `TESTER` continua funcionando;
+- `REVIEWER` continua funcionando;
+- planos antigos continuam válidos;
+- JoinGate continua validando artifacts corretamente;
+- PlannerEngine continua rejeitando planos inválidos.
+
+3. Não alterar Orchestrator sem necessidade
+
+A Fase 16 é para adicionar um agente especialista, não para redesenhar a máquina de estados.
+
+Não altere:
+
+- `src/core/Orchestrator.ts`
+
+exceto se houver erro real e inevitável de TypeScript/teste/build.
+
+Se precisar alterar, justifique no relatório final com:
+
+- erro encontrado;
+- motivo da alteração;
+- por que não havia alternativa menor;
+- testes cobrindo regressão.
+
+4. Integração com o sistema existente
+
+Se o projeto tiver algum lugar central que exporta/agrega agentes, atualize somente o necessário.
+
+Exemplos possíveis:
+
+- exports em barrel files, se existirem;
+- documentação de módulos;
+- testes de agentes.
+
+Não precisa integrar o RefactorAgent ao fluxo completo do Orchestrator nesta fase, a menos que os contratos existentes exijam.
+
+5. Testes obrigatórios
+
+Crie uma nova suite:
+
+- `tests/refactor-agent.test.ts`
+
+ou adicione em `tests/agents.test.ts` se fizer mais sentido, mas prefira uma suite separada.
+
+Coberturas mínimas:
+
+A. Instanciação e contrato
+
+- RefactorAgent instancia corretamente;
+- herda/comporta-se como BaseAgent;
+- retorna `AgentResult` válido pelo schema;
+- usa `agent: 'REFACTORER'` ou role equivalente.
+
+B. Sucesso
+
+- com ferramentas autorizadas e MCP mockado respondendo ok, retorna:
+  - status `DONE`;
+  - summary não vazio;
+  - artifact compatível, preferencialmente `DIFF`;
+  - taskId e subtaskId corretos.
+
+C. Ferramentas permitidas
+
+- falha se ferramenta necessária não estiver em `allowedTools`;
+- não chama ferramenta fora de `allowedTools`;
+- respeita o mecanismo atual de validação de tools do BaseAgent/agentes.
+
+D. Falha MCP
+
+- se MCP retorna erro/ok false, retorna `FAILED`;
+- inclui erro estruturado;
+- retryable definido corretamente, se o padrão existir.
+
+E. Compatibilidade com agentes existentes
+
+- CoderAgent continua passando nos testes existentes;
+- TesterAgent continua passando;
+- ReviewerAgent continua passando;
+- alterações em `AgentResultSchema` não quebram agentes antigos.
+
+F. Compatibilidade com Plan/Task/JoinGate, se types forem alterados
+
+Se você alterar `assignedAgent`/schemas de Plan ou Task:
+
+- teste que plano com `REFACTORER` é aceito;
+- teste que plano com role inválida continua rejeitado;
+- teste que JoinGate aceita subtarefa DONE de `REFACTORER` com artifact válido;
+- teste que JoinGate continua rejeitando artifacts ausentes/invalidos como antes.
+
+G. Isolamento
+
+- nenhum teste chama Qwen real;
+- nenhum teste chama LLM real;
+- nenhum teste chama MCP real;
+- nenhum teste faz rede;
+- nenhum teste faz merge/push;
+- nenhum teste depende de estado global permanente.
+
+Importante:
+Não aceite teste superficial do tipo apenas `expect(agent).toBeDefined()`.
+Os testes precisam provar comportamento.
+
+6. Documentação viva
+
+Atualize obrigatoriamente:
+
+- `docs/CURRENT_STATE.md`
+- `docs/BACKLOG_FUTURO.md`
+- `docs/DECISION_LOG.md`
+- `.humano`
+- crie `docs/phase_16_resumo.md`
+
+A documentação deve conter:
+
+- novo módulo `RefactorAgent`;
+- role nova, se adicionada;
+- quantidade de testes novos;
+- total final de testes;
+- resumo dos contratos alterados;
+- garantia de compatibilidade com Coder/Tester/Reviewer.
+
+Status correto antes da aprovação humana:
+
+- `CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA`
+
+Não escreva:
+
+- `VALIDADA`
+- `APROVADA`
+- `pronta para Fase 17`
+
+antes da aprovação humana.
+
+7. Regras de higiene e segurança
+
+Não inserir artefatos markdown em paths/configs/URLs/strings reais.
+
+Proibido:
+
+- `[SKILL.md](http://SKILL.md)`
+- `[http://localhost:7777/pre-tool](http://localhost:7777/pre-tool)`
+- `GREENFORGE_[AUDIT.md](http://AUDIT.md)`
+- qualquer `](http` ou `](https` onde deveria haver string crua.
+
+Use:
+
+- `SKILL.md`
+- `http://localhost:7777/pre-tool`
+- `GREENFORGE_AUDIT.md`
+
+Não usar em código/teste automatizado:
+
+- `child_process`
+- `exec(`
+- `shell: true`
+- `fetch(`
+- `axios`
+- `git push`
+- `git merge`
+- rede real
+- Qwen real
+- LLM real
+- MCP real
+
+Evite comentários com literais proibidos se isso poluir buscas automáticas.
+
+8. Git hygiene
+
+Não incluir no commit/alterações:
+
+- `node_modules/`
+- `dist/`
+- `.agent/`
+- `.claude/`
+- `tarefas/`
+- coverage/cache/build outputs;
+- arquivos temporários de banco;
+- logs.
+
+Se algum desses aparecer no `git status`, limpe antes de entregar.
+
+9. Comandos finais obrigatórios
+
+Ao terminar, rode:
+
+```powershell
+npm test
+npm run build
+npm run lint
+```
+
+Todos devem passar:
+
+- `npm test`: 100% passando;
+- `npm run build`: sem erro;
+- `npm run lint`: 0 erros e 0 warnings.
+
+10. Relatório final obrigatório
+
+Entregue relatório com:
+
+- arquivos criados;
+- arquivos alterados;
+- contratos core alterados e justificativa;
+- se `Agent.ts`, `Task.ts` ou `Plan.ts` foram alterados, explique exatamente por quê;
+- estratégia do `RefactorAgent`;
+- ferramentas MCP usadas;
+- artifacts gerados;
+- como garantiu compatibilidade com `CoderAgent`, `TesterAgent`, `ReviewerAgent`;
+- total final de testes;
+- quantidade de testes novos da Fase 16;
+- saída completa de:
+  - `npm test`
+  - `npm run build`
+  - `npm run lint`
+- confirmação de que:
+  - Fase 17 não foi iniciada;
+  - nenhum commit foi feito;
+  - `git status` não contém `node_modules`, `dist`, `.agent`, `.claude`, `tarefas`.
+
+Pare ao final e aguarde aprovação humana.
+Não avance para a Fase 17.
+Não faça commit.
+```

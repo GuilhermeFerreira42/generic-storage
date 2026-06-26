@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export type AgentRole = 'CODER' | 'TESTER' | 'REVIEWER';
+export type AgentRole = 'CODER' | 'TESTER' | 'REVIEWER' | 'REFACTORER';
 
 export const AgentArtifactSchema = z.object({
   type: z.enum(['DIFF', 'TEST_REPORT', 'REVIEW_REPORT', 'DOCS', 'LINT_REPORT']),
@@ -31,7 +31,7 @@ export const AgentContextSchema = z.object({
 export type AgentContext = z.infer<typeof AgentContextSchema>;
 
 export const AgentResultSchema = z.object({
-  agent: z.enum(['CODER', 'TESTER', 'REVIEWER']),
+  agent: z.enum(['CODER', 'TESTER', 'REVIEWER', 'REFACTORER']),
   taskId: z.string().min(1),
   subtaskId: z.string().min(1),
   status: z.enum(['DONE', 'FAILED']),

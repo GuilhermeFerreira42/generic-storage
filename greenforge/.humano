@@ -65,6 +65,10 @@ HISTÓRICO DE APROVAÇÕES
 - Status: CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA (320 testes totais).
 - Destaque: Implementação de PlanReviewController (controller de domínio com buildReviewView, submitFeedback, approvePlan, rejectPlan, requestChanges, getReviewStatus, renderReviewToMarkdown), PlanReviewRenderer (renderizador textual markdown), PlanReviewHandler (handler Qwen com 6 comandos: review, feedback, approve, reject, needs-changes, review-status), tipos/schemas Zod em PlanReview.ts (12 schemas). 74 novos testes (Fase 15) + 320 total. Aprovação delega para Orchestrator real (APPROVE_PLAN). Rejeição modelada como resultado de revisão (limitação documentada: Orchestrator não possui evento REJECT_PLAN). Todos outputs validados por .parse() Zod. Build, lint e testes 100% limpos.
 
+### [2026-06-26] Fase 16 — Agente de Refatoração
+- Status: CONCLUÍDA E VALIDADA (359 testes totais).
+- Destaque: Implementação de RefactorAgent herdando de BaseAgent, usando McpClientPort, chamando ferramenta refactor_code via MCP mockado. Nova role REFACTORER adicionada a AgentRole, AgentResultSchema, SubtaskNode, SubtaskNodeJoinSchema, PlanReviewViewSchema e PlanReviewController. 39 novos testes (Fase 16) + 359 total. Compatibilidade retroativa garantida: CODER, TESTER, REVIEWER continuam funcionando. JoinGate aceita REFACTORER como assignedAgent válido. Build, lint e testes 100% limpos.
+
 ───────────────────────────────────────────────────────
 GUIA RÁPIDO PARA O USUÁRIO
 ══════════════════════════

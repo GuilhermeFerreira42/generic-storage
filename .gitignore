@@ -47,7 +47,7 @@ pnpm-debug.log*
 # Local agent/workflow folders
 .agent/
 .claude/
-tarefas/
+
 
 # Editors/OS
 .vscode/

@@ -43,7 +43,7 @@ export const PlanReviewViewSchema = z.object({
   subtasks: z.array(z.object({
     id: z.string().min(1),
     title: z.string().min(1),
-    assignedAgent: z.enum(['CODER', 'TESTER', 'REVIEWER', 'DOCS']).nullable(),
+    assignedAgent: z.enum(['CODER', 'TESTER', 'REVIEWER', 'REFACTORER', 'DOCS']).nullable(),
     dependsOn: z.array(z.string()),
   })),
   acceptanceCriteria: z.array(z.string()),
@@ -52,7 +52,7 @@ export const PlanReviewViewSchema = z.object({
     subtaskId: z.string().min(1),
     dependsOn: z.array(z.string()),
   })),
-  agents: z.array(z.enum(['CODER', 'TESTER', 'REVIEWER', 'DOCS'])),
+  agents: z.array(z.enum(['CODER', 'TESTER', 'REVIEWER', 'REFACTORER', 'DOCS'])),
   reviewStatus: PlanReviewStatusSchema,
   createdAt: z.string(),
 });

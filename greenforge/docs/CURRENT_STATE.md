@@ -1,5 +1,5 @@
 # CURRENT_STATE — GreenForge
-> Última atualização: Fase 15 | 2026-06-25
+> Última atualização: Fase 16 | 2026-06-26
 
 ## Arquitetura Ativa
 - **Arquitetura Hexagonal:** Desacoplamento total via portas e adaptadores.
@@ -11,6 +11,7 @@
 - **Integração E2E Controlada (Fase 13):** Simulador de hooks Qwen e runner de integração validando fluxo completo sem Qwen real, MCP real, LLM real, rede ou merge/push. Inclui validação de segurança de `allowedRoot` para operações de escrita e limpeza de recursos temporários em todos os caminhos (sucesso, NORMAL_CHAT, BLOCKED, RETRYABLE, exceção).
 - **Camada Real de Runtime Qwen (Fase 14):** Runtime real com QwenExtensionRuntime, QwenHookHandler, QwenCommandHandler e QwenExtensionEntrypoint. Integração com componentes reais do GreenForge (QwenRouter, PlannerEngine, SQLiteRepository, Orchestrator) usando InternalMockLLMProvider. Segurança em PreToolUse com path.resolve + path.relative. Entrypoint importável sem efeitos colaterais, sem chamadas de rede, sem git push/merge.
 - **UI/UX de Revisão de Planos (Fase 15):** Camada de revisão de planos com controller testável, renderizador textual e integração Qwen. Exibe título/prompt/perguntas/subtarefas/dependências/agentes/critérios/riscos. Permite feedback textual, respostas a perguntas, aprovação via Orchestrator, rejeição com motivo e solicitação de mudanças. Todos os contratos validados por Zod. **Status: CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA.**
+- **Agente de Refatoração (Fase 16):** RefactorAgent especialista em refatoração de código, integrado à arquitetura de agentes existente. Herda de BaseAgent, usa McpClientPort, chama ferramenta `refactor_code` via MCP mockado, retorna artifacts DIFF com resumo e diff. Nova role `REFACTORER` adicionada aos contratos AgentRole, AgentResultSchema, SubtaskNode, JoinGate e PlanReview. Compatibilidade retroativa garantida com CODER, TESTER, REVIEWER. **Status: CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA.**
 
 ## Módulos e Contratos Vigentes
 | Módulo | Arquivo | Contrato Público | Desde |
@@ -40,6 +41,7 @@
 | `PlanReviewRenderer` | `src/core/PlanReviewRenderer.ts` | `render(view)`, `renderQuestions(view)`, `renderRisks(view)`, `renderDependencies(view)`, `renderFeedbackTemplate(view)`, `renderCompact(view)` | Fase 15 |
 | `PlanReviewHandler` | `src/integration/qwen/PlanReviewHandler.ts` | `handle(name, args)`, `hasHandler(name)` — comandos: review, feedback, approve, reject, needs-changes, review-status | Fase 15 |
 | `PlanReview Types/Schemas` | `src/core/types/PlanReview.ts` | `PlanReviewViewSchema`, `PlanReviewStatusSchema`, `PlanFeedbackInputSchema`, `PlanApprovalInputSchema`, `PlanRejectionInputSchema`, `PlanNeedsChangesInputSchema`, `PlanReviewInputSchema`, `PlanReviewStatusResultSchema`, `PlanApprovalResultSchema`, `PlanRejectionResultSchema`, `PlanNeedsChangesResultSchema`, `PlanFeedbackResultSchema` | Fase 15 |
+| `RefactorAgent` | `src/core/agents/RefactorAgent.ts` | `execute(context): Promise<AgentResult>` — role `REFACTORER`, ferramenta `refactor_code`, artifact `DIFF` | Fase 16 |
 
 ## Fluxo Principal
 1. Router identifica tarefa técnica.
@@ -72,13 +74,14 @@
 ## Testes Obrigatórios
 | Suite | Arquivo | Cobertura Aproximada | Comando |
 |-------|---------|----------------------|---------|
-| Total Suíte | `tests/*.test.ts` | 320 testes ativos | `npm test` |
+| Total Suíte | `tests/*.test.ts` | 359 testes ativos | `npm test` |
 | Qwen Integration (Static) | `tests/qwen-integration.test.ts` | 24 testes (Estáticos) | `npm test` |
 | Qwen Integration (E2E) | `tests/qwen-e2e.test.ts` | 22 testes (E2E Controlado) | `npm test` |
 | Qwen Real Extension | `tests/qwen-real-extension.test.ts` | 46 testes (Runtime Real) | `npm test` |
 | DiffLens | `tests/difflens.test.ts` | 13 testes (Refinados) | `npm test` |
 | Verifier | `tests/verifier.test.ts` | 21 testes (Unitários) | `npm test` |
 | Plan Review (Fase 15) | `tests/plan-review.test.ts` | 74 testes (Unitários + Integração) | `npm test` |
+| RefactorAgent (Fase 16) | `tests/refactor-agent.test.ts` | 39 testes (Instanciação, Sucesso, Ferramentas, Falha MCP, Compatibilidade, JoinGate, Isolamento) | `npm test` |
 
 ## Dependências Externas
 | Pacote | Versão | Motivo |

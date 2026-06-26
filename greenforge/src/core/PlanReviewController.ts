@@ -67,7 +67,7 @@ export class PlanReviewController {
     const reviewStatus = this.reviewStatusStore.get(taskId) ?? 'PENDING_REVIEW';
 
     // Extrair lista plana de agents únicos
-    const agentsSet = new Set<'CODER' | 'TESTER' | 'REVIEWER' | 'DOCS'>();
+    const agentsSet = new Set<'CODER' | 'TESTER' | 'REVIEWER' | 'REFACTORER' | 'DOCS'>();
     for (const st of subtasksGraph) {
       if (st.assignedAgent) {
         agentsSet.add(st.assignedAgent);
