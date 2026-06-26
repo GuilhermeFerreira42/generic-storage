@@ -1,0 +1,126 @@
+Você tem toda a razão e agradeço pelo alinhamento. Eu foquei nos testes passando e deixei passar a regra rigorosa de higiene do Git que está explícita no meu perfil.
+
+Ainda **não aprovo a Fase 15**.
+
+A parte funcional parece boa agora, porque o terminal mostra:
+```text
+Test Files  16 passed (16)
+Tests       320 passed (320)
+```
+E também:
+```text
+npm run build
+> tsc
+```
+passou.
+```text
+npm run lint
+> eslint src/**/*.ts
+```
+passou.
+
+Mas a fase **ainda não está pronta para commit** por causa do `git status`.
+
+---
+
+## Bloqueador restante: `git status` ainda está sujo com `dist` e `node_modules`
+
+No começo do arquivo aparece:
+```text
+M dist/core/DiffLens.d.ts
+M dist/core/DiffLens.js
+M dist/core/JoinGate.d.ts
+...
+M node_modules/.bin/acorn
+M node_modules/.bin/esbuild
+M node_modules/.vite/vitest/results.json
+M node_modules/better-sqlite3/build/Release/better_sqlite3.node
+...
+```
+Isso bloqueia aprovação. 
+Mesmo que `npm test/build/lint` passem, **não podemos aprovar uma fase com `dist` e `node_modules` aparecendo no status**. O `.gitignore` deveria estar cobrindo isso ou esses arquivos não deveriam ter sido rastreados/modificados indevidamente no worktree.
+
+---
+
+## O que está bom
+
+Pelo arquivo, os pontos abaixo parecem resolvidos:
+- `npm test`: 320 testes passando.
+- `npm run build`: passou.
+- `npm run lint`: passou.
+- Fase 15 tem agora a implementação funcional esperada:
+  - `PlanReviewController`
+  - `PlanReviewRenderer`
+  - `PlanReviewHandler`
+  - `PlanReview.ts`
+  - `tests/plan-review.test.ts`
+- Docs estão atualizadas:
+  - 320 testes totais;
+  - 74 testes da Fase 15;
+  - status `CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA`.
+
+Mas **git hygiene ainda bloqueia**.
+
+---
+
+## Rode este comando agora
+
+Quero só a validação final de limpeza no seu ambiente local:
+
+```powershell
+cd "C:\Users\Usuario\Desktop\xgeneric-storage\greenforge"
+
+Write-Host "===== RESTAURANDO dist E node_modules DO WORKTREE =====" -ForegroundColor Cyan
+git restore -- ".\dist" ".\node_modules"
+
+Write-Host "`n===== GIT STATUS REAL FINAL =====" -ForegroundColor Cyan
+git status --short
+
+Write-Host "`n===== GIT DIFF --NAME-ONLY FINAL =====" -ForegroundColor Cyan
+git diff --name-only
+
+Write-Host "`n===== ARQUIVOS NOVOS NÃO RASTREADOS =====" -ForegroundColor Cyan
+git ls-files --others --exclude-standard
+```
+
+Cole aqui a saída.
+
+---
+
+## O status esperado
+
+Depois da limpeza, o `git status --short` deve mostrar apenas arquivos da Fase 15, algo parecido com:
+
+```text
+ M .humano
+ M .qwen/skills/greenforge/SKILL.md
+ M docs/BACKLOG_FUTURO.md
+ M docs/CURRENT_STATE.md
+ M docs/DECISION_LOG.md
+ M src/integration/qwen/QwenCommandHandler.ts
+?? docs/phase_15_resumo.md
+?? src/core/PlanReviewController.ts
+?? src/core/PlanReviewRenderer.ts
+?? src/core/types/PlanReview.ts
+?? src/integration/qwen/PlanReviewHandler.ts
+?? tests/plan-review.test.ts
+```
+
+Não pode aparecer:
+```text
+dist/
+node_modules/
+../tarefas/
+../.claude/
+../.agent/
+```
+
+---
+
+## Veredito atual
+
+**Fase 15 quase aprovada, mas ainda não aprovada.**
+
+Único bloqueador que estou vendo agora: `dist` e `node_modules` ainda aparecem no `git status`. 
+
+Se a próxima saída vier limpa, eu aprovo a Fase 15 e te passo o comando exato de commit. Cole a saída do script!

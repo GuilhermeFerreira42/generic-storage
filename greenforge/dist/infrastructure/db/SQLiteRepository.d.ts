@@ -31,6 +31,10 @@ export declare class SQLiteRepository {
      */
     getSubtasksGraph(id: string): SubtaskNode[] | null;
     /**
+     * Retorna todas as tasks cadastradas, opcionalmente filtradas por status.
+     */
+    listTasks(filter?: string): TaskRecord[];
+    /**
      * Adiciona um checkpoint para uma tarefa.
      */
     addCheckpoint(taskId: string, phase: string, metadata: object | null): void;

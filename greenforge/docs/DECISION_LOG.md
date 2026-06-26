@@ -77,3 +77,14 @@ F14 | RULE | Segurança PreToolUse | Validação de path via path.resolve + path
 F14 | RULE | InternalMockLLMProvider | Zero chamadas a Qwen real, LLM real, rede, merge/push em testes | `src/integration/qwen/QwenExtensionRuntime.ts`
 F14 | RULE | Entrypoint sem side effects | QwenExtensionEntrypoint importável sem IIFE ou execução top-level | `src/integration/qwen/QwenExtensionEntrypoint.ts`
 F14 | TECH | Isolation introspection | usesRealQwen(), usesRealLLM(), makesNetworkCalls(), canDoDestructiveGitOps() para asserções de isolamento | `src/integration/qwen/QwenExtensionRuntime.ts`
+
+### Fase 15 — UI/UX para Revisão de Planos
+F15 | ADD | PlanReviewController | Controller de domínio com buildReviewView, submitFeedback, approvePlan, rejectPlan, requestChanges, getReviewStatus, getFeedbackHistory, renderReviewToMarkdown | `src/core/PlanReviewController.ts`
+F15 | ADD | PlanReviewRenderer | Renderizador textual markdown com render, renderQuestions, renderRisks, renderDependencies, renderFeedbackTemplate, renderCompact | `src/core/PlanReviewRenderer.ts`
+F15 | ADD | PlanReviewHandler | Handler de integração Qwen com 6 comandos: review, feedback, approve, reject, needs-changes, review-status | `src/integration/qwen/PlanReviewHandler.ts`
+F15 | ADD | PlanReview Types/Schemas | 12 schemas Zod para contratos de revisão (PlanReviewViewSchema, PlanReviewStatusSchema, PlanFeedbackInputSchema, PlanApprovalInputSchema, PlanRejectionInputSchema, PlanNeedsChangesInputSchema, PlanReviewInputSchema, PlanReviewStatusResultSchema, PlanApprovalResultSchema, PlanRejectionResultSchema, PlanNeedsChangesResultSchema, PlanFeedbackResultSchema) | `src/core/types/PlanReview.ts`
+F15 | RULE | Aprovação delega para Orchestrator | approvePlan chama orchestrator.trigger(taskId, 'APPROVE_PLAN') real, com transições intermediárias se necessário | `src/core/PlanReviewController.ts`
+F15 | RULE | Rejeição modelada como resultado | Rejeição não altera máquina de estados core (Orchestrator não possui evento REJECT_PLAN). Limitação documentada para futuro ajuste | `src/core/PlanReviewController.ts`
+F15 | RULE | Todos outputs validados por Zod | buildReviewView, submitFeedback, approvePlan, rejectPlan, requestChanges, getReviewStatus retornam dados passando por .parse() | `src/core/PlanReviewController.ts`
+F15 | TECH | UI/UX textual, não web app | Renderer markdown ao invés de React/Vite/Next. Experiência de revisão via texto estruturado | `src/core/PlanReviewRenderer.ts`
+F15 | TECH | Perguntas de fallback | Quando planMarkdown não contém perguntas suficientes, o controller gera 5 perguntas padrão | `src/core/PlanReviewController.ts`

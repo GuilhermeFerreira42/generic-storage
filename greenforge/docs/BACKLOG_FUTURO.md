@@ -15,11 +15,18 @@
     - build, lint e 246/246 testes passando.
 
 ## Fase 15 — UI/UX para Revisão de Planos
-- **Objetivo:** Desenvolver uma interface de usuário para facilitar a revisão e aprovação de planos gerados pelo `PlannerEngine`.
-- **Requisitos:**
-    - Exibir o `planMarkdown` de forma clara e interativa.
-    - Permitir que o usuário faça perguntas de clarificação e forneça feedback.
-    - Integrar com o `Orchestrator` para aprovar ou rejeitar planos.
+- **Status:** ✅ CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA (2026-06-25)
+- **Entregáveis:**
+    - `PlanReviewController.ts` — Controller de domínio para revisão de planos (buildReviewView, submitFeedback, approvePlan, rejectPlan, requestChanges, getReviewStatus, getFeedbackHistory, renderReviewToMarkdown).
+    - `PlanReviewRenderer.ts` — Renderizador textual markdown com seções de perguntas, subtarefas, dependências, agentes, critérios, riscos. Métodos: render, renderQuestions, renderRisks, renderDependencies, renderFeedbackTemplate, renderCompact.
+    - `PlanReviewHandler.ts` — Handler de integração Qwen com 6 comandos (review, feedback, approve, reject, needs-changes, review-status).
+    - `types/PlanReview.ts` — Schemas Zod para todos os contratos de revisão (12 schemas: input, view, feedback, approval, rejection, needs-changes, status, resultados).
+    - `tests/plan-review.test.ts` — 74 testes cobrindo renderização, feedback, aprovação, rejeição, integração Qwen, renderer, schemas Zod, isolamento.
+    - Aprovação delega para Orchestrator real (evento APPROVE_PLAN).
+    - Rejeição modelada como resultado de revisão (não altera core).
+    - Todos os outputs passam por `.parse()` Zod.
+    - build, lint e 320/320 testes passando.
+- **Limitação documentada:** Orchestrator não possui evento REJECT_PLAN. Rejeição é modelada no controller de revisão.
 
 ## Fase 16 — Agente de Refatoração
 - **Objetivo:** Adicionar um novo agente especializado em refatoração de código.

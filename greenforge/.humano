@@ -58,8 +58,12 @@ HISTÓRICO DE APROVAÇÕES
 - Destaque: Implementação de HookSimulator, QwenIntegrationRunner, types.ts com contratos Zod, e qwen-e2e.test.ts com 22 testes cobrindo todos os cenários obrigatórios. Fluxo E2E mínimo atinge APPROVED. Zero chamadas a Qwen real, MCP real, LLM real, rede, merge ou push. Recursos temporários limpos em todos os caminhos (sucesso, NORMAL_CHAT, BLOCKED, RETRYABLE, exceção).
 
 ### [2026-06-24] Fase 14 — Qwen CLI Extension Real
-- Status: CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA (246 testes totais).
+- Status: CONCLUÍDA E VALIDADA (246 testes totais).
 - Destaque: Implementação de QwenExtensionRuntime com InternalMockLLMProvider, QwenHookHandler com segurança path.resolve+path.relative, QwenCommandHandler implementando todos os comandos do SKILL.md, QwenExtensionEntrypoint importável sem side effects, QwenSettingsDispatcher ponte entre settings e handlers. 46 novos testes (Fase 14) + 246 total. Build, lint e testes 100% limpos. Zero Qwen/LLM/network/merge/push reais.
+
+### [2026-06-25] Fase 15 — UI/UX para Revisão de Planos
+- Status: CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA (320 testes totais).
+- Destaque: Implementação de PlanReviewController (controller de domínio com buildReviewView, submitFeedback, approvePlan, rejectPlan, requestChanges, getReviewStatus, renderReviewToMarkdown), PlanReviewRenderer (renderizador textual markdown), PlanReviewHandler (handler Qwen com 6 comandos: review, feedback, approve, reject, needs-changes, review-status), tipos/schemas Zod em PlanReview.ts (12 schemas). 74 novos testes (Fase 15) + 320 total. Aprovação delega para Orchestrator real (APPROVE_PLAN). Rejeição modelada como resultado de revisão (limitação documentada: Orchestrator não possui evento REJECT_PLAN). Todos outputs validados por .parse() Zod. Build, lint e testes 100% limpos.
 
 ───────────────────────────────────────────────────────
 GUIA RÁPIDO PARA O USUÁRIO

@@ -1,5 +1,5 @@
 # CURRENT_STATE — GreenForge
-> Última atualização: Fase 14 | 2026-06-24
+> Última atualização: Fase 15 | 2026-06-25
 
 ## Arquitetura Ativa
 - **Arquitetura Hexagonal:** Desacoplamento total via portas e adaptadores.
@@ -10,6 +10,7 @@
 - **Validação de Ciclo de Vida (Qwen CLI):** Extensão integrada estaticamente com manifesto de skills e configurações de hooks validadas via Zod.
 - **Integração E2E Controlada (Fase 13):** Simulador de hooks Qwen e runner de integração validando fluxo completo sem Qwen real, MCP real, LLM real, rede ou merge/push. Inclui validação de segurança de `allowedRoot` para operações de escrita e limpeza de recursos temporários em todos os caminhos (sucesso, NORMAL_CHAT, BLOCKED, RETRYABLE, exceção).
 - **Camada Real de Runtime Qwen (Fase 14):** Runtime real com QwenExtensionRuntime, QwenHookHandler, QwenCommandHandler e QwenExtensionEntrypoint. Integração com componentes reais do GreenForge (QwenRouter, PlannerEngine, SQLiteRepository, Orchestrator) usando InternalMockLLMProvider. Segurança em PreToolUse com path.resolve + path.relative. Entrypoint importável sem efeitos colaterais, sem chamadas de rede, sem git push/merge.
+- **UI/UX de Revisão de Planos (Fase 15):** Camada de revisão de planos com controller testável, renderizador textual e integração Qwen. Exibe título/prompt/perguntas/subtarefas/dependências/agentes/critérios/riscos. Permite feedback textual, respostas a perguntas, aprovação via Orchestrator, rejeição com motivo e solicitação de mudanças. Todos os contratos validados por Zod. **Status: CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA.**
 
 ## Módulos e Contratos Vigentes
 | Módulo | Arquivo | Contrato Público | Desde |
@@ -35,11 +36,15 @@
 | `QwenCommandHandler` | `src/integration/qwen/QwenCommandHandler.ts` | `handle(name, args)`, `hasHandler(name)` | Fase 14 |
 | `QwenExtensionEntrypoint` | `src/integration/qwen/QwenExtensionEntrypoint.ts` | `init()`, hook handlers, `handleCommand`, `cleanup()`, `createExtension(options)` | Fase 14 |
 | `QwenSettingsDispatcher` | `src/integration/qwen/QwenSettingsDispatcher.ts` | `getDeclaredHookRoutes()`, `dispatchHook()`, `resolveLocalCommand()`, `resolveAllLocalCommands()`, `getDeclaredHttpRoutes()` | Fase 14 |
+| `PlanReviewController` | `src/core/PlanReviewController.ts` | `buildReviewView(taskId)`, `submitFeedback(input)`, `approvePlan(input)`, `rejectPlan(input)`, `requestChanges(input)`, `getReviewStatus(taskId)`, `getFeedbackHistory(taskId)`, `renderReviewToMarkdown(taskId)` | Fase 15 |
+| `PlanReviewRenderer` | `src/core/PlanReviewRenderer.ts` | `render(view)`, `renderQuestions(view)`, `renderRisks(view)`, `renderDependencies(view)`, `renderFeedbackTemplate(view)`, `renderCompact(view)` | Fase 15 |
+| `PlanReviewHandler` | `src/integration/qwen/PlanReviewHandler.ts` | `handle(name, args)`, `hasHandler(name)` — comandos: review, feedback, approve, reject, needs-changes, review-status | Fase 15 |
+| `PlanReview Types/Schemas` | `src/core/types/PlanReview.ts` | `PlanReviewViewSchema`, `PlanReviewStatusSchema`, `PlanFeedbackInputSchema`, `PlanApprovalInputSchema`, `PlanRejectionInputSchema`, `PlanNeedsChangesInputSchema`, `PlanReviewInputSchema`, `PlanReviewStatusResultSchema`, `PlanApprovalResultSchema`, `PlanRejectionResultSchema`, `PlanNeedsChangesResultSchema`, `PlanFeedbackResultSchema` | Fase 15 |
 
 ## Fluxo Principal
 1. Router identifica tarefa técnica.
 2. `PlannerEngine` gera plano auditável.
-3. Usuário aprova plano.
+3. **Camada de Revisão de Plano** renderiza visão humana com perguntas, subtarefas, dependências, agentes, critérios e riscos. Usuário envia feedback, responde perguntas de clarificação, e então aprova ou rejeita o plano.
 4. Agentes executam ferramentas via MCP nos Worktrees.
 5. `JoinGate` valida e consolida os artefatos.
 6. **DiffLens Engine** analisa artefatos, valida conteúdos de revisão e gera o relatório oficial `GREENFORGE_AUDIT.md`.
@@ -47,6 +52,7 @@
 8. **Qwen CLI Extension Layer** mapeia hooks locais do host e expõe comandos estáticos definidos via `SKILL.md`.
 9. **Fase 13 — E2E Controlado:** `HookSimulator` simula eventos `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `SessionEnd`; `QwenIntegrationRunner` orquestra fluxo completo simulado conectando ao core (Router, Planner, SQLite, Orchestrator, JoinGate, DiffLens, Verifier) via mocks. PreToolUse valida `allowedRoot` com `path.resolve` + `path.relative`. Recursos temporários são limpos em todos os caminhos via `try/catch/finally`.
 10. **Fase 14 — Runtime Real:** `QwenExtensionRuntime` carrega e valida manifest/settings/SKILL.md. `QwenHookHandler` contém handlers reais delegando a QwenRouter, Orchestrator, SQLiteRepository. `QwenCommandHandler` implementa os comandos start/status/list/approve/abort do SKILL.md. `QwenExtensionEntrypoint` provê entrypoint importável sem side effects. `InternalMockLLMProvider` isola testes de LLM/network reais.
+11. **Fase 15 — UI/UX de Revisão de Planos:** `PlanReviewController` gerencia o ciclo completo de revisão (view, feedback, approval, rejection, needs-changes, status). `PlanReviewRenderer` gera markdown estruturado legível para humano. `PlanReviewHandler` expõe comandos Qwen (`review`, `feedback`, `approve`, `reject`, `needs-changes`, `review-status`) que delegam ao controller. Aprovação chama Orchestrator real (`APPROVE_PLAN`). Rejeição é modelada como resultado de revisão sem alterar máquina de estados core. Todos os contratos passam por `.parse()` Zod.
 
 ## Invariantes Globais
 1. **No-Shell Policy:** `execa` sem shell.
@@ -61,16 +67,18 @@
 - **Audit Constraints:** Alinhamento `PARTIAL` em caso de erro de parsing de revisão; `DIVERGED` em caso de violações explícitas.
 - **Extension Isolation:** Testes estáticos proíbem conexões reais a redes ou processos externos no carregamento de manifestos.
 - **E2E Isolation:** Testes E2E usam apenas mocks, fakes e diretórios temporários.
+- **Plan Review Limits:** Rejeição de plano é modelada como resultado de revisão (não altera máquina de estados core). O Orchestrator atual não possui evento `REJECT_PLAN`. Futuro ajuste pode adicionar transição de rejeição na máquina de estados.
 
 ## Testes Obrigatórios
 | Suite | Arquivo | Cobertura Aproximada | Comando |
 |-------|---------|----------------------|---------|
-| Total Suíte | `tests/*.test.ts` | 246 testes ativos | `npm test` |
+| Total Suíte | `tests/*.test.ts` | 320 testes ativos | `npm test` |
 | Qwen Integration (Static) | `tests/qwen-integration.test.ts` | 24 testes (Estáticos) | `npm test` |
 | Qwen Integration (E2E) | `tests/qwen-e2e.test.ts` | 22 testes (E2E Controlado) | `npm test` |
 | Qwen Real Extension | `tests/qwen-real-extension.test.ts` | 46 testes (Runtime Real) | `npm test` |
 | DiffLens | `tests/difflens.test.ts` | 13 testes (Refinados) | `npm test` |
 | Verifier | `tests/verifier.test.ts` | 21 testes (Unitários) | `npm test` |
+| Plan Review (Fase 15) | `tests/plan-review.test.ts` | 74 testes (Unitários + Integração) | `npm test` |
 
 ## Dependências Externas
 | Pacote | Versão | Motivo |
