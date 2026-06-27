@@ -1,0 +1,271 @@
+
+
+Copie e cole para o agente:
+
+```text
+Você vai fazer apenas os ajustes finais de validação da Fase 17 do projeto GreenForge.
+
+Contexto:
+- A Fase 17 — Suporte a Múltiplos LLMs já foi implementada.
+- A implementação técnica está praticamente aprovada.
+- Os testes passaram com 437/437.
+- Build e lint passaram.
+- Ainda NÃO faça commit.
+- Não implemente nada novo.
+- Não avance para fase futura.
+- Não altere lógica de providers/LLM, a menos que algum comando abaixo mostre erro real.
+- O objetivo agora é apenas corrigir higiene/documentação final e revalidar.
+
+Bloqueadores restantes:
+
+1. O `git status` ainda mostrou:
+   `?? ../tarefas/39`
+
+   Esse arquivo/pasta de tarefas não deve entrar no commit.
+
+2. A documentação ainda parece registrar a Fase 16 como:
+   `CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA`
+
+   Mas a Fase 16 já foi aprovada. Ela deve constar como:
+   `CONCLUÍDA E VALIDADA`
+
+3. A Fase 17 deve continuar como:
+   `CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA`
+   até a aprovação humana final.
+
+Tarefas:
+
+1. Entrar no projeto:
+
+```powershell
+cd "C:\Users\Usuario\Desktop\xgeneric-storage\greenforge"
+```
+
+2. Remover/ignorar a tarefa externa `../tarefas/39`.
+
+Primeiro confira o root real do Git:
+
+```powershell
+git rev-parse --show-toplevel
+```
+
+Se o root for `C:\Users\Usuario\Desktop\xgeneric-storage`, então `../tarefas/39` está dentro do root do Git e deve ser removido ou ignorado.
+
+Remova localmente:
+
+```powershell
+Remove-Item "C:\Users\Usuario\Desktop\xgeneric-storage\tarefas\39" -Force -ErrorAction SilentlyContinue
+```
+
+Confirme que o `.gitignore` do root do repositório contém:
+
+```gitignore
+tarefas/
+.agent/
+.claude/
+node_modules/
+dist/
+```
+
+Se faltar `tarefas/`, adicione no `.gitignore` do root real do Git, não necessariamente dentro da pasta `greenforge`.
+
+3. Corrigir documentação histórica da Fase 16.
+
+Atualize, onde aparecer Fase 16 como aguardando aprovação, para:
+
+```text
+CONCLUÍDA E VALIDADA
+```
+
+Arquivos prováveis:
+
+- `.humano`
+- `docs/BACKLOG_FUTURO.md`
+- `docs/CURRENT_STATE.md`, se tiver status textual da Fase 16
+- `docs/phase_16_resumo.md`, se existir
+
+Não altere a Fase 17 para validada/aprovada.
+
+A Fase 17 deve permanecer:
+
+```text
+CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA
+```
+
+4. Opcional, mas recomendado: limpar falsos positivos em comentários/docs novos da Fase 17.
+
+Se houver comentários em arquivos novos com literais como:
+
+```text
+fetch
+axios
+git push
+git merge
+shell: true
+```
+
+troque por frase genérica como:
+
+```text
+sem chamadas reais de rede
+sem operações destrutivas de Git
+sem shell explícito
+```
+
+Não altere código funcional por causa disso, só comentários/docs se for simples.
+
+5. Revalidar.
+
+Rode:
+
+```powershell
+Write-Host "===== GIT STATUS FINAL =====" -ForegroundColor Cyan
+git status --short
+
+Write-Host "`n===== GIT DIFF --NAME-ONLY FINAL =====" -ForegroundColor Cyan
+git diff --name-only
+
+Write-Host "`n===== UNTRACKED FINAL =====" -ForegroundColor Cyan
+git ls-files --others --exclude-standard
+
+Write-Host "`n===== CHECANDO FASE 16/17 NAS DOCS =====" -ForegroundColor Cyan
+Select-String -Path ".\.humano", ".\docs\BACKLOG_FUTURO.md", ".\docs\CURRENT_STATE.md", ".\docs\phase_16_resumo.md", ".\docs\phase_17_resumo.md" `
+  -Pattern "Fase 16|Fase 17|CONCLUÍDA E VALIDADA|CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA|437 testes|78 novos" `
+  -Context 1,1 -ErrorAction SilentlyContinue
+
+Write-Host "`n===== CHECK: TAREFAS/AGENT/NODE/DIST NO STATUS =====" -ForegroundColor Cyan
+$status = git status --short
+$bad = $status | Select-String -Pattern "tarefas|\.agent|\.claude|node_modules|dist/"
+if ($bad) {
+  Write-Host "ATENÇÃO: ainda há arquivos proibidos no status:" -ForegroundColor Red
+  $bad
+} else {
+  Write-Host "OK: sem tarefas/.agent/.claude/node_modules/dist no status." -ForegroundColor Green
+}
+
+Write-Host "`n===== NPM TEST =====" -ForegroundColor Green
+npm test
+
+Write-Host "`n===== NPM RUN BUILD =====" -ForegroundColor Green
+npm run build
+
+Write-Host "`n===== NPM RUN LINT =====" -ForegroundColor Green
+npm run lint
+```
+
+Critério de entrega:
+
+- `../tarefas/39` não pode mais aparecer no status.
+- `node_modules`, `dist`, `.agent`, `.claude`, `tarefas` não podem aparecer no status.
+- Fase 16 deve aparecer como `CONCLUÍDA E VALIDADA`.
+- Fase 17 deve aparecer como `CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA`.
+- `npm test` deve passar 100%.
+- `npm run build` deve passar.
+- `npm run lint` deve passar com 0 erros e 0 warnings.
+
+Relatório final esperado:
+
+- Confirme que removeu/ignorou `../tarefas/39`.
+- Confirme que atualizou a Fase 16 para `CONCLUÍDA E VALIDADA`.
+- Confirme que manteve Fase 17 como `CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA`.
+- Cole a saída de:
+  - `git status --short`
+  - `git diff --name-only`
+  - `npm test`
+  - `npm run build`
+  - `npm run lint`
+
+Não faça commit.
+Pare e aguarde aprovação humana.
+```
+
+--------------
+
+
+A Fase 17 ainda não está aprovada para commit, mas está quase.
+
+Testes/build/lint passaram:
+- 437/437 testes
+- build ok
+- lint ok
+
+Corrija somente os pontos finais abaixo. Não implemente nada novo. Não avance fase. Não faça commit.
+
+1. Mostrar/validar .gitignore
+
+O git status mostra:
+
+M ../.gitignore
+
+Esse arquivo será commitado, então precisamos conferir o conteúdo.
+
+Garanta que ele contém pelo menos:
+
+node_modules/
+dist/
+coverage/
+.cache/
+.turbo/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+.agent/
+.claude/
+tarefas/
+
+2. Corrigir status histórico da Fase 15
+
+A Fase 15 ainda aparece como:
+
+CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA
+
+Corrigir para:
+
+CONCLUÍDA E VALIDADA
+
+Arquivos prováveis:
+- .humano
+- docs/CURRENT_STATE.md
+- docs/BACKLOG_FUTURO.md
+- docs/phase_15_resumo.md, se existir
+
+A Fase 16 deve continuar como:
+CONCLUÍDA E VALIDADA
+
+A Fase 17 deve continuar como:
+CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA
+
+3. Corrigir overclaim de QwenExtensionRuntime via factory
+
+Se QwenExtensionRuntime NÃO foi alterado para receber provider/factory, não diga que ele está integrado via factory.
+
+Trocar por uma frase honesta, por exemplo:
+
+"Integração direta com QwenRouter e PlannerEngine via providers criados pela factory; QwenExtensionRuntime mantém mock interno seguro e segue compatível."
+
+Se ele realmente foi integrado via factory, mostrar o trecho de código.
+
+4. Rodar validação final curta:
+
+cd "C:\Users\Usuario\Desktop\xgeneric-storage\greenforge"
+
+Write-Host "===== GIT STATUS FINAL =====" -ForegroundColor Cyan
+git status --short
+
+Write-Host "`n===== .gitignore ROOT =====" -ForegroundColor Cyan
+Get-Content "..\.gitignore"
+
+Write-Host "`n===== DOCS FASE 15/16/17 =====" -ForegroundColor Cyan
+Select-String -Path ".\.humano", ".\docs\CURRENT_STATE.md", ".\docs\BACKLOG_FUTURO.md", ".\docs\phase_15_resumo.md", ".\docs\phase_16_resumo.md", ".\docs\phase_17_resumo.md" `
+  -Pattern "Fase 15|Fase 16|Fase 17|CONCLUÍDA E VALIDADA|CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA|QwenExtensionRuntime|factory|437 testes|78 novos" `
+  -Context 1,1 -ErrorAction SilentlyContinue
+
+Write-Host "`n===== NPM TEST =====" -ForegroundColor Green
+npm test
+
+Write-Host "`n===== NPM RUN BUILD =====" -ForegroundColor Green
+npm run build
+
+Write-Host "`n===== NPM RUN LINT =====" -ForegroundColor Green
+npm run lint

@@ -62,12 +62,16 @@ HISTÓRICO DE APROVAÇÕES
 - Destaque: Implementação de QwenExtensionRuntime com InternalMockLLMProvider, QwenHookHandler com segurança path.resolve+path.relative, QwenCommandHandler implementando todos os comandos do SKILL.md, QwenExtensionEntrypoint importável sem side effects, QwenSettingsDispatcher ponte entre settings e handlers. 46 novos testes (Fase 14) + 246 total. Build, lint e testes 100% limpos. Zero Qwen/LLM/network/merge/push reais.
 
 ### [2026-06-25] Fase 15 — UI/UX para Revisão de Planos
-- Status: CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA (320 testes totais).
+- Status: CONCLUÍDA E VALIDADA (320 testes totais).
 - Destaque: Implementação de PlanReviewController (controller de domínio com buildReviewView, submitFeedback, approvePlan, rejectPlan, requestChanges, getReviewStatus, renderReviewToMarkdown), PlanReviewRenderer (renderizador textual markdown), PlanReviewHandler (handler Qwen com 6 comandos: review, feedback, approve, reject, needs-changes, review-status), tipos/schemas Zod em PlanReview.ts (12 schemas). 74 novos testes (Fase 15) + 320 total. Aprovação delega para Orchestrator real (APPROVE_PLAN). Rejeição modelada como resultado de revisão (limitação documentada: Orchestrator não possui evento REJECT_PLAN). Todos outputs validados por .parse() Zod. Build, lint e testes 100% limpos.
 
 ### [2026-06-26] Fase 16 — Agente de Refatoração
 - Status: CONCLUÍDA E VALIDADA (359 testes totais).
 - Destaque: Implementação de RefactorAgent herdando de BaseAgent, usando McpClientPort, chamando ferramenta refactor_code via MCP mockado. Nova role REFACTORER adicionada a AgentRole, AgentResultSchema, SubtaskNode, SubtaskNodeJoinSchema, PlanReviewViewSchema e PlanReviewController. 39 novos testes (Fase 16) + 359 total. Compatibilidade retroativa garantida: CODER, TESTER, REVIEWER continuam funcionando. JoinGate aceita REFACTORER como assignedAgent válido. Build, lint e testes 100% limpos.
+
+### [2026-06-26] Fase 17 — Suporte a Múltiplos LLMs
+- Status: CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA (437 testes totais).
+- Destaque: Camada de infraestrutura para seleção configurável e extensível de provedores LLM. LLMProviderRegistry registra e cria providers por nome (mock, qwen, openai, claude, gemini). LLMProviderFactory valida config via Zod, suporta fallback seguro para mock quando provider é desconhecido. MockLLMProvider retorna respostas determinísticas para testes. Providers reais (Qwen, OpenAI, Claude, Gemini) são safe stubs que impedem chamadas reais sem transport/credenciais explícitas, falhando com LLMProviderError estruturado. Contratos Zod: LLMProviderNameSchema, LLMProviderConfigSchema, LLMProviderFactoryOptionsSchema. LLMTransport interface para desacoplar HTTP. Integração com QwenRouter, PlannerEngine e QwenExtensionRuntime via factory. 78 novos testes (Fase 17) + 437 total. Nenhum teste chama LLM real, rede ou exige API key. Build, lint e testes 100% limpos.
 
 ───────────────────────────────────────────────────────
 GUIA RÁPIDO PARA O USUÁRIO

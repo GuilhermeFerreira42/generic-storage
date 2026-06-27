@@ -1,0 +1,331 @@
+```text
+Você vai executar a Fase 17 do projeto GreenForge.
+
+Contexto:
+- As Fases 0 a 16 já foram implementadas, validadas e commitadas.
+- A Fase 16 entregou o `RefactorAgent`, com a nova role `REFACTORER`.
+- Agora você executará SOMENTE a Fase 17.
+- Não avance para fases futuras.
+- Não faça commit.
+- Trabalhe em TDD.
+- Não altere módulos core aprovados sem necessidade real comprovada.
+- Ao final, pare e entregue relatório para aprovação humana.
+
+FASE 17 — Suporte a Múltiplos LLMs
+
+Objetivo:
+Permitir que o GreenForge utilize diferentes provedores de LLM de forma configurável e extensível, sem acoplar o core a APIs específicas e sem chamar LLM real nos testes automatizados.
+
+O projeto já possui uma porta aprovada:
+
+- `src/core/ports/LLMProvider.ts`
+
+A Fase 17 deve evoluir a camada de provedores/adaptadores respeitando essa porta e a arquitetura hexagonal do projeto.
+
+Antes de implementar, leia obrigatoriamente:
+
+1. `.humano`
+2. `docs/CURRENT_STATE.md`
+3. `docs/BACKLOG_FUTURO.md`
+4. `docs/DECISION_LOG.md`
+5. `docs/phase_16_resumo.md`
+6. `package.json`
+7. `src/core/ports/LLMProvider.ts`
+8. `src/infrastructure/llm/QwenRouter.ts`
+9. `src/core/PlannerEngine.ts`
+10. `src/integration/qwen/QwenExtensionRuntime.ts`
+11. `src/integration/qwen/QwenIntegrationRunner.ts`
+12. `src/integration/qwen/HookSimulator.ts`
+13. `tests/router.test.ts`
+14. `tests/planner.test.ts`
+15. `tests/qwen-e2e.test.ts`
+16. `tests/qwen-real-extension.test.ts`
+
+Atenção:
+- Entenda como `LLMProvider` é usado hoje.
+- Entenda como os mocks/fakes atuais são usados.
+- Não reescreva `PlannerEngine` ou `QwenRouter` sem necessidade.
+- Não introduza chamadas reais a OpenAI, Claude, Gemini, Qwen, etc. nos testes.
+- Não adicione dependências SDK externas sem autorização explícita.
+- Para esta fase, prefira adaptadores configuráveis e mocks/fakes testáveis.
+
+Escopo obrigatório da Fase 17:
+
+1. Criar um registry/factory de provedores LLM
+
+Crie uma camada de infraestrutura para selecionar provedores de LLM de forma configurável.
+
+Sugestões de arquivos, podendo ajustar se fizer mais sentido:
+
+- `src/infrastructure/llm/LLMProviderFactory.ts`
+- `src/infrastructure/llm/LLMProviderRegistry.ts`
+- `src/infrastructure/llm/LLMProviderConfig.ts`
+- `src/infrastructure/llm/providers/MockLLMProvider.ts`
+- `src/infrastructure/llm/providers/QwenLLMProvider.ts`
+- `src/infrastructure/llm/providers/OpenAILLMProvider.ts`
+- `src/infrastructure/llm/providers/ClaudeLLMProvider.ts`
+- `src/infrastructure/llm/providers/GeminiLLMProvider.ts`
+
+Importante:
+- Adaptadores reais podem ser stubs seguros nesta fase.
+- Não chamar rede real.
+- Não exigir API key real nos testes.
+- Se criar providers para OpenAI/Claude/Gemini, eles devem implementar `LLMProvider`, mas retornar erro estruturado ou usar transport/mock injetável quando não configurados.
+- O `MockLLMProvider` deve ser o provider usado nos testes automatizados.
+
+2. Configuração de provider
+
+Criar schema Zod para configuração, por exemplo:
+
+- `LLMProviderConfigSchema`
+- `LLMProviderNameSchema`
+- `LLMProviderFactoryOptionsSchema`
+
+O sistema deve aceitar provedores como:
+
+- `mock`
+- `qwen`
+- `openai`
+- `claude`
+- `gemini`
+
+ou nomes equivalentes.
+
+A configuração deve permitir:
+
+- provider selecionado;
+- model name opcional;
+- apiKeyEnv opcional;
+- baseUrl opcional;
+- timeout opcional;
+- modo mock/test opcional, se necessário.
+
+Não coloque API keys reais no código.
+
+3. Fallback seguro
+
+A seleção de provider deve ter fallback seguro.
+
+Regras esperadas:
+
+- provider desconhecido deve falhar com erro claro OU cair para `mock`/provider seguro, desde que isso seja documentado e testado;
+- ausência de API key em provider real não pode causar chamada real;
+- em ambiente de teste, deve usar provider mockado;
+- incerteza/falha de classificação no `QwenRouter` continua resultando em `NORMAL_CHAT`, conforme contrato aprovado.
+
+4. Integração com componentes existentes
+
+Onde fizer sentido, permita que os componentes existentes recebam provider vindo da factory/registry.
+
+Possíveis pontos de integração:
+
+- `QwenExtensionRuntime`
+- `QwenIntegrationRunner`
+- `HookSimulator`
+- testes de `QwenRouter`
+- testes de `PlannerEngine`
+
+Não quebre construtores existentes sem necessidade.
+
+Se precisar alterar construtores, mantenha compatibilidade ou atualize todos os usos com testes.
+
+5. Providers reais seguros
+
+Se implementar classes como `OpenAILLMProvider`, `ClaudeLLMProvider`, `GeminiLLMProvider`:
+
+- não usar `fetch` diretamente sem abstração;
+- não chamar rede em testes;
+- preferir injetar um transport/interface mockável;
+- se não houver transport configurado, retornar erro claro;
+- não adicionar SDK externo sem autorização;
+- não armazenar secrets;
+- não logar secrets.
+
+Uma alternativa aceitável nesta fase:
+- criar adapters “safe stub” que implementam `LLMProvider`;
+- validar configuração;
+- impedir chamada real sem transport explícito;
+- deixar integração real para fase futura.
+
+6. Testes obrigatórios
+
+Crie uma nova suite, preferencialmente:
+
+- `tests/llm-provider-factory.test.ts`
+ou
+- `tests/llm-providers.test.ts`
+
+Coberturas mínimas:
+
+A. Config/schema
+
+- aceita provider `mock`;
+- aceita providers declarados (`qwen`, `openai`, `claude`, `gemini`);
+- rejeita provider inválido ou trata com fallback documentado;
+- valida timeout/baseUrl/model/apiKeyEnv;
+- não aceita configuração insegura.
+
+B. Factory/registry
+
+- cria `MockLLMProvider`;
+- cria provider seguro para cada nome suportado;
+- provider desconhecido tem comportamento testado;
+- `MockLLMProvider.generate()` retorna resposta determinística;
+- providers reais sem credencial/transport não fazem rede e falham de forma controlada.
+
+C. Integração com QwenRouter
+
+- `QwenRouter` funciona com provider criado pela factory;
+- fallback `NORMAL_CHAT` continua funcionando;
+- classificação de tarefa técnica continua funcionando com mock.
+
+D. Integração com PlannerEngine
+
+- `PlannerEngine` funciona com provider criado pela factory;
+- plano gerado continua validado por Zod;
+- plano inválido continua sendo rejeitado.
+
+E. Integração com runtime
+
+- `QwenExtensionRuntime` pode usar provider configurado/injetado sem quebrar testes antigos;
+- testes existentes de Fase 13/14/15/16 continuam passando.
+
+F. Isolamento
+
+- nenhum teste chama LLM real;
+- nenhum teste chama Qwen real;
+- nenhum teste faz rede;
+- nenhum teste exige API key real;
+- nenhum teste usa SDK externo real;
+- nenhum teste depende de estado global permanente.
+
+7. Testes de regressão
+
+Todos os testes existentes devem continuar passando:
+
+- router
+- planner
+- qwen-e2e
+- qwen-real-extension
+- plan-review
+- refactor-agent
+- demais suites
+
+Não remova testes existentes.
+Não enfraqueça asserts para fazer passar.
+
+8. Documentação viva
+
+Atualize obrigatoriamente:
+
+- `docs/CURRENT_STATE.md`
+- `docs/BACKLOG_FUTURO.md`
+- `docs/DECISION_LOG.md`
+- `.humano`
+- crie `docs/phase_17_resumo.md`
+
+Documente:
+
+- providers suportados;
+- estratégia de fallback seguro;
+- que testes usam mock;
+- que providers reais não fazem rede sem transport/configuração explícita;
+- quantidade de testes novos;
+- total final de testes.
+
+Status correto antes da aprovação humana:
+
+- `CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA`
+
+Não escreva:
+
+- `VALIDADA`
+- `APROVADA`
+- `pronta para próxima fase`
+
+antes da aprovação humana.
+
+9. Regras de higiene e segurança
+
+Não inserir artefatos markdown em paths/configs/URLs/strings reais.
+
+Proibido:
+
+- `[SKILL.md](http://SKILL.md)`
+- `[http://localhost:7777/pre-tool](http://localhost:7777/pre-tool)`
+- `GREENFORGE_[AUDIT.md](http://AUDIT.md)`
+- qualquer `](http` ou `](https` onde deveria haver string crua.
+
+Use:
+
+- `SKILL.md`
+- `http://localhost:7777/pre-tool`
+- `GREENFORGE_AUDIT.md`
+
+Não usar em código/teste automatizado:
+
+- `child_process`
+- `exec(`
+- `shell: true`
+- `fetch(`, exceto se estiver atrás de transport mockável e não usado em testes
+- `axios`
+- `git push`
+- `git merge`
+- rede real
+- Qwen real
+- LLM real
+- MCP real
+
+Não incluir no commit/alterações:
+
+- `node_modules/`
+- `dist/`
+- `.agent/`
+- `.claude/`
+- `tarefas/`
+- coverage/cache/build outputs;
+- arquivos temporários de banco;
+- logs.
+
+10. Comandos finais obrigatórios
+
+Ao terminar, rode:
+
+```powershell
+npm test
+npm run build
+npm run lint
+```
+
+Todos devem passar:
+
+- `npm test`: 100% passando;
+- `npm run build`: sem erro;
+- `npm run lint`: 0 erros e 0 warnings.
+
+11. Relatório final obrigatório
+
+Entregue relatório com:
+
+- arquivos criados;
+- arquivos alterados;
+- estratégia de provider registry/factory;
+- providers suportados;
+- como os providers reais foram mantidos seguros;
+- como o mock é usado nos testes;
+- quais componentes foram integrados;
+- contratos Zod criados;
+- total final de testes;
+- quantidade de testes novos da Fase 17;
+- saída completa de:
+  - `npm test`
+  - `npm run build`
+  - `npm run lint`
+- confirmação de que:
+  - nenhuma fase futura foi iniciada;
+  - nenhum commit foi feito;
+  - `git status` não contém `node_modules`, `dist`, `.agent`, `.claude`, `tarefas`.
+
+Pare ao final e aguarde aprovação humana.
+Não faça commit.
+```

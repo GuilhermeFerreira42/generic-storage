@@ -15,7 +15,7 @@
     - build, lint e 246/246 testes passando.
 
 ## Fase 15 — UI/UX para Revisão de Planos
-- **Status:** ✅ CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA (2026-06-25)
+- **Status:** ✅ CONCLUÍDA E VALIDADA (2026-06-25)
 - **Entregáveis:**
     - `PlanReviewController.ts` — Controller de domínio para revisão de planos (buildReviewView, submitFeedback, approvePlan, rejectPlan, requestChanges, getReviewStatus, getFeedbackHistory, renderReviewToMarkdown).
     - `PlanReviewRenderer.ts` — Renderizador textual markdown com seções de perguntas, subtarefas, dependências, agentes, critérios, riscos. Métodos: render, renderQuestions, renderRisks, renderDependencies, renderFeedbackTemplate, renderCompact.
@@ -38,11 +38,23 @@
     - build, lint e 359/359 testes passando.
 
 ## Fase 17 — Suporte a Múltiplos LLMs
-- **Objetivo:** Permitir que o GreenForge utilize diferentes provedores de LLM (e.g., OpenAI, Claude, Gemini).
-- **Requisitos:**
-    - Criar uma interface `LLMProvider` genérica.
-    - Implementar adaptadores para cada LLM.
-    - Configuração dinâmica do LLM a ser utilizado.
+- **Status:** ✅ CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA (2026-06-26)
+- **Entregáveis:**
+    - `LLMProviderConfig.ts` — Schemas Zod: `LLMProviderNameSchema` (enum: mock, qwen, openai, claude, gemini), `LLMProviderConfigSchema` (provider, model, apiKeyEnv, baseUrl, timeout, mockMode), `LLMProviderFactoryOptionsSchema` (config, fallbackProvider, fallbackOnUnknown). `LLMTransport` interface para desacoplar HTTP. `LLMProviderError` classe de erro estruturada (code, provider, retryable).
+    - `LLMProviderRegistry.ts` — Registry que mapeia nomes de providers para factories. Built-in: mock, qwen, openai, claude, gemini. Métodos: `has(name)`, `create(config, transport?)`, `register(name, factory)`, `getRegisteredNames()`.
+    - `LLMProviderFactory.ts` — Factory com fallback seguro. Provider desconhecido cai para `mock` (configurável). Validação Zod. Métodos: `create(options, transport?)`, `createFromConfig(config, transport?)`, `createMock()`, `getRegistry()`. Singleton `LLMProviderFactory.default`.
+    - `MockLLMProvider.ts` — Provider determinístico para testes. Retorna classificação DEVELOPMENT_TASK ou NORMAL_CHAT baseado no prompt. Gera plano JSON válido com 5 perguntas, 3 subtarefas, 2 critérios.
+    - `QwenLLMProvider.ts` — Safe stub. Sem transport: `NO_TRANSPORT`. Com transport sem apiKeyEnv: `NO_API_KEY_CONFIG`. Com apiKeyEnv sem env var: `NO_API_KEY`. Com mockMode: delega para MockLLMProvider interno.
+    - `OpenAILLMProvider.ts` — Safe stub (mesmo padrão de segurança).
+    - `ClaudeLLMProvider.ts` — Safe stub (mesmo padrão de segurança).
+    - `GeminiLLMProvider.ts` — Safe stub (mesmo padrão de segurança).
+    - `tests/llm-providers.test.ts` — 78 testes (A-J: Config/Schema 14, MockLLMProvider 6, Registry 9, Factory 12, Safe Stubs 11, QwenRouter 5, PlannerEngine 5, Runtime 4, Isolamento 8, Erros 4).
+    - Integração direta com QwenRouter e PlannerEngine via providers criados pela factory; QwenExtensionRuntime mantém mock interno seguro e segue compatível.
+    - Nenhum teste chama LLM real, rede ou exige API key.
+    - build, lint e 437/437 testes passando.
+- **Estratégia de fallback seguro:** Provider desconhecido → fallback para `mock`. Provider real sem transport → `LLMProviderError('NO_TRANSPORT')`. Provider real sem apiKeyEnv → `LLMProviderError('NO_API_KEY_CONFIG')`. Provider real sem env var → `LLMProviderError('NO_API_KEY')`. Em mockMode → delega para MockLLMProvider interno.
+- **Providers suportados:** mock, qwen, openai, claude, gemini.
+- **Segurança:** Providers reais são safe stubs. Não usam fetch diretamente. Não chamam rede em testes. Não armazenam secrets. Não logam secrets. Não adicionam SDKs externos.
 
 ## Fase 18 — Otimização de Performance
 - **Objetivo:** Melhorar a performance geral do sistema, especialmente em operações intensivas de I/O e LLM.
