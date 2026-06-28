@@ -1,25 +1,27 @@
-# CONTEXTO PARA IA — GreenForge
+﻿# CONTEXTO PARA IA - GreenForge
 
 ## Resumo do Estado Atual
-- **Projeto:** GreenForge (Orquestrador Autônomo)
-- **Última fase concluída:** 9 — Join Gate (Fim da Onda 3)
-- **Próxima fase:** 10 — DiffLens (Visualização e Revisão)
+- **Projeto:** GreenForge (Orquestrador Autonomo)
+- **Ultima fase concluida:** 18 - Validacao em Campo e Empacotamento Final
 - **Status do build:** PASSANDO
-- **Status dos testes:** PASSANDO (120/120 testes)
-- **Módulos Críticos:** `Orchestrator`, `JoinGate`, `BaseAgent`, `McpClientPort`
+- **Status dos testes:** PASSANDO (437/437 testes)
+- **Modulos Criticos:** Orchestrator, JoinGate, QwenExtensionEntrypoint, LLMProviderFactory
 
-## Leitura Obrigatória
-1. `docs/CURRENT_STATE.md` — estado atual completo do sistema
-2. `src/core/JoinGate.ts` — contrato de sincronização
+## Leitura Obrigatoria
+1. docs/CURRENT_STATE.md - estado atual completo do sistema
+2. README.md - guia de instalacao, comandos e exemplos
+3. docs/GUIA_DE_USO.md - guia de uso detalhado
 
-## Leitura no Início de Onda
-3. `docs/BACKLOG_FUTURO.md` — roadmap Onda 4
+## Leitura no Inicio de Onda
+4. docs/BACKLOG_FUTURO.md - roadmap e fases futuras
+5. docs/DECISION_LOG.md - registro de decisoes tecnicas
 
 ## NUNCA Ler Automaticamente
-- `.git/`, `node_modules/`, `dist/`, `build/`
-- `docs/archive/*`
+- .git/, node_modules/, dist/, build/
+- docs/archive/*
 
 ## Regra de Contrato
-- Use `JoinGate` para validar a conclusão de tarefas paralelas.
-- Garanta que todos os artefatos de agentes sejam consolidados antes da revisão final.
-
+- Use JoinGate para validar a conclusao de tarefas paralelas.
+- Garanta que todos os artefatos de agentes sejam consolidados antes da revisao final.
+- LLMProviderFactory para criar providers com fallback seguro para mock.
+- PreToolUse gate valida seguranca com path.resolve + path.relative.

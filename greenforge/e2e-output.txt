@@ -1,0 +1,59 @@
+[04:20:42.799] PASSO 0: Inicializar extensao
+[04:20:42.828] Extensao inicializada
+[04:20:42.829] PASSO 1: Validar manifesto
+[04:20:42.829] name: greenforge
+[04:20:42.829] Manifesto validado
+[04:20:42.830] PASSO 2: Validar settings
+[04:20:42.830] hooks: SessionStart, SessionEnd, UserPromptSubmit, PreToolUse, PostToolUse, SubagentStart, SubagentStop
+[04:20:42.830] Settings validados
+[04:20:42.831] PASSO 3: Validar SKILL.md
+[04:20:42.832] skill name: greenforge
+[04:20:42.832] SKILL.md validado
+[04:20:42.833] PASSO 4: Hook SessionStart
+[04:20:42.928] result: {"ok":true,"action":"ALLOW","reason":"Session initialized safely","metadata":{"initialized":true}}
+[04:20:42.930] SessionStart aprovado
+[04:20:42.931] PASSO 5: Hook UserPromptSubmit (dev task)
+[04:20:42.946] result: {"ok":true,"action":"ALLOW","reason":"DEVELOPMENT_TASK","metadata":{"intent":"DEVELOPMENT_TASK","taskId":"task-1782620442933"}}
+[04:20:42.946] UserPromptSubmit: ALLOW
+[04:20:42.946] PASSO 5b: UserPromptSubmit (chat normal)
+[04:20:42.951] result: {"ok":true,"action":"ALLOW","reason":"DEVELOPMENT_TASK","metadata":{"intent":"DEVELOPMENT_TASK","taskId":"task-1782620442947"}}
+[04:20:42.952] AVISO: chat normal = ALLOW
+[04:20:42.952] PASSO 6: Hook PreToolUse (seguranca)
+[04:20:42.955] safe write: {"ok":true,"action":"ALLOW","reason":"Operation allowed inside worktree"}
+[04:20:42.956] unsafe write: {"ok":true,"action":"BLOCK","reason":"Write outside allowedRoot forbidden"}
+[04:20:42.957] PreToolUse seguranca validada
+[04:20:42.957] PASSO 7: Comando start "Criar tela de login"
+[04:20:42.971] result: {"ok":true,"command":"start","result":"Task task-1782620442959 created and planned","data":{"taskId":"task-1782620442959","title":"Criar tela de login","status":"PLANNING","planMarkdown":"# GREENFORGE_PLAN — Mock Plan\n\n**Original Prompt:** Criar tela de login\n**Created At:** 2026-06-28T04:20:42.965Z\n\n## Questions\n- [REQUIRED] What framework?\n- [REQUIRED] What database?\n- [REQUIRED] Aut"}}
+[04:20:42.972] Task criada: task-1782620442959
+[04:20:42.972] PASSO 8: Comando status
+[04:20:42.973] result: {"ok":true,"command":"status","result":"Runtime status","data":{"tempDir":"C:\\Users\\Usuario\\AppData\\Local\\Temp\\greenforge-phase18-e2e-1782620442797","initialized":true,"manifestLoaded":true,"settingsLoaded":true}}
+[04:20:42.973] Status obtido
+[04:20:42.973] PASSO 9: Comando list
+[04:20:42.977] result: {"ok":true,"command":"list","result":"Tasks listed (3)","data":{"tasks":[{"id":"task-1782620442933","title":"Criar tela de login","status":"CLARIFYING"},{"id":"task-1782620442947","title":"Hello, how are you?","status":"CLARIFYING"},{"id":"task-1782620442959","title":"Criar tela de login","status":"PLANNING"}],"count":3,"filter":"all"}}
+[04:20:42.977] Tarefas listadas
+[04:20:42.977] PASSO 10: Comando approve task-1782620442959
+[04:20:42.983] result: {"ok":true,"command":"approve","result":"Plan task-1782620442959 approved","data":{"taskId":"task-1782620442959","status":"BUILDING"}}
+[04:20:42.983] Plano aprovado
+[04:20:42.983] PASSO 11: Hook PostToolUse
+[04:20:42.984] result: {"ok":true,"action":"ALLOW","reason":"Checkpoint registered","metadata":{"checkpoint":true,"tool":"WriteFile","taskId":"task-1782620442959"}}
+[04:20:42.985] Checkpoint registrado
+[04:20:42.985] PASSO 12: Comando abort task-1782620442959
+[04:20:42.988] result: {"ok":true,"command":"abort","result":"Task task-1782620442959 aborted","data":{"taskId":"task-1782620442959","status":"FAILED"}}
+[04:20:42.988] Task abortada
+[04:20:42.988] PASSO 13: PostToolUse sem taskId
+[04:20:42.988] result: {"ok":true,"action":"ALLOW","reason":"No task context — checkpoint not registered","metadata":{"tool":"ReadFile"}}
+[04:20:42.989] PostToolUse sem taskId OK
+[04:20:42.989] PASSO 14: Hook SessionEnd
+[04:20:42.996] result: {"ok":true,"action":"ALLOW","reason":"Cleanup completed"}
+[04:20:42.996] SessionEnd OK
+[04:20:42.996] PASSO 15: Verificar isolamento
+[04:20:42.996] realQwen: false
+[04:20:42.997] realMCP: false
+[04:20:42.997] realLLM: false
+[04:20:42.997] network: false
+[04:20:42.997] destructiveGit: false
+[04:20:42.997] Isolamento OK
+[04:20:42.997] PASSO 16: Cleanup final
+[04:20:42.998] Cleanup OK
+[04:20:42.998] RESULTADO: 17 passaram, 0 falharam
+E2E REAL: Todos os 17 passos passaram!
