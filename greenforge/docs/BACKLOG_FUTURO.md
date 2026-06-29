@@ -56,15 +56,18 @@
 - **Providers suportados:** mock, qwen, openai, claude, gemini.
 - **Segurança:** Providers reais são safe stubs. Não usam fetch diretamente. Não chamam rede em testes. Não armazenam secrets. Não logam secrets. Não adicionam SDKs externos.
 
-## Fase 18 — Otimização de Performance
-- **Objetivo:** Melhorar a performance geral do sistema, especialmente em operações intensivas de I/O e LLM.
-- **Requisitos:**
-    - Otimizar consultas ao `SQLiteRepository`.
-    - Implementar cache para respostas de LLM.
-    - Paralelizar operações quando possível.
+## Fase 18 — Validação em Campo e Empacotamento Final
+- **Status:** ✅ CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA (2026-06-28)
+- **Entregáveis:**
+    - Validação operacional controlada do runtime real via QwenExtensionEntrypoint, não validação com Qwen CLI real carregando a extensão.
+    - Teste E2E real cobrindo 5 hooks e 5 comandos.
+    - Segurança PreToolUse validada.
+    - Documentação criada (README.md, GUIA_DE_USO.md).
+    - build, lint e 437/437 testes passando.
+
 
 ## Fase 19 — Servidor MCP Real
-- **Status:** ✅ CONCLUÍDA (2026-06-28)
+- **Status:** ✅ CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA (2026-06-28)
 - **Entregáveis:**
     - `McpGreenForgeServer.ts` — Servidor MCP via stdio usando @modelcontextprotocol/sdk. Registra 10 tools com prefixo `greenforge_` (start, status, list, approve, abort, review, feedback, reject, needs_changes, review_status). Cada tool usa inputSchema com Zod para validação. Delega para QwenCommandHandler e PlanReviewHandler existentes sem modificá-los.
     - `src/index.ts` atualizado — Argumento "mcp" cria McpGreenForgeServer e conecta via StdioServerTransport. Sem argumentos: ajuda breve. "hook": placeholder para Fase 20. Logs vão exclusivamente para stderr no modo MCP.
@@ -73,70 +76,95 @@
     - Nenhum teste chama Qwen real, LLM real, MCP real, rede ou git destrutivo.
     - build, lint e 445/445 testes passando (8 novos testes MCP).
 
-## Fase 20 — Integração com CI/CD
+## Fase 20 — Modo Hook
+- **Objetivo:** Implementar modo `hook` no `src/index.ts` (HookCommandAdapter que lê stdin, processa handlers, escreve stdout no formato Qwen Code).
+- **Requisitos:**
+    - HookCommandAdapter lendo stdin linha a linha.
+    - Processamento de handlers via QwenHookHandler.
+    - Escrita de respostas em stdout no formato esperado pelo Qwen CLI.
+
+## Fase 21 — Configuração e Fiação
+- **Objetivo:** Trocar hooks HTTP por command hooks no settings.json, alinhar qwen-extension.json.
+- **Requisitos:**
+    - Substituir URLs HTTP em settings.json por comandos locais.
+    - Atualizar qwen-extension.json para refletir modo hook.
+    - Validar que todos os hooks são roteáveis sem rede.
+
+## Fase 22 — Teste Real com o Qwen CLI
+- **Objetivo:** Primeiro teste externo com o Qwen CLI real.
+- **Requisitos:**
+    - Carregar extensão via `qwen extensions link`.
+    - Executar comandos via `/greenforge start`, `/greenforge status`, etc.
+    - Verificar hooks SessionStart, UserPromptSubmit, PreToolUse.
+    - Documentar resultados e limitações.
+
+## Fase 23 — Transporte Real de LLM
+- **Objetivo:** Implementar HTTP transport real para pelo menos um provedor.
+- **Requisitos:**
+    - Implementar `LLMTransport` com fetch real.
+    - Conectar QwenLLMProvider ao transport real.
+    - Validar classificação de intenção com LLM real.
+    - Garantir que testes continuam isolados sem rede.
+
+## Fase 24 — Prontidão para Produção
+- **Objetivo:** Correções finais, NORMAL_CHAT, documentação honesta.
+- **Requisitos:**
+    - Corrigir classificação NORMAL_CHAT no InternalMockLLMProvider.
+    - Revisar documentação para precisão factual.
+    - Remover placeholders e TODOs restantes.
+    - Auditoria final de segurança.
+
+## Fase 25 — Validação Final e Deploy
+- **Objetivo:** Teste de ponta a ponta com LLM real, tag v1.0.0.
+- **Requisitos:**
+    - E2E real com Qwen CLI + LLM real.
+    - Tag v1.0.0 e changelog.
+    - Empacotar e publicar no registry de extensões Qwen.
+
+---
+
+## Backlog Pós-v1.0 (Fases Futuras)
+
+### Integração com CI/CD
 - **Objetivo:** Integrar o GreenForge em pipelines de CI/CD existentes.
-- **Requisitos:**
-    - Fornecer APIs para acionar tarefas e obter resultados.
-    - Gerar relatórios compatíveis com ferramentas de CI/CD.
+- **Requisitos:** Fornecer APIs para acionar tarefas e obter resultados. Gerar relatórios compatíveis com ferramentas de CI/CD.
 
-## Fase 21 — Gerenciamento de Credenciais Seguro
+### Gerenciamento de Credenciais Seguro
 - **Objetivo:** Implementar um sistema seguro para gerenciar credenciais de APIs e outros segredos.
-- **Requisitos:**
-    - Integração com cofres de segredos (e.g., HashiCorp Vault, AWS Secrets Manager).
-    - Criptografia de dados sensíveis em repouso e em trânsito.
+- **Requisitos:** Integração com cofres de segredos (e.g., HashiCorp Vault, AWS Secrets Manager). Criptografia de dados sensíveis em repouso e em trânsito.
 
-## Fase 22 — Suporte a Múltiplos Idiomas (i18n)
+### Suporte a Múltiplos Idiomas (i18n)
 - **Objetivo:** Permitir que a interface e a documentação do GreenForge sejam utilizadas em diferentes idiomas.
-- **Requisitos:**
-    - Externalizar todas as strings de texto.
-    - Implementar um sistema de tradução.
+- **Requisitos:** Externalizar todas as strings de texto. Implementar um sistema de tradução.
 
-## Fase 23 — Monitoramento e Alerta
+### Monitoramento e Alerta
 - **Objetivo:** Monitorar a saúde do sistema e alertar sobre anomalias.
-- **Requisitos:**
-    - Coletar métricas de performance e uso.
-    - Integrar com ferramentas de monitoramento (e.g., Prometheus, Grafana).
-    - Configurar alertas para falhas e gargalos.
+- **Requisitos:** Coletar métricas de performance e uso. Integrar com ferramentas de monitoramento (e.g., Prometheus, Grafana). Configurar alertas para falhas e gargalos.
 
-## Fase 24 — Extensibilidade de Ferramentas
+### Extensibilidade de Ferramentas
 - **Objetivo:** Permitir que usuários e desenvolvedores adicionem facilmente novas ferramentas ao GreenForge.
-- **Requisitos:**
-    - Definir um contrato claro para novas ferramentas.
-    - Implementar um mecanismo de carregamento dinâmico de ferramentas.
+- **Requisitos:** Definir um contrato claro para novas ferramentas. Implementar um mecanismo de carregamento dinâmico de ferramentas.
 
-## Fase 25 — Otimização de Custos de LLM
+### Otimização de Custos de LLM
 - **Objetivo:** Reduzir os custos associados ao uso de LLMs.
-- **Requisitos:**
-    - Implementar estratégias de caching mais agressivas.
-    - Otimizar prompts para reduzir o uso de tokens.
-    - Explorar modelos de LLM mais eficientes para tarefas específicas.
+- **Requisitos:** Implementar estratégias de caching mais agressivas. Otimizar prompts para reduzir o uso de tokens. Explorar modelos de LLM mais eficientes para tarefas específicas.
 
-## Fase 26 — Geração de Documentação Automática
+### Geração de Documentação Automática
 - **Objetivo:** Gerar automaticamente documentação técnica a partir do código-fonte e dos planos.
-- **Requisitos:**
-    - Integrar com ferramentas de análise de código.
-    - Gerar diagramas de arquitetura e fluxo.
+- **Requisitos:** Integrar com ferramentas de análise de código. Gerar diagramas de arquitetura e fluxo.
 
-## Fase 27 — Testes de Mutação
+### Testes de Mutação
 - **Objetivo:** Aumentar a confiança nos testes existentes através de testes de mutação.
-- **Requisitos:**
-    - Integrar uma ferramenta de teste de mutação (e.g., Stryker Mutator).
-    - Garantir alta cobertura de mutação para os componentes críticos.
+- **Requisitos:** Integrar uma ferramenta de teste de mutação (e.g., Stryker Mutator). Garantir alta cobertura de mutação para os componentes críticos.
 
-## Fase 28 — Análise Estática de Código Avançada
+### Análise Estática de Código Avançada
 - **Objetivo:** Integrar ferramentas de análise estática de código mais avançadas para detectar bugs e vulnerabilidades.
-- **Requisitos:**
-    - Integrar com ferramentas como SonarQube, ESLint com plugins de segurança.
-    - Automatizar a execução dessas análises no pipeline.
+- **Requisitos:** Integrar com ferramentas como SonarQube, ESLint com plugins de segurança. Automatizar a execução dessas análises no pipeline.
 
-## Fase 29 — Geração de Testes Automática
+### Geração de Testes Automática
 - **Objetivo:** Gerar automaticamente testes unitários e de integração para o código produzido.
-- **Requisitos:**
-    - Utilizar LLMs para gerar casos de teste.
-    - Integrar com frameworks de teste existentes.
+- **Requisitos:** Utilizar LLMs para gerar casos de teste. Integrar com frameworks de teste existentes.
 
-## Fase 30 — Suporte a Múltiplos VCS (Version Control Systems)
+### Suporte a Múltiplos VCS (Version Control Systems)
 - **Objetivo:** Permitir que o GreenForge trabalhe com outros sistemas de controle de versão além do Git.
-- **Requisitos:**
-    - Abstrair a camada de VCS.
-    - Implementar adaptadores para SVN, Mercurial, etc.
+- **Requisitos:** Abstrair a camada de VCS. Implementar adaptadores para SVN, Mercurial, etc.

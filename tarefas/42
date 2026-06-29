@@ -1,0 +1,124 @@
+# FASE 19 — Correção de Documentação e Governança
+
+> **Para:** Agente Executor na IDE do usuário
+> **De:** Product Owner (Arena.ai)
+> **Data:** 2026-06-28
+> **Tipo:** Correção cirúrgica — NÃO mexer no código principal
+
+---
+
+## SITUAÇÃO
+
+A Fase 19 (Servidor MCP Real) está tecnicamente implementada e os testes passam (445/445, build limpo, lint limpo). **Mas a fase NÃO está aprovada** porque a documentação viva ficou inconsistente e incompleta.
+
+Você **NÃO deve** alterar nenhum código de produção (`src/`, `tests/`). Apenas corrija a documentação viva e higiene do repositório.
+
+---
+
+## CORREÇÕES OBRIGATÓRIAS
+
+### 1. Criar `docs/phase_19_resumo.md`
+
+Crie este arquivo com o resumo da Fase 19, seguindo o mesmo padrão dos resumos anteriores (veja `docs/phase_17_resumo.md` ou `docs/phase_18_resumo.md` como referência). Deve conter:
+
+- Fase executada: 19 — Servidor MCP Real
+- Objetivo da fase
+- Arquivos criados: `src/integration/qwen/McpGreenForgeServer.ts`, `tests/mcp-server.test.ts`
+- Arquivos modificados: `src/index.ts`, `.ai-context`, `docs/CURRENT_STATE.md`, `docs/DECISION_LOG.md`, `docs/BACKLOG_FUTURO.md`
+- 10 tools MCP registradas: greenforge_start, greenforge_status, greenforge_list, greenforge_approve, greenforge_abort, greenforge_review, greenforge_feedback, greenforge_reject, greenforge_needs_changes, greenforge_review_status
+- Decisão: MCP Server via stdio, não HTTP
+- Decisão: Logs em stderr, nunca stdout
+- Decisão: Delegação para handlers existentes sem modificação
+- Decisão: InternalMockLLMProvider como padrão
+- Decisão: Modo "hook" como placeholder
+- Testes novos: 8 testes em `tests/mcp-server.test.ts`
+- Total de testes: 445
+- Build: passou
+- Lint: passou
+- Status: **CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA**
+
+### 2. Atualizar `.humano`
+
+Adicione ao final do histórico de aprovações:
+
+```markdown
+### [2026-06-28] Fase 18 — Validação em Campo e Empacotamento Final
+- Status: CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA (437 testes totais).
+- Destaque: Validação operacional controlada do runtime real via QwenExtensionEntrypoint. Teste E2E cobrindo 5 hooks e 5 comandos. Segurança PreToolUse validada. Documentação criada (README.md, GUIA_DE_USO.md). NÃO foi validação com Qwen CLI real carregando a extensão.
+
+### [2026-06-28] Fase 19 — Servidor MCP Real
+- Status: CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA (445 testes totais).
+- Destaque: McpGreenForgeServer instancia McpServer do @modelcontextprotocol/sdk e registra 10 tools MCP com prefixo greenforge_. Cada tool delega para QwenCommandHandler ou PlanReviewHandler existentes. Modo MCP no src/index.ts conecta via StdioServerTransport. Logs exclusivamente em stderr. InternalMockLLMProvider como padrão. 8 novos testes + 445 total. Build, lint e testes 100% limpos.
+```
+
+### 3. Corrigir status da Fase 19 em `docs/CURRENT_STATE.md`
+
+Na linha que descreve a Fase 19, troque:
+- `**Status: CONCLUÍDA.**` → `**Status: CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA.**`
+
+### 4. Corrigir status da Fase 19 em `docs/BACKLOG_FUTURO.md`
+
+Na seção da Fase 19, troque:
+- `**Status:** ✅ CONCLUÍDA` → `**Status:** ✅ CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA`
+
+### 5. Corrigir overclaim da Fase 18 em `docs/CURRENT_STATE.md`
+
+Na linha que descreve a Fase 18, troque:
+- `Validação completa do GreenForge como extensão real do Qwen CLI.` → `Validação operacional controlada do runtime real via QwenExtensionEntrypoint.`
+
+E no status:
+- `**Status: CONCLUÍDA.**` → `**Status: CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA.**`
+
+### 6. Corrigir overclaim da Fase 18 em `docs/BACKLOG_FUTURO.md`
+
+Se houver descrição da Fase 18 com "validação completa" ou "extensão real do Qwen CLI", ajuste para linguagem honesta: "validação operacional controlada do runtime real via QwenExtensionEntrypoint, não validação com Qwen CLI real carregando a extensão".
+
+### 7. Atualizar `docs/BACKLOG_FUTURO.md` para refletir o roadmap real
+
+Depois da Fase 19, o backlog antigo lista "Fase 20 — CI/CD", "Fase 21 — Credenciais", etc. Substitua as fases futuras para refletir o plano atual:
+
+- **Fase 20 — Modo Hook:** Implementar modo `hook` no `src/index.ts` (HookCommandAdapter que lê stdin, processa handlers, escreve stdout no formato Qwen Code)
+- **Fase 21 — Configuração e Fiação:** Trocar hooks HTTP por command hooks no settings.json, alinhar qwen-extension.json
+- **Fase 22 — Teste Real com o Qwen CLI:** Primeiro teste externo com o Qwen CLI real
+- **Fase 23 — Transporte Real de LLM:** Implementar HTTP transport real para pelo menos um provedor
+- **Fase 24 — Prontidão para Produção:** Correções finais, NORMAL_CHAT, documentação honesta
+- **Fase 25 — Validação Final e Deploy:** Teste de ponta a ponta com LLM real, tag v1.0.0
+
+As fases antigas (CI/CD, Credenciais, i18n, etc.) podem ser movidas para uma seção "Fases futuras pós-deploy" ou "Backlog pós-v1.0".
+
+### 8. Não incluir `tarefas/41` no commit
+
+Se `tarefas/41` aparecer como untracked, não faça `git add` dele. Esse arquivo não pertence à Fase 19.
+
+---
+
+## O QUE NÃO FAZER
+
+- ❌ NÃO altere nenhum arquivo em `src/`
+- ❌ NÃO altere nenhum arquivo em `tests/`
+- ❌ NÃO altere `qwen-extension.json` ou `.qwen/settings.json`
+- ❌ NÃO rode `npm install` ou altere `package.json`
+- ❌ NÃO faça commit — apenas entregue os arquivos modificados e o git status
+
+---
+
+## VERIFICAÇÃO FINAL
+
+Depois das correções, rode:
+
+```bash
+npm test
+npm run build
+npm run lint
+git status --short
+```
+
+Entregue ao usuário:
+1. Output dos 3 comandos
+2. Output do `git status --short`
+3. Lista dos arquivos que você modificou
+4. Confirmação de que NÃO incluiu `tarefas/41`
+
+---
+
+**PAUSADO. Aguardando aprovação humana antes de qualquer próxima ação.**

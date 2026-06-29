@@ -1,0 +1,194 @@
+# FASE 20 — Comando de Execução: Modo Hook
+
+> **Para:** Agente Executor na IDE do usuário
+> **De:** Product Owner (Arena.ai)
+> **Data:** 2026-06-29
+> **Fase:** 20 — Modo Hook (HookCommandAdapter)
+> **Pré-requisito:** Fase 19 aprovada e commitada
+
+---
+
+## O QUE ESTÁ ACONTECENDO
+
+Na Fase 19, o `src/index.ts` ganhou o modo `mcp` (servidor MCP via stdio). O modo `hook` ficou como placeholder. Esta fase implementa o modo hook de verdade.
+
+Quando o Qwen Code dispara um hook (SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, SessionEnd, SubagentStart, SubagentStop), ele executa um comando tipo `node dist/index.js hook SessionStart`. Esse comando precisa:
+1. Ler o payload JSON do stdin
+2. Processar com o handler correto (QwenHookHandler)
+3. Retornar o resultado no stdout no formato que o Qwen Code espera
+4. Retornar exit code correto (0 = sucesso, 2 = erro de sistema)
+
+---
+
+## LEITURA OBRIGATÓRIA (nesta ordem)
+
+1. `.ai-context`
+2. `docs/CURRENT_STATE.md`
+3. `src/integration/qwen/QwenHookHandler.ts` — handlers que já existem e funcionam
+4. `src/integration/qwen/QwenExtensionEntrypoint.ts` — entrypoint que já delega
+5. `src/integration/qwen/runtimeTypes.ts` — tipos e contratos
+6. `src/index.ts` — arquivo atual com placeholder "hook"
+7. `.qwen/settings.json` — configuração dos hooks (será atualizada na Fase 21, mas precisa entender o formato)
+
+Se qualquer arquivo obrigatório não existir, pare e reporte.
+
+---
+
+## ESCOPO EXATO DESTA FASE
+
+### O que FAZER
+
+1. **Criar `src/integration/qwen/HookCommandAdapter.ts`** — Módulo que:
+   - Recebe o nome do hook como argumento (ex: "SessionStart", "UserPromptSubmit", etc.)
+   - Lê o payload JSON do stdin de forma segura
+   - Mapeia o nome do hook para o handler correto em `QwenHookHandler`
+   - Para hooks de bloqueio (PreToolUse, UserPromptSubmit): retorna `{"hookSpecificOutput": {"decision": {"behavior": "allow"|"deny"|"ask", "message": "...", "interrupt": true|false}}}` no stdout
+   - Para hooks não-bloqueantes (SessionStart, PostToolUse, SessionEnd, SubagentStart, SubagentStop): retorna JSON simples com status
+   - Retorna exit code 0 para sucesso, exit code 2 para erro de sistema
+   - Nunca escreve logs em stdout — stdout é só para o JSON de resposta
+   - Trata payload malformado com fallback seguro (deny/ask para hooks de bloqueio, allow para não-bloqueantes)
+   - Não faz chamada de rede, LLM real, ou git destrutivo
+
+2. **Atualizar `src/index.ts`** — Trocar o placeholder do modo hook por:
+   - `node dist/index.js hook SessionStart` → lê stdin, processa, retorna JSON
+   - `node dist/index.js hook UserPromptSubmit` → lê stdin, retorna decisão
+   - `node dist/index.js hook PreToolUse` → lê stdin, retorna allow/deny
+   - `node dist/index.js hook PostToolUse` → lê stdin, retorna status
+   - `node dist/index.js hook SessionEnd` → lê stdin, retorna status
+   - `node dist/index.js hook SubagentStart` → lê stdin, retorna status
+   - `node dist/index.js hook SubagentStop` → lê stdin, retorna status
+   - Hook desconhecido → erro com lista de hooks válidos, exit code 1
+
+3. **Escrever testes PRIMEIRO (TDD)** — Arquivo `tests/hook-command-adapter.test.ts`:
+   - Testar mapeamento de cada hook para o handler correto
+   - Testar formato de saída para hooks de bloqueio (decision com behavior)
+   - Testar formato de saída para hooks não-bloqueantes
+   - Testar exit codes (0 sucesso, 2 erro)
+   - Testar payload malformado → fallback seguro
+   - Testar hook desconhecido → erro
+   - Testar que stdout contém só JSON, sem logs
+   - **NENHUM teste deve chamar Qwen real, LLM real, MCP real, rede, git push ou merge**
+
+### O que NÃO FAZER
+
+- ❌ Não modificar `QwenHookHandler` ou qualquer handler existente
+- ❌ Não modificar `qwen-extension.json` ou `.qwen/settings.json` (Fase 21)
+- ❌ Não criar servidor HTTP
+- ❌ Não implementar transporte real de LLM (Fase 23)
+- ❌ Não commitar `node_modules`, `dist`, `tarefas`, ou arquivos gerados
+
+---
+
+## DETALHES TÉCNICOS IMPORTANTES
+
+### Formato de saída para hooks de BLOQUEIO (PreToolUse, UserPromptSubmit)
+
+```json
+{
+  "hookSpecificOutput": {
+    "decision": {
+      "behavior": "allow",
+      "message": "Operation allowed inside worktree",
+      "interrupt": false
+    }
+  }
+}
+```
+
+Comportamentos possíveis: `allow` (deixa passar), `deny` (bloqueia), `ask` (pede confirmação).
+
+### Formato de saída para hooks NÃO-BLOQUEANTES (SessionStart, PostToolUse, SessionEnd, etc.)
+
+```json
+{
+  "ok": true,
+  "action": "ALLOW",
+  "reason": "Session initialized safely"
+}
+```
+
+### Exit codes
+
+- `0` → sucesso (resultado no stdout)
+- `1` → hook desconhecido ou argumento inválido
+- `2` → erro de sistema (ex: falha ao ler stdin)
+
+### Leitura do stdin
+
+O payload vem como uma única linha JSON no stdin. Use `fs.readFileSync('/dev/stdin', 'utf-8')` ou leia de `process.stdin`. Trate o caso de stdin vazio com fallback seguro.
+
+---
+
+## TESTES OBRIGATÓRIOS
+
+### Antes de implementar (RED)
+
+Escreva `tests/hook-command-adapter.test.ts` com testes que falham:
+
+1. HookCommandAdapter mapeia SessionStart para handleSessionStart
+2. HookCommandAdapter mapeia UserPromptSubmit para handleUserPromptSubmit
+3. HookCommandAdapter mapeia PreToolUse para handlePreToolUse
+4. HookCommandAdapter mapeia PostToolUse para handlePostToolUse
+5. HookCommandAdapter mapeia SessionEnd para handleSessionEnd
+6. HookCommandAdapter mapeia SubagentStart adequadamente
+7. HookCommandAdapter mapeia SubagentStop adequadamente
+8. Saída de PreToolUse tem formato decision com behavior
+9. Saída de UserPromptSubmit tem formato decision com behavior
+10. Saída de SessionStart tem formato simples com ok/action/reason
+11. Payload malformado em PreToolUse retorna deny (fallback seguro)
+12. Payload malformado em SessionStart retorna allow (fallback seguro)
+13. Hook desconhecido retorna erro e lista de hooks válidos
+14. Stdout contém JSON válido e parseável
+
+### Depois de implementar (GREEN)
+
+Implemente o código mínimo para passar nos testes.
+
+### Verificação geral
+
+```bash
+npm test        # 445 + novos testes
+npm run build   # Sem erros
+npm run lint    # 0 erros, 0 warnings
+```
+
+---
+
+## ATUALIZAÇÃO DA DOCUMENTAÇÃO VIVA
+
+Ao final da fase, atualize:
+
+1. `.ai-context` — adicionar HookCommandAdapter como módulo crítico
+2. `docs/CURRENT_STATE.md` — adicionar Fase 20 com status "CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA"
+3. `docs/DECISION_LOG.md` — adicionar decisões da Fase 20
+4. `docs/BACKLOG_FUTURO.md` — adicionar entregáveis da Fase 20
+5. `.humano` — adicionar entrada da Fase 20
+6. `docs/phase_20_resumo.md` — criar resumo da fase
+
+---
+
+## RELATÓRIO FINAL OBRIGATÓRIO
+
+Ao terminar, entregue ao usuário um relatório com:
+
+- Fase executada
+- Objetivo da fase
+- Arquivos criados
+- Arquivos modificados
+- Testes criados ou alterados
+- Comandos executados
+- Resultado dos testes (output do `npm test`)
+- Resultado do build (output do `npm run build`)
+- Resultado do lint (output do `npm run lint`)
+- Problemas encontrados
+- Decisões importantes tomadas
+- Se o arquivamento foi executado
+- Próxima fase recomendada
+- `git status --short`
+- Confirmação de pausa aguardando aprovação humana
+
+Não esconda falhas. Não diga que está tudo certo se não estiver.
+
+---
+
+**PAREI AQUI. Aguardando aprovação humana antes de iniciar qualquer próxima fase.**

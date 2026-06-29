@@ -73,6 +73,14 @@ HISTÓRICO DE APROVAÇÕES
 - Status: CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA (437 testes totais).
 - Destaque: Camada de infraestrutura para seleção configurável e extensível de provedores LLM. LLMProviderRegistry registra e cria providers por nome (mock, qwen, openai, claude, gemini). LLMProviderFactory valida config via Zod, suporta fallback seguro para mock quando provider é desconhecido. MockLLMProvider retorna respostas determinísticas para testes. Providers reais (Qwen, OpenAI, Claude, Gemini) são safe stubs que impedem chamadas reais sem transport/credenciais explícitas, falhando com LLMProviderError estruturado. Contratos Zod: LLMProviderNameSchema, LLMProviderConfigSchema, LLMProviderFactoryOptionsSchema. LLMTransport interface para desacoplar HTTP. Integração com QwenRouter, PlannerEngine e QwenExtensionRuntime via factory. 78 novos testes (Fase 17) + 437 total. Nenhum teste chama LLM real, rede ou exige API key. Build, lint e testes 100% limpos.
 
+### [2026-06-28] Fase 18 — Validação em Campo e Empacotamento Final
+- Status: CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA (437 testes totais).
+- Destaque: Validação operacional controlada do runtime real via QwenExtensionEntrypoint. Teste E2E cobrindo 5 hooks e 5 comandos. Segurança PreToolUse validada. Documentação criada (README.md, GUIA_DE_USO.md). NÃO foi validação com Qwen CLI real carregando a extensão.
+
+### [2026-06-28] Fase 19 — Servidor MCP Real
+- Status: CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA (445 testes totais).
+- Destaque: McpGreenForgeServer instancia McpServer do @modelcontextprotocol/sdk e registra 10 tools MCP com prefixo greenforge_. Cada tool delega para QwenCommandHandler ou PlanReviewHandler existentes. Modo MCP no src/index.ts conecta via StdioServerTransport. Logs exclusivamente em stderr. InternalMockLLMProvider como padrão. 8 novos testes + 445 total. Build, lint e testes 100% limpos.
+
 ───────────────────────────────────────────────────────
 GUIA RÁPIDO PARA O USUÁRIO
 ══════════════════════════
