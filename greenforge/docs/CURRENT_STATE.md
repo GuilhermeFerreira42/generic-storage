@@ -1,5 +1,5 @@
 # CURRENT_STATE — GreenForge
-> Última atualização: Fase 18 | 2026-06-28
+> Última atualização: Fase 19 | 2026-06-28
 
 ## Arquitetura Ativa
 - **Arquitetura Hexagonal:** Desacoplamento total via portas e adaptadores.
@@ -13,7 +13,8 @@
 - **UI/UX de Revisão de Planos (Fase 15):** Camada de revisão de planos com controller testável, renderizador textual e integração Qwen. Exibe título/prompt/perguntas/subtarefas/dependências/agentes/critérios/riscos. Permite feedback textual, respostas a perguntas, aprovação via Orchestrator, rejeição com motivo e solicitação de mudanças. Todos os contratos validados por Zod. **Status: CONCLUÍDA E VALIDADA.**
 - **Agente de Refatoração (Fase 16):** RefactorAgent especialista em refatoração de código, integrado à arquitetura de agentes existente. Herda de BaseAgent, usa McpClientPort, chama ferramenta `refactor_code` via MCP mockado, retorna artifacts DIFF com resumo e diff. Nova role `REFACTORER` adicionada aos contratos AgentRole, AgentResultSchema, SubtaskNode, JoinGate e PlanReview. Compatibilidade retroativa garantida com CODER, TESTER, REVIEWER. **Status: CONCLUÍDA E VALIDADA.**
 - **Suporte a Múltiplos LLMs (Fase 17):** Camada de infraestrutura para seleção configurável e extensível de provedores LLM. `LLMProviderRegistry` registra e cria providers por nome. `LLMProviderFactory` valida config via Zod, suporta fallback seguro para `mock` quando provider é desconhecido. `MockLLMProvider` retorna respostas determinísticas para testes. Providers reais (Qwen, OpenAI, Claude, Gemini) são safe stubs que implementam `LLMProvider` mas impedem chamadas reais sem transport/credenciais explícitas, falhando com `LLMProviderError` estruturado. Contratos Zod: `LLMProviderNameSchema`, `LLMProviderConfigSchema`, `LLMProviderFactoryOptionsSchema`. Integração direta com QwenRouter e PlannerEngine via providers criados pela factory; QwenExtensionRuntime mantém mock interno seguro e segue compatível. Nenhum teste chama LLM real, rede ou exige API key. **Status: CONCLUÍDA.**
-- **Validação em Campo e Empacotamento Final (Fase 18):** Validação completa do GreenForge como extensão real do Qwen CLI. Teste E2E real executado via `QwenExtensionEntrypoint` cobrindo todos os 5 hooks (SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, SessionEnd) e todos os 5 comandos (start, status, list, approve, abort). Segurança PreToolUse validada (ALLOW dentro do worktree, BLOCK fora). Isolamento garantido (sem Qwen/MCP/LLM real, rede, git destrutivo). Artefatos verificados: SKILL.md com nome exato, URLs reais em settings.json, sem markdown artifacts. Documentação completa: README.md e GUIA_DE_USO.md criados. **Status: CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA.**
+- **Validação em Campo e Empacotamento Final (Fase 18):** Validação completa do GreenForge como extensão real do Qwen CLI. Teste E2E real executado via `QwenExtensionEntrypoint` cobrindo todos os 5 hooks (SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, SessionEnd) e todos os 5 comandos (start, status, list, approve, abort). Segurança PreToolUse validada (ALLOW dentro do worktree, BLOCK fora). Isolamento garantido (sem Qwen/MCP/LLM real, rede, git destrutivo). Artefatos verificados: SKILL.md com nome exato, URLs reais em settings.json, sem markdown artifacts. Documentação completa: README.md e GUIA_DE_USO.md criados. **Status: CONCLUÍDA.**
+- **Servidor MCP Real (Fase 19):** `McpGreenForgeServer` instancia `McpServer` do `@modelcontextprotocol/sdk` e registra todas as 10 tools MCP com prefixo `greenforge_` (start, status, list, approve, abort, review, feedback, reject, needs_changes, review_status). Cada tool usa `inputSchema` com Zod para validação e delega para `QwenCommandHandler` ou `PlanReviewHandler` existentes. Modo MCP no `src/index.ts` conecta via `StdioServerTransport`. Logs vão exclusivamente para stderr (stdout reservado para JSON-RPC). `InternalMockLLMProvider` como provider padrão. Nenhum teste chama Qwen real, LLM real, MCP real, rede ou git destrutivo. **Status: CONCLUÍDA.**
 
 ## Módulos e Contratos Vigentes
 | Módulo | Arquivo | Contrato Público | Desde |
@@ -52,6 +53,7 @@
 | `OpenAILLMProvider` | `src/infrastructure/llm/providers/OpenAILLMProvider.ts` | `generate(prompt): Promise<string>` — safe stub, requer transport + apiKeyEnv | Fase 17 |
 | `ClaudeLLMProvider` | `src/infrastructure/llm/providers/ClaudeLLMProvider.ts` | `generate(prompt): Promise<string>` — safe stub, requer transport + apiKeyEnv | Fase 17 |
 | `GeminiLLMProvider` | `src/infrastructure/llm/providers/GeminiLLMProvider.ts` | `generate(prompt): Promise<string>` — safe stub, requer transport + apiKeyEnv | Fase 17 |
+| `McpGreenForgeServer` | `src/integration/qwen/McpGreenForgeServer.ts` | `getToolNames()`, `getTool(name)`, `connect()` — 10 tools MCP com prefixo `greenforge_` | Fase 19 |
 
 ## Fluxo Principal
 1. Router identifica tarefa técnica.
@@ -84,7 +86,7 @@
 ## Testes Obrigatórios
 | Suite | Arquivo | Cobertura Aproximada | Comando |
 |-------|---------|----------------------|---------|
-| Total Suíte | `tests/*.test.ts` | 437 testes ativos | `npm test` |
+| Total Suíte | `tests/*.test.ts` | 445 testes ativos | `npm test` |
 | Qwen Integration (Static) | `tests/qwen-integration.test.ts` | 24 testes (Estáticos) | `npm test` |
 | Qwen Integration (E2E) | `tests/qwen-e2e.test.ts` | 22 testes (E2E Controlado) | `npm test` |
 | Qwen Real Extension | `tests/qwen-real-extension.test.ts` | 46 testes (Runtime Real) | `npm test` |
@@ -93,6 +95,7 @@
 | Plan Review (Fase 15) | `tests/plan-review.test.ts` | 74 testes (Unitários + Integração) | `npm test` |
 | RefactorAgent (Fase 16) | `tests/refactor-agent.test.ts` | 39 testes (Instanciação, Sucesso, Ferramentas, Falha MCP, Compatibilidade, JoinGate, Isolamento) | `npm test` |
 | LLM Providers (Fase 17) | `tests/llm-providers.test.ts` | 78 testes (Config/Schema, MockLLMProvider, Registry, Factory, Safe Stubs, QwenRouter, PlannerEngine, Runtime, Isolamento, Erros) | `npm test` |
+| MCP Server (Fase 19) | `tests/mcp-server.test.ts` | 8 testes (Instanciação, 10 tools, Schemas, Delegação, Stdio transport, Stderr logs) | `npm test` |
 
 ## Dependências Externas
 | Pacote | Versão | Motivo |

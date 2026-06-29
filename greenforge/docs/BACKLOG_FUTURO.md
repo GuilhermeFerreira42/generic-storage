@@ -63,11 +63,15 @@
     - Implementar cache para respostas de LLM.
     - Paralelizar operações quando possível.
 
-## Fase 19 — Relatórios de Progresso em Tempo Real
-- **Objetivo:** Fornecer feedback em tempo real sobre o progresso das tarefas.
-- **Requisitos:**
-    - Integrar com um sistema de pub/sub ou websockets.
-    - Exibir o status atual das subtarefas e o progresso geral.
+## Fase 19 — Servidor MCP Real
+- **Status:** ✅ CONCLUÍDA (2026-06-28)
+- **Entregáveis:**
+    - `McpGreenForgeServer.ts` — Servidor MCP via stdio usando @modelcontextprotocol/sdk. Registra 10 tools com prefixo `greenforge_` (start, status, list, approve, abort, review, feedback, reject, needs_changes, review_status). Cada tool usa inputSchema com Zod para validação. Delega para QwenCommandHandler e PlanReviewHandler existentes sem modificá-los.
+    - `src/index.ts` atualizado — Argumento "mcp" cria McpGreenForgeServer e conecta via StdioServerTransport. Sem argumentos: ajuda breve. "hook": placeholder para Fase 20. Logs vão exclusivamente para stderr no modo MCP.
+    - `tests/mcp-server.test.ts` — 8 testes (Instanciação, 10 tools registradas, Schemas Zod corretos, Delegação para handlers, StdioServerTransport, stderr logs).
+    - InternalMockLLMProvider como provider padrão.
+    - Nenhum teste chama Qwen real, LLM real, MCP real, rede ou git destrutivo.
+    - build, lint e 445/445 testes passando (8 novos testes MCP).
 
 ## Fase 20 — Integração com CI/CD
 - **Objetivo:** Integrar o GreenForge em pipelines de CI/CD existentes.

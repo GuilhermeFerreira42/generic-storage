@@ -1,0 +1,183 @@
+# FASE 19 — Comando de Execução: Servidor MCP Real
+
+> **Para:** Agente Executor na IDE do usuário
+> **De:** Product Owner (Arena.ai)
+> **Data:** 2026-06-28
+> **Fase:** 19 — Servidor MCP Real
+> **Pré-requisito:** `npm install` já deve ter sido executado e `npm test` deve passar com 437/437
+
+---
+
+## O QUE ESTÁ ACONTECENDO
+
+O GreenForge tem um motor excelente (437 testes, build e lint passando), mas o `src/index.ts` é oco — quando o Qwen CLI executa `node dist/index.js mcp`, ele só imprime "GreenForge Initialized" e morre. Esta fase transforma esse arquivo vazio num servidor MCP real que o Qwen CLI pode usar.
+
+---
+
+## LEITURA OBRIGATÓRIA (nesta ordem)
+
+Antes de escrever QUALQUER código, leia estes arquivos:
+
+1. `.ai-context` — contexto rápido do projeto
+2. `docs/CURRENT_STATE.md` — estado atual completo
+3. `documentacao/GREENFORGE_DESIGN.md` — **FONTE ÚNICA DA VERDADE**, seção 3 (Camada de Integração com Qwen CLI)
+4. `documentacao/06-api-and-extensibility.md` — contrato de extensibilidade e MCP Server
+5. `src/integration/qwen/QwenExtensionEntrypoint.ts` — entrypoint atual (os handlers que já funcionam)
+6. `src/integration/qwen/QwenCommandHandler.ts` — comandos que já existem
+7. `src/integration/qwen/QwenHookHandler.ts` — hooks que já existem
+8. `src/index.ts` — arquivo atual (oco, precisa ser substituído)
+9. `qwen-extension.json` — manifesto atual da extensão
+10. `package.json` — verificar que `@modelcontextprotocol/sdk` está nas dependências
+
+Se qualquer arquivo obrigatório não existir, pare e reporte: `Artefato [nome] não encontrado em [caminho]. Aguardando instrução.`
+
+---
+
+## ESCOPO EXATO DESTA FASE
+
+### O que FAZER
+
+1. **Criar `src/integration/qwen/McpGreenForgeServer.ts`** — Módulo que:
+   - Instancia `McpServer` do `@modelcontextprotocol/sdk`
+   - Registra TODOS os comandos do GreenForge como MCP tools:
+     - `greenforge_start` — inicia tarefa (input: prompt string)
+     - `greenforge_status` — status do runtime
+     - `greenforge_list` — lista tarefas (input: filtro opcional)
+     - `greenforge_approve` — aprova plano (input: taskId)
+     - `greenforge_abort` — aborta tarefa (input: taskId)
+     - `greenforge_review` — revisão de plano (input: taskId)
+     - `greenforge_feedback` — feedback de revisão (input: taskId + feedback)
+     - `greenforge_reject` — rejeita plano (input: taskId + motivo)
+     - `greenforge_needs_changes` — solicita mudanças (input: taskId)
+     - `greenforge_review_status` — status da revisão (input: taskId)
+   - Cada tool usa `inputSchema` com Zod para validação
+   - Cada tool delega para `QwenCommandHandler` existente ou `PlanReviewHandler` existente
+   - Adiciona `instructions` no servidor explicando como usar as ferramentas
+   - Não faz nenhuma chamada de rede, LLM real, ou git destrutivo
+
+2. **Atualizar `src/index.ts`** — O arquivo deve:
+   - Sem argumentos ou argumento desconhecido: imprimir ajuda breve e sair
+   - Argumento `"mcp"`: criar `McpGreenForgeServer`, conectar via `StdioServerTransport`, e iniciar
+   - Deixar espaço para o modo `"hook"` (Fase 20) — por ora, se receber `"hook"`, imprimir "Hook mode not yet implemented" e sair com código 0
+   - **REGRA CRÍTICA**: No modo MCP, TODOS os logs vão para `stderr`. NUNCA escreva em `stdout` — stdout é reservado para o protocolo JSON-RPC do MCP
+
+3. **Escrever testes PRIMEIRO (TDD)** — Arquivo `tests/mcp-server.test.ts`:
+   - Testar que `McpGreenForgeServer` instancia corretamente
+   - Testar que cada tool está registrado com nome e schema correto
+   - Testar que cada tool delega para o handler correto
+   - Testar que o modo "mcp" em index.ts inicia o servidor
+   - Testar que logs vão para stderr, nunca stdout
+   - **NENHUM teste deve chamar Qwen real, LLM real, MCP real, rede, git push ou merge**
+
+### O que NÃO FAZER
+
+- ❌ Não implementar o modo `hook` (isso é Fase 20)
+- ❌ Não modificar os handlers existentes (QwenCommandHandler, QwenHookHandler, etc.)
+- ❌ Não modificar `qwen-extension.json` ou `.qwen/settings.json` (isso é Fase 21)
+- ❌ Não modificar arquivos core (Orchestrator, PlannerEngine, etc.)
+- ❌ Não criar servidor HTTP (hooks HTTP serão substituídos na Fase 21)
+- ❌ Não implementar transporte real de LLM (isso é Fase 23)
+- ❌ Não commitar `node_modules`, `dist`, ou arquivos gerados
+
+---
+
+## DETALHES TÉCNICOS IMPORTANTES
+
+### Imports do MCP SDK
+
+Verifique quais imports funcionam após `npm install`. Os paths esperados são:
+
+```typescript
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+```
+
+Se a versão instalada for diferente e os imports não funcionarem, verifique a estrutura real em `node_modules/@modelcontextprotocol/sdk/` e ajuste. Reporte qualquer divergência.
+
+### Convenção de nomes de tools
+
+Use `snake_case` com prefixo `greenforge_`: `greenforge_start`, `greenforge_status`, etc.
+
+### Formato de resposta das tools
+
+Cada tool deve retornar no formato MCP:
+
+```typescript
+return {
+  content: [{ type: 'text', text: JSON.stringify(resultado) }]
+};
+```
+
+### Instanciação do Runtime
+
+O `McpGreenForgeServer` precisa criar um `QwenExtensionEntrypoint` internamente com `InternalMockLLMProvider` (mesmo padrão dos testes existentes). Em produção futura, isso será configurável via variável de ambiente.
+
+---
+
+## TESTES OBRIGATÓRIOS
+
+### Antes de implementar (RED)
+
+Escreva `tests/mcp-server.test.ts` com testes que falham:
+
+1. `McpGreenForgeServer` pode ser instanciado com opções padrão
+2. O servidor registra exatamente 10 tools (start, status, list, approve, abort, review, feedback, reject, needs_changes, review_status)
+3. Cada tool tem nome correto e inputSchema com Zod
+4. Tool `greenforge_start` delega para `QwenCommandHandler.handle('start', ...)`
+5. Tool `greenforge_status` delega para `QwenCommandHandler.handle('status', ...)`
+6. Tool `greenforge_approve` delega para `QwenCommandHandler.handle('approve', ...)`
+7. Modo `mcp` em `src/index.ts` conecta ao StdioServerTransport
+8. Logs vão para stderr, não stdout
+
+### Depois de implementar (GREEN)
+
+Implemente o código mínimo para passar nos testes.
+
+### Verificação geral
+
+Ao final, rode e confirme:
+
+```bash
+npm test        # Deve passar: 437 + novos testes
+npm run build   # Deve passar sem erros
+npm run lint    # Deve passar sem warnings
+```
+
+---
+
+## ATUALIZAÇÃO DA DOCUMENTAÇÃO VIVA
+
+Ao final da fase, atualize:
+
+1. `.ai-context` — adicionar McpGreenForgeServer como módulo crítico
+2. `docs/CURRENT_STATE.md` — adicionar Fase 19 como concluída, incluir McpGreenForgeServer na tabela de módulos
+3. `docs/DECISION_LOG.md` — adicionar decisão: "MCP Server via stdio, não HTTP"
+4. `docs/BACKLOG_FUTURO.md` — marcar Fase 19 como concluída
+5. `docs/ARCHIVING_PROTOCOL.md` — sem mudança se já existir
+
+---
+
+## RELATÓRIO FINAL OBRIGATÓRIO
+
+Ao terminar, entregue ao usuário um relatório com:
+
+- Fase executada
+- Objetivo da fase
+- Arquivos criados
+- Arquivos modificados
+- Testes criados ou alterados
+- Comandos executados
+- Resultado dos testes (output do `npm test`)
+- Resultado do build (output do `npm run build`)
+- Resultado do lint (output do `npm run lint`)
+- Problemas encontrados
+- Decisões importantes tomadas
+- Se o arquivamento foi executado
+- Próxima fase recomendada
+- Confirmação de pausa aguardando aprovação humana
+
+Não esconda falhas. Não diga que está tudo certo se não estiver.
+
+---
+
+**PAREI AQUI. Aguardando aprovação humana antes de iniciar qualquer próxima fase.**
