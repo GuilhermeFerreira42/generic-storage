@@ -302,7 +302,7 @@ qwen --debug
 ### MCP Server nao responde
 
 ```bash
-curl http://localhost:7777/health
+curl  (MCP stdio mode - no HTTP port) /health
 # Se falhar: qwen extensions restart greenforge
 ```
 

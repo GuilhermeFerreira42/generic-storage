@@ -3,21 +3,36 @@
     "SessionStart": [
       {
         "hooks": [
-          { "type": "command", "command": "greenforge-init", "timeout": 5000 }
+          {
+            "type": "command",
+            "command": "node dist/index.js hook SessionStart",
+            "cwd": "${extensionPath}",
+            "timeout": 5000
+          }
         ]
       }
     ],
     "SessionEnd": [
       {
         "hooks": [
-          { "type": "command", "command": "greenforge-cleanup", "timeout": 3000 }
+          {
+            "type": "command",
+            "command": "node dist/index.js hook SessionEnd",
+            "cwd": "${extensionPath}",
+            "timeout": 3000
+          }
         ]
       }
     ],
     "UserPromptSubmit": [
       {
         "hooks": [
-          { "type": "http", "url": "http://localhost:7777/prompt-submit", "timeout": 2000 }
+          {
+            "type": "command",
+            "command": "node dist/index.js hook UserPromptSubmit",
+            "cwd": "${extensionPath}",
+            "timeout": 2000
+          }
         ]
       }
     ],
@@ -25,28 +40,48 @@
       {
         "matcher": "Write|WriteFile|Edit|MultiEdit|Bash",
         "hooks": [
-          { "type": "http", "url": "http://localhost:7777/pre-tool", "timeout": 5000 }
+          {
+            "type": "command",
+            "command": "node dist/index.js hook PreToolUse",
+            "cwd": "${extensionPath}",
+            "timeout": 5000
+          }
         ]
       }
     ],
     "PostToolUse": [
       {
         "hooks": [
-          { "type": "http", "url": "http://localhost:7777/post-tool", "timeout": 3000 }
+          {
+            "type": "command",
+            "command": "node dist/index.js hook PostToolUse",
+            "cwd": "${extensionPath}",
+            "timeout": 3000
+          }
         ]
       }
     ],
     "SubagentStart": [
       {
         "hooks": [
-          { "type": "http", "url": "http://localhost:7777/subagent-start", "timeout": 3000 }
+          {
+            "type": "command",
+            "command": "node dist/index.js hook SubagentStart",
+            "cwd": "${extensionPath}",
+            "timeout": 3000
+          }
         ]
       }
     ],
     "SubagentStop": [
       {
         "hooks": [
-          { "type": "http", "url": "http://localhost:7777/subagent-stop", "timeout": 3000 }
+          {
+            "type": "command",
+            "command": "node dist/index.js hook SubagentStop",
+            "cwd": "${extensionPath}",
+            "timeout": 3000
+          }
         ]
       }
     ]

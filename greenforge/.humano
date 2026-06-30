@@ -88,3 +88,15 @@ GUIA RÁPIDO PARA O USUÁRIO
 1. Sempre preencha `CONTRATOS_DA_ONDA` no `BACKLOG_FUTURO.md` antes de começar uma nova onda.
 2. Forneça o blueprint da fase (gerado pelo NEXUS ou manual).
 3. Após validar a implementação, peça: "Execute o protocolo docs/ARCHIVING_PROTOCOL.md".
+### [2026-06-29] Fase 20 — Modo Hook (HookCommandAdapter)
+- Status: CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA (460 testes totais).
+- Destaque: Implementação completa do `HookCommandAdapter` (Fase 20). Agora `greenforge hook <HookName>` funciona de verdade:
+  - Lê payload JSON do stdin
+  - Mapeia para QwenHookHandler
+  - Retorna formato exato esperado pelo Qwen CLI (hookSpecificOutput.decision para hooks de bloqueio)
+  - Fallbacks seguros para payload inválido
+  - Suporte a 7 hooks (incluindo SubagentStart/Stop)
+  - src/index.ts atualizado (stdout reservado para JSON puro)
+  - 15 novos testes TDD (hook-command-adapter.test.ts)
+  - Build limpo, lint 0 erros, 460/460 testes passando.
+- Isolamento total: zero chamadas reais.

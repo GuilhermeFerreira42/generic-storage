@@ -70,7 +70,7 @@ A extensao utiliza tres arquivos de configuracao:
 
 ### MCP Server
 
-O GreenForge expoe um MCP server em `http://localhost:7777` para integracao com ferramentas externas.
+O GreenForge expoe um MCP server em ` (MCP stdio mode - no HTTP port) ` para integracao com ferramentas externas.
 
 ---
 

@@ -25,3 +25,20 @@
 - Garanta que todos os artefatos de agentes sejam consolidados antes da revisao final.
 - LLMProviderFactory para criar providers com fallback seguro para mock.
 - PreToolUse gate valida seguranca com path.resolve + path.relative.
+
+## Fase 20 — HookCommandAdapter (Concluída)
+- HookCommandAdapter.ts implementado e testado
+- src/index.ts agora suporta `greenforge hook <HookName>` com saída JSON pura
+- 15 testes novos (hook-command-adapter.test.ts)
+- Mapeamento completo de 7 hooks + formatos de decisão Qwen
+- Fallbacks seguros para payload malformado
+- 460 testes totais, build e lint limpos
+
+## Fase 21 — Configuração e Fiação de Hooks (Concluída)
+- .qwen/settings.json atualizado para usar comandos reais: "node dist/index.js hook <HookName>"
+- Todos os 7 hooks agora são do tipo "command" com cwd: "${extensionPath}"
+- Removidas todas as referências a http://localhost:7777
+- Schema atualizado para aceitar "cwd" em hooks
+- Novo teste: tests/hook-wiring.test.ts (8 testes)
+- Build e lint limpos
+- 8/8 testes específicos passando

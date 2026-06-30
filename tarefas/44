@@ -1,0 +1,155 @@
+# FASE 21 — Comando de Execução: Configuração e Fiação
+
+> **Para:** Agente Executor na IDE do usuário
+> **De:** Product Owner (Arena.ai)
+> **Data:** 2026-06-29
+> **Fase:** 21 — Configuração e Fiação
+> **Pré-requisito:** Fase 20 aprovada e commitada
+
+---
+
+## O QUE ESTÁ ACONTECENDO
+
+Nas Fases 19 e 20, o GreenForge ganhou:
+- Um servidor MCP real (`node dist/index.js mcp`) que expõe 10 tools
+- Um modo hook real (`node dist/index.js hook <HookName>`) que processa 7 hooks
+
+Mas a configuração atual ainda aponta para coisas que não existem:
+- `.qwen/settings.json` declara hooks HTTP para `localhost:7777` — não existe servidor nessa porta
+- `qwen-extension.json` aponta para `dist/index.js mcp` — isso está correto
+- Os hooks de SessionStart e SessionEnd usam comandos `greenforge-init` e `greenforge-cleanup` que não existem como executáveis
+
+Esta fase "liga os fios": trocar a configuração de hooks para apontar para os comandos reais que agora funcionam.
+
+---
+
+## LEITURA OBRIGATÓRIA (nesta ordem)
+
+1. `.ai-context`
+2. `docs/CURRENT_STATE.md`
+3. `.qwen/settings.json` — a configuração atual dos hooks
+4. `qwen-extension.json` — o manifesto da extensão
+5. `src/index.ts` — os modos mcp e hook que agora funcionam
+6. `documentacao/GREENFORGE_DESIGN.md` — seção 3.4 (Mapeamento de Hooks) e seção 3.5 (Configuração de Hooks)
+
+---
+
+## ESCOPO EXATO DESTA FASE
+
+### O que FAZER
+
+1. **Atualizar `.qwen/settings.json`** — Trocar todos os hooks:
+
+   **Antes (quebrado):**
+   - SessionStart → `command: "greenforge-init"` (não existe)
+   - SessionEnd → `command: "greenforge-cleanup"` (não existe)
+   - UserPromptSubmit → `http: http://localhost:7777/prompt-submit` (sem servidor)
+   - PreToolUse → `http: http://localhost:7777/pre-tool` (sem servidor)
+   - PostToolUse → `http: http://localhost:7777/post-tool` (sem servidor)
+   - SubagentStart → `http: http://localhost:7777/subagent-start` (sem servidor)
+   - SubagentStop → `http: http://localhost:7777/subagent-stop` (sem servidor)
+
+   **Depois (funcionando):**
+   - SessionStart → `command: "node dist/index.js hook SessionStart"`
+   - SessionEnd → `command: "node dist/index.js hook SessionEnd"`
+   - UserPromptSubmit → `command: "node dist/index.js hook UserPromptSubmit"`
+   - PreToolUse → `command: "node dist/index.js hook PreToolUse"`
+   - PostToolUse → `command: "node dist/index.js hook PostToolUse"`
+   - SubagentStart → `command: "node dist/index.js hook SubagentStart"`
+   - SubagentStop → `command: "node dist/index.js hook SubagentStop"`
+
+   **IMPORTANTE sobre caminhos:** O Qwen Code executa hooks com `cwd` sendo o diretório do projeto do usuário, NÃO o diretório da extensão. Então o comando `node dist/index.js hook ...` só funciona se o diretório de trabalho for a pasta do GreenForge. Para resolver isso, use o campo `"cwd"` no hook configuration apontando para `${extensionPath}`, OU use caminhos absolutos com `${extensionPath}`.
+
+   Verifique na documentação oficial do Qwen Code se o campo `cwd` é suportado em hook definitions dentro de settings.json. Se não for suportado, use caminhos absolutos: `"command": "node ${extensionPath}/dist/index.js hook SessionStart"`.
+
+   **Atenção:** Verifique se `${extensionPath}` é suportado dentro de `.qwen/settings.json` ou apenas dentro de `qwen-extension.json`. Se só funciona no manifesto, considere mover a declaração de hooks para lá (campo `"hooks"` no manifesto).
+
+2. **Verificar e alinhar `qwen-extension.json`** — Garantir que:
+   - `mcpServers.greenforge` aponta para `dist/index.js` com args `["mcp"]` e cwd `${extensionPath}` ✅ (já está correto)
+   - O campo `"hooks"` aponta para `.qwen/settings.json` ✅ (já está correto)
+   - O campo `"skills"` aponta para `.qwen/skills` ✅ (já está correto)
+   - O campo `"contextFileName"` aponta para `.ai-context` ✅ (já está correto)
+
+3. **Escrever testes** — Arquivo `tests/hook-wiring.test.ts`:
+   - Testar que settings.json é JSON válido e parseável
+   - Testar que todos os hooks usam tipo "command" (nenhum "http")
+   - Testar que todos os hooks apontam para `index.js hook`
+   - Testar que qwen-extension.json é JSON válido e parseável
+   - Testar que o campo mcpServers aponta para dist/index.js mcp
+   - Testar que não existem URLs localhost:7777 em nenhum arquivo de config
+
+### O que NÃO FAZER
+
+- ❌ Não alterar `src/` ou `tests/` existentes
+- ❌ Não implementar servidor HTTP
+- ❌ Não criar novos handlers
+- ❌ Não commitar `node_modules`, `dist`, `tarefas`
+- ❌ Não alterar arquivos core
+
+---
+
+## DETALHES TÉCNICOS
+
+### Formato de hook command no Qwen Code
+
+Segundo a documentação oficial do Qwen Code, hooks do tipo `command` suportam:
+```json
+{
+  "type": "command",
+  "command": "node /caminho/para/dist/index.js hook SessionStart",
+  "timeout": 5000
+}
+```
+
+O comando é executado como um processo filho. O Qwen Code:
+- Escreve o payload JSON no stdin do processo
+- Lê o resultado do stdout
+- Usa o exit code para determinar sucesso/erro
+
+### Variável ${extensionPath}
+
+No `qwen-extension.json`, `${extensionPath}` é resolvido para o diretório onde a extensão está instalada. Verifique se essa variável também funciona dentro de `.qwen/settings.json` quando a extensão é carregada. Se não funcionar, use caminhos relativos com `"cwd"` ou caminhos absolutos.
+
+### Remoção de localhost:7777
+
+Após esta fase, nenhuma configuração deve referenciar `localhost:7777`. O servidor MCP funciona via stdio (stdin/stdout), não via HTTP. Os hooks funcionam via comandos de processo, não via HTTP. O porto 7777 era uma ideia antiga do design que não se aplica mais à implementação real.
+
+---
+
+## ATUALIZAÇÃO DA DOCUMENTAÇÃO VIVA
+
+Ao final da fase, atualize:
+
+1. `.ai-context` — refletir que hooks agora apontam para comandos reais
+2. `docs/CURRENT_STATE.md` — adicionar Fase 21 com status "CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA"
+3. `docs/DECISION_LOG.md` — adicionar decisão: hooks via command, não HTTP
+4. `docs/BACKLOG_FUTURO.md` — adicionar entregáveis da Fase 21
+5. `.humano` — adicionar entrada da Fase 21
+6. `docs/phase_21_resumo.md` — criar resumo da fase
+7. **Remover referências a localhost:7777** de README.md e GUIA_DE_USO.md se ainda existirem
+
+---
+
+## RELATÓRIO FINAL OBRIGATÓRIO
+
+Ao terminar, entregue ao usuário um relatório com:
+
+- Fase executada
+- Objetivo da fase
+- Arquivos criados
+- Arquivos modificados
+- Testes criados ou alterados
+- Comandos executados
+- Resultado dos testes
+- Resultado do build
+- Resultado do lint
+- Problemas encontrados
+- Decisões importantes tomadas
+- git status --short
+- Confirmação de pausa aguardando aprovação humana
+
+Não esconda falhas. Não diga que está tudo certo se não estiver.
+
+---
+
+**PAREI AQUI. Aguardando aprovação humana antes de iniciar qualquer próxima fase.**

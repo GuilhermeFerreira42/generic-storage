@@ -101,4 +101,4 @@
 | Pacote | Versão | Motivo |
 |--------|--------|--------|
 | `zod` | ^3.23.0 | Validação de contratos e auditorias. |
-| `better-sqlite3` | ^11.0.0 | Persistência. |
+| `better-sqlite3` | ^11.0.0 | Persistência. |- **Modo Hook Real (Fase 20):** `HookCommandAdapter` implementado. Permite que `node dist/index.js hook <HookName>` leia payload do stdin, delegue para `QwenHookHandler`, e retorne JSON no formato exato esperado pelo Qwen CLI (decision para blocking hooks, simples para non-blocking). Suporte a 7 hooks + fallbacks seguros para payload malformado. `src/index.ts` atualizado para rotear o modo hook corretamente (stdout só JSON). 15 novos testes. **Status: CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA.**

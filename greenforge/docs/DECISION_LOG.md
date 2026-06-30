@@ -123,3 +123,12 @@ F19 | RULE | MCP Server via stdio, não HTTP | Transporte via StdioServerTranspo
 F19 | RULE | Logs em stderr, nunca stdout | No modo MCP, stdout é reservado exclusivamente para protocolo JSON-RPC. Todos os logs vão para console.error (stderr) | `src/integration/qwen/McpGreenForgeServer.ts`, `src/index.ts`
 F19 | RULE | Isolamento de testes | Nenhum teste chama Qwen real, LLM real, MCP real, rede ou git destrutivo. Uses InternalMockLLMProvider como provider padrão | `tests/mcp-server.test.ts`
 F19 | TECH | Tipo literal 'text' em content | MCP SDK exige type: 'text' como literal type, não string. Uso de `as const` ou tipagem explícita para satisfazer overloads do McpServer.tool() | `src/integration/qwen/McpGreenForgeServer.ts`
+
+### Fase 20 — Modo Hook (HookCommandAdapter)
+F20 | ADD | HookCommandAdapter.ts | Bridge entre CLI Qwen e QwenHookHandler com formatos exatos de decisão | `src/integration/qwen/HookCommandAdapter.ts`
+F20 | MOD | src/index.ts | Substitui placeholder por implementação real do modo hook (stdout só JSON) | `src/index.ts`
+F20 | ADD | Testes TDD | 15 testes cobrindo mapeamento, formatos de saída, fallbacks e exit codes | `tests/hook-command-adapter.test.ts`
+F20 | CFG | Formato de saída | Blocking hooks → hookSpecificOutput.decision; Non-blocking → {ok,action,reason} | HookCommandAdapter
+F20 | RULE | Fallback seguro | Payload malformado em blocking = deny; non-blocking = allow | HookCommandAdapter
+F20 | TECH | Leitura de stdin | readFileSync(0, 'utf-8') — padrão CLI síncrono sem dependências | HookCommandAdapter
+F20 | TEST | 460 testes totais | +15 novos testes, todos isolados (sem Qwen/LLM/rede/git real) | Todos os testes
