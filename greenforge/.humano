@@ -81,6 +81,21 @@ HISTÓRICO DE APROVAÇÕES
 - Status: CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA (445 testes totais).
 - Destaque: McpGreenForgeServer instancia McpServer do @modelcontextprotocol/sdk e registra 10 tools MCP com prefixo greenforge_. Cada tool delega para QwenCommandHandler ou PlanReviewHandler existentes. Modo MCP no src/index.ts conecta via StdioServerTransport. Logs exclusivamente em stderr. InternalMockLLMProvider como padrão. 8 novos testes + 445 total. Build, lint e testes 100% limpos.
 
+### [2026-06-30] Fase 21 — Configuração e Fiação de Hooks (Command Hooks)
+- Status: CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA (468/468 testes).
+- Destaque: 
+  - .qwen/settings.json migrado para 7 hooks do tipo "command": `node dist/index.js hook <HookName>` + `cwd: "${extensionPath}"`.
+  - Removidas todas referências a localhost:7777.
+  - Schema LocalPathSchema e HookActionSchema suportam cwd + command.
+  - Test 37 atualizado para validar getDeclaredHookRoutes() com command type.
+  - Regex markdown corrigido em qwen-integration.test.ts para rejeitar apenas links completos [text](url) (aceita [] em JSON e templates).
+  - QwenSettingsDispatcher alinhado (getDeclaredHookRoutes + legacy compat).
+  - Full npm test: 468/468 passando. Build + lint limpos.
+  - Smoke: node dist/index.js hook <Name> funciona para todos 7 hooks.
+  - cwd support provado via docs oficiais Qwen (aceito para command hooks e mcpServers).
+  - Documentação atualizada: .humano, CURRENT_STATE, DECISION_LOG, BACKLOG, .ai-context.
+- Evidências: 100% testes, build, lint, smoke hooks, alinhamento completo com arquitetura command hooks.
+
 ───────────────────────────────────────────────────────
 GUIA RÁPIDO PARA O USUÁRIO
 ══════════════════════════

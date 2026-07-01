@@ -77,18 +77,20 @@
     - build, lint e 445/445 testes passando (8 novos testes MCP).
 
 ## Fase 20 — Modo Hook
-- **Objetivo:** Implementar modo `hook` no `src/index.ts` (HookCommandAdapter que lê stdin, processa handlers, escreve stdout no formato Qwen Code).
-- **Requisitos:**
-    - HookCommandAdapter lendo stdin linha a linha.
-    - Processamento de handlers via QwenHookHandler.
-    - Escrita de respostas em stdout no formato esperado pelo Qwen CLI.
+- **Status:** ✅ CONCLUÍDA E VALIDADA (2026-06-29)
+- **Entregáveis:**
+    - `HookCommandAdapter.ts` — Adaptador que lê payloads do stdin, processa via `QwenHookHandler` e formata as respostas no padrão JSON esperado pelo Qwen CLI (com suporte a blocking e non-blocking hooks).
+    - `src/index.ts` — Roteamento do modo hook via CLI (`node dist/index.js hook <HookName>`) direcionando a saída síncrona JSON exclusivamente para stdout.
+    - `tests/hook-command-adapter.test.ts` — 15 testes unitários e de integração validando comportamento de todos os 7 hooks, fallbacks de parsing e tratamento de erros.
+    - build, lint e 460/460 testes passando.
 
 ## Fase 21 — Configuração e Fiação
-- **Objetivo:** Trocar hooks HTTP por command hooks no settings.json, alinhar qwen-extension.json.
-- **Requisitos:**
-    - Substituir URLs HTTP em settings.json por comandos locais.
-    - Atualizar qwen-extension.json para refletir modo hook.
-    - Validar que todos os hooks são roteáveis sem rede.
+- **Status:** ✅ CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA (2026-06-30)
+- **Entregáveis:**
+    - `.qwen/settings.json` reconfigurado para usar `type: "command"` com `node dist/index.js hook <HookName>` e `cwd: "${extensionPath}"`.
+    - `src/integration/qwen/manifestSchemas.ts` atualizado com suporte a `cwd` no schema `HookActionSchema`.
+    - `tests/hook-wiring.test.ts` — 8 testes validando integridade do `settings.json`, schemas e mapeamento de hooks locais sem rede.
+    - build, lint e 468/468 testes passando.
 
 ## Fase 22 — Teste Real com o Qwen CLI
 - **Objetivo:** Primeiro teste externo com o Qwen CLI real.

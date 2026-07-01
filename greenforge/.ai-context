@@ -2,9 +2,9 @@
 
 ## Resumo do Estado Atual
 - **Projeto:** GreenForge (Orquestrador Autonomo)
-- **Ultima fase concluida:** 19 - Servidor MCP Real
+- **Ultima fase concluida:** 21 - Configuração e Fiação de Hooks (Command Hooks)
 - **Status do build:** PASSANDO
-- **Status dos testes:** PASSANDO (445/445 testes)
+- **Status dos testes:** PASSANDO (468/468 testes)
 - **Modulos Criticos:** Orchestrator, JoinGate, QwenExtensionEntrypoint, LLMProviderFactory, McpGreenForgeServer
 
 ## Leitura Obrigatoria

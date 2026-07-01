@@ -132,3 +132,12 @@ F20 | CFG | Formato de saída | Blocking hooks → hookSpecificOutput.decision; 
 F20 | RULE | Fallback seguro | Payload malformado em blocking = deny; non-blocking = allow | HookCommandAdapter
 F20 | TECH | Leitura de stdin | readFileSync(0, 'utf-8') — padrão CLI síncrono sem dependências | HookCommandAdapter
 F20 | TEST | 460 testes totais | +15 novos testes, todos isolados (sem Qwen/LLM/rede/git real) | Todos os testes
+### Fase 21 — Configuração e Fiação de Hooks (Command Hooks)
+F21 | ADD | .qwen/settings.json command hooks | 7 hooks `node dist/index.js hook <Name>` + `cwd: "${extensionPath}"` (no localhost) | `.qwen/settings.json`, `manifestSchemas.ts`
+F21 | MOD | manifestSchemas.ts | LocalPathSchema refines only full markdown links; HookActionSchema accepts `cwd` + `command` | `src/integration/qwen/manifestSchemas.ts`
+F21 | FIX | qwen-integration.test.ts | Regex now rejects only `[text](url)` markdown links (bare []() allowed in JSON/arrays) | `tests/qwen-integration.test.ts`
+F21 | FIX | qwen-real-extension.test.ts | Test 37 updated to validate command routes via getDeclaredHookRoutes() (legacy HTTP expectations removed) | `tests/qwen-real-extension.test.ts`
+F21 | MOD | QwenSettingsDispatcher | getDeclaredHookRoutes + legacy compat + empty getDeclaredHttpRoutes for migration | `src/integration/qwen/QwenSettingsDispatcher.ts`
+F21 | DOC | Full docs sync | Fase 21 entry in .humano, CURRENT_STATE (Fase 21 / 468 tests), BACKLOG, DECISION_LOG, .ai-context | `.humano`, `docs/*.md`, `.ai-context`
+F21 | CFG | cwd support | Proven via Qwen extension docs (mcpServers + command hooks both accept `cwd: "${extensionPath}"`) | (docs + .qwen/settings.json)
+F21 | TEST | 468/468 passing | All legacy + new tests updated; full suite green | `npm test`

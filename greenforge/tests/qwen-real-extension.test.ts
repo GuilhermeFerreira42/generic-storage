@@ -531,15 +531,22 @@ describe('Fase 14 — Qwen CLI Extension Real', () => {
       expect(result.resolved).toBe(false);
     });
 
-    it('37. HTTP endpoints declared in settings are introspectable without network', async () => {
-      const httpRoutes = dispatcher.getDeclaredHttpRoutes();
-      expect(httpRoutes.length).toBeGreaterThan(0);
+    it('37. Hook routes (command type) declared in settings are introspectable without network', async () => {
+      // Fase 21: command hooks architecture (no HTTP). Use getDeclaredHookRoutes for introspection.
+      const routes = dispatcher.getDeclaredHookRoutes();
+      expect(routes.length).toBeGreaterThan(0);
 
-      const hookNames = httpRoutes.map((r: any) => r.hookName);
-      expect(hookNames).toEqual(expect.arrayContaining(['UserPromptSubmit', 'PreToolUse', 'PostToolUse']));
+      const hookNames = routes.map((r: any) => r.hookName);
+      expect(hookNames).toEqual(expect.arrayContaining([
+        'SessionStart', 'SessionEnd', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'SubagentStart', 'SubagentStop'
+      ]));
 
-      for (const route of httpRoutes) {
-        expect(route.url).toMatch(/^http:\/\/localhost:7777\//);
+      // All are command type (no url)
+      const commandRoutes = routes.filter((r: any) => r.type === 'command');
+      expect(commandRoutes.length).toBeGreaterThan(0);
+      for (const route of commandRoutes) {
+        expect(route.command).toMatch(/dist\/index\.js hook/);
+        if (route.url !== undefined) { expect(route.url).toBeUndefined(); }
       }
     });
   });
