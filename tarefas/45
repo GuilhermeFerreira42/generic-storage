@@ -1,0 +1,380 @@
+﻿# FASE 22 — Comando de Execução: Teste Real com o Qwen CLI
+
+> **Para:** Agente Executor na IDE do usuário
+> **De:** Product Owner (Arena.ai)
+> **Data:** 2026-07-01
+> **Tarefa:** 45
+> **Fase:** 22 — Teste Real com o Qwen CLI
+> **Pré-requisito obrigatório:** Fase 21 aprovada e commitada
+
+---
+
+## O QUE ESTÁ ACONTECENDO
+
+As Fases 19, 20 e 21 prepararam a integração real do GreenForge com o Qwen CLI:
+
+- Fase 19 criou o servidor MCP real via `node dist/index.js mcp`.
+- Fase 20 criou o modo hook real via `node dist/index.js hook <HookName>`.
+- Fase 21 ligou a configuração em `.qwen/settings.json` para usar command hooks em vez de HTTP.
+
+Agora chegou a primeira validação externa real.
+
+Esta fase NÃO é para simular internamente. Esta fase é para usar o Qwen CLI real carregando a extensão GreenForge de verdade.
+
+---
+
+## REGRA PRINCIPAL
+
+Não declare sucesso se o Qwen CLI real não tiver carregado a extensão.
+
+Teste interno com `npm test`, `node dist/index.js hook ...` ou chamada direta de classes NÃO substitui esta fase.
+
+Se o Qwen CLI não estiver instalado, não estiver autenticado, não suportar algum comando, ou não conseguir carregar a extensão, documente o bloqueio com evidência real e pare. Não invente sucesso.
+
+---
+
+## ANTES DE COMEÇAR
+
+Entre no repositório:
+
+```powershell
+cd "C:\Users\Usuario\Desktop\xgeneric-storage"
+```
+
+Confirme que a Fase 21 está commitada e que o working tree está limpo:
+
+```powershell
+git status --short
+```
+
+Se houver sujeira no Git antes de começar, PARE e avise o usuário.
+
+Não comece a Fase 22 com alterações pendentes da Fase 21.
+
+---
+
+## LEITURA OBRIGATÓRIA
+
+Leia nesta ordem:
+
+1. `greenforge/.ai-context`
+2. `greenforge/docs/CURRENT_STATE.md`
+3. `greenforge/docs/BACKLOG_FUTURO.md`
+4. `greenforge/docs/DECISION_LOG.md`
+5. `greenforge/docs/phase_21_resumo.md`
+6. `greenforge/qwen-extension.json`
+7. `greenforge/.qwen/settings.json`
+8. `greenforge/src/index.ts`
+9. `greenforge/src/integration/qwen/McpGreenForgeServer.ts`
+10. `greenforge/src/integration/qwen/HookCommandAdapter.ts`
+
+---
+
+## OBJETIVO DA FASE 22
+
+Validar, no ambiente real do usuário, que o Qwen CLI consegue:
+
+1. Encontrar ou linkar a extensão GreenForge.
+2. Ler o `qwen-extension.json`.
+3. Subir o servidor MCP com `node dist/index.js mcp`.
+4. Descobrir o servidor MCP GreenForge.
+5. Enxergar as tools `greenforge_*`.
+6. Carregar a configuração de hooks.
+7. Executar hooks reais via `node dist/index.js hook <HookName>`.
+8. Rodar a partir de um diretório de trabalho externo ao GreenForge, provando que `cwd: "${extensionPath}"` funciona na prática.
+
+---
+
+## ESCOPO EXATO
+
+### O que FAZER
+
+1. Validar ambiente:
+
+```powershell
+node --version
+npm --version
+qwen --version
+qwen --help
+qwen extensions --help
+```
+
+Se algum comando do Qwen for diferente da documentação, use o `--help` para descobrir o comando correto e documente isso.
+
+2. Preparar build limpo:
+
+```powershell
+cd "C:\Users\Usuario\Desktop\xgeneric-storage\greenforge"
+npm test
+npm run build
+npm run lint
+```
+
+3. Linkar ou instalar a extensão GreenForge no Qwen CLI real.
+
+Tente primeiro o fluxo esperado:
+
+```powershell
+qwen extensions list
+qwen extensions link "C:\Users\Usuario\Desktop\xgeneric-storage\greenforge"
+qwen extensions list
+```
+
+Se o comando exato for diferente, use o comando equivalente indicado por `qwen extensions --help`.
+
+4. Verificar MCP.
+
+Use os comandos reais disponíveis no Qwen CLI, por exemplo:
+
+```powershell
+qwen mcp list
+```
+
+ou comando equivalente indicado pelo `qwen --help`.
+
+A evidência precisa mostrar que o GreenForge foi carregado como servidor MCP, ou explicar claramente por que isso falhou.
+
+5. Criar uma pasta temporária FORA do repositório para testar o Qwen CLI real.
+
+Exemplo:
+
+```powershell
+$testDir = "$env:TEMP\greenforge-qwen-real-test"
+Remove-Item $testDir -Recurse -Force -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Force $testDir | Out-Null
+cd $testDir
+```
+
+A validação deve acontecer fora da pasta `greenforge`, para provar que os hooks usam corretamente `cwd: "${extensionPath}"`.
+
+6. Abrir uma sessão real do Qwen CLI com a extensão ativa.
+
+Use o comando correto do Qwen CLI no ambiente do usuário. Capture a saída do terminal.
+
+Durante a sessão, tente validar:
+
+- SessionStart ao iniciar a sessão.
+- UserPromptSubmit ao enviar uma mensagem.
+- PreToolUse ao pedir uma ação que use ferramenta segura.
+- PostToolUse após a ferramenta executar.
+- SessionEnd ao encerrar a sessão.
+- Descoberta das tools MCP do GreenForge.
+
+Prompt seguro sugerido para a sessão:
+
+```text
+Crie um arquivo chamado greenforge_qwen_real_test.txt nesta pasta temporária com o texto: GreenForge Qwen CLI real test.
+Depois liste as ferramentas MCP GreenForge disponíveis, se elas estiverem acessíveis.
+```
+
+Se o Qwen CLI não permitir esse fluxo por falta de autenticação, permissão, configuração, ou diferença de comandos, documente exatamente o bloqueio.
+
+7. Validar que os hooks continuam funcionando diretamente.
+
+Isto NÃO substitui o teste real com Qwen CLI, mas serve como evidência auxiliar:
+
+```powershell
+cd "C:\Users\Usuario\Desktop\xgeneric-storage\greenforge"
+
+echo {} | node dist/index.js hook SessionStart
+echo {} | node dist/index.js hook SessionEnd
+echo {} | node dist/index.js hook UserPromptSubmit
+echo {} | node dist/index.js hook PreToolUse
+echo {} | node dist/index.js hook PostToolUse
+echo {} | node dist/index.js hook SubagentStart
+echo {} | node dist/index.js hook SubagentStop
+```
+
+8. Atualizar documentação viva.
+
+Atualize:
+
+- `greenforge/.ai-context`
+- `greenforge/.humano`
+- `greenforge/docs/CURRENT_STATE.md`
+- `greenforge/docs/BACKLOG_FUTURO.md`
+- `greenforge/docs/DECISION_LOG.md`
+- `greenforge/docs/phase_22_resumo.md`
+
+A fase atual deve ficar como:
+
+```text
+CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA
+```
+
+Não use:
+
+```text
+APROVADA
+VALIDADA
+CONCLUÍDA E VALIDADA
+pronta para próxima fase
+```
+
+antes da aprovação humana.
+
+---
+
+## O que NÃO FAZER
+
+- Não iniciar a Fase 23.
+- Não implementar transporte real de LLM.
+- Não reescrever core aprovado.
+- Não alterar Orchestrator, PlannerEngine, JoinGate, SQLiteRepository, WorktreeManager, SafeResolve, AtomicWrite, DiffLens ou Verifier sem autorização explícita.
+- Não voltar para HTTP em `localhost:7777`.
+- Não commitar `node_modules`.
+- Não commitar `dist`.
+- Não commitar `coverage`.
+- Não commitar `.cache`, `.vite`, `.turbo`, `.agent`, `.claude`.
+- Não commitar arquivos temporários.
+- Não commitar a pasta `tarefas`.
+- Não criar sucesso hardcoded.
+- Não dizer que Qwen CLI real funcionou se só foi feito teste interno.
+
+---
+
+## SE ALGO FALHAR
+
+Se o Qwen CLI real não carregar a extensão, a fase NÃO está concluída.
+
+Nesse caso, entregue relatório com:
+
+- comando executado;
+- saída do terminal;
+- comportamento esperado;
+- comportamento observado;
+- hipótese técnica;
+- arquivo possivelmente envolvido;
+- sugestão de correção;
+- confirmação de que não avançou para a próxima fase.
+
+Pode corrigir pequenos problemas de fiação Qwen, desde que fiquem no escopo:
+
+- `qwen-extension.json`;
+- `.qwen/settings.json`;
+- `src/index.ts`;
+- `src/integration/qwen/*`;
+- testes da integração Qwen;
+- documentação viva.
+
+Se a correção exigir alterar core aprovado, PARE e peça autorização.
+
+---
+
+## TESTES OBRIGATÓRIOS AO FINAL
+
+Depois de qualquer ajuste, rode:
+
+```powershell
+cd "C:\Users\Usuario\Desktop\xgeneric-storage\greenforge"
+
+npm test
+npm run build
+npm run lint
+```
+
+Todos devem passar.
+
+---
+
+## GIT HYGIENE OBRIGATÓRIO
+
+Ao final, reporte:
+
+```powershell
+cd "C:\Users\Usuario\Desktop\xgeneric-storage"
+
+git status --short
+git diff --name-only
+git ls-files --others --exclude-standard
+```
+
+O status não pode conter:
+
+- `node_modules`
+- `dist`
+- `coverage`
+- `.cache`
+- `.vite`
+- `.turbo`
+- `.agent`
+- `.claude`
+- `tarefas`
+- arquivos `.db`
+- arquivos `.log`
+- arquivos temporários
+- outputs grandes de terminal
+
+Se houver arquivos novos, eles precisam ser intencionais e justificados.
+
+---
+
+## DOCUMENTAÇÃO ESPERADA DA FASE
+
+Crie:
+
+```text
+greenforge/docs/phase_22_resumo.md
+```
+
+O resumo deve conter:
+
+- objetivo da Fase 22;
+- comandos Qwen CLI executados;
+- se a extensão foi linkada ou já estava instalada;
+- evidência de `qwen extensions list`;
+- evidência de MCP server/tools;
+- evidência de hooks reais, ou bloqueio real encontrado;
+- resultado de `npm test`;
+- resultado de `npm run build`;
+- resultado de `npm run lint`;
+- problemas encontrados;
+- decisões tomadas;
+- status final: `CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA` ou `BLOQUEADA AGUARDANDO CORREÇÃO`.
+
+---
+
+## RELATÓRIO FINAL OBRIGATÓRIO
+
+Ao terminar, entregue ao usuário um relatório com:
+
+- Fase executada;
+- objetivo;
+- comandos executados;
+- evidência do Qwen CLI real;
+- evidência de extensão linkada/listada;
+- evidência de MCP/tools;
+- evidência de hooks;
+- arquivos criados;
+- arquivos modificados;
+- testes executados;
+- resultado dos testes;
+- resultado do build;
+- resultado do lint;
+- problemas encontrados;
+- decisões importantes;
+- `git status --short`;
+- confirmação de pausa aguardando aprovação humana.
+
+---
+
+## CRITÉRIO DE APROVAÇÃO PELO PO
+
+A Fase 22 só poderá ser aprovada se houver evidência real suficiente de Qwen CLI carregando a extensão.
+
+Aprovação exige:
+
+1. `npm test` 100% passando.
+2. `npm run build` passando.
+3. `npm run lint` com 0 erros e 0 warnings.
+4. `git status --short` revisado e limpo de sujeira.
+5. Qwen CLI real executado.
+6. Extensão GreenForge linkada/listada.
+7. MCP GreenForge descoberto ou falha real documentada.
+8. Hooks reais acionados pelo Qwen CLI, ou falha real documentada.
+9. Documentação viva atualizada.
+10. Nenhum avanço para Fase 23 antes da aprovação humana.
+
+---
+
+**PAREI AQUI. Aguardando aprovação humana antes de iniciar qualquer próxima fase.**
