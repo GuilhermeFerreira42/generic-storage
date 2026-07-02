@@ -2,10 +2,11 @@
 
 ## Resumo do Estado Atual
 - **Projeto:** GreenForge (Orquestrador Autonomo)
-- **Ultima fase concluida:** 21 - Configuração e Fiação de Hooks (Command Hooks)
+- **Ultima fase concluida:** 22 - Teste Real com o Qwen CLI
 - **Status do build:** PASSANDO
 - **Status dos testes:** PASSANDO (468/468 testes)
-- **Modulos Criticos:** Orchestrator, JoinGate, QwenExtensionEntrypoint, LLMProviderFactory, McpGreenForgeServer
+- **Status do lint:** PASSANDO (0 erros, 0 warnings)
+- **Modulos Criticos:** Orchestrator, JoinGate, QwenExtensionEntrypoint, LLMProviderFactory, McpGreenForgeServer, HookCommandAdapter
 
 ## Leitura Obrigatoria
 1. docs/CURRENT_STATE.md - estado atual completo do sistema
@@ -42,3 +43,14 @@
 - Novo teste: tests/hook-wiring.test.ts (8 testes)
 - Build e lint limpos
 - 8/8 testes específicos passando
+
+## Fase 22 — Teste Real com o Qwen CLI (CONCLUÍDA AGUARDANDO APROVAÇÃO)
+- Qwen CLI real carregou a extensão GreenForge com sucesso
+- Extensão linkada: `qwen extensions link` confirmado no `qwen extensions list`
+- MCP server configurado e descoberto pelo Qwen CLI
+- 10 tools MCP `greenforge_*` listadas pelo Qwen CLI real em sessão YOLO
+- 7/7 hooks diretos funcionando via `node dist/index.js hook <HookName>`
+- Schemas de validação alterados de `.strict()` para `.passthrough()` para tolerar campos extras do Qwen CLI
+- Sessão real do Qwen CLI testada a partir de diretório externo ao GreenForge
+- cwd="${extensionPath}" validado como necessário e funcional
+- 468/468 testes passando, build limpo, lint 0/0

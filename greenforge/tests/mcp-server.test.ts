@@ -1,8 +1,9 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, vi } from 'vitest';
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { McpGreenForgeServer } from '../src/integration/qwen/McpGreenForgeServer.js';
 
 const projectRoot = fileURLToPath(new URL('../', import.meta.url));
 
@@ -27,31 +28,38 @@ describe('Fase 19 — McpGreenForgeServer', () => {
   // A. Server instantiation and tool registration
   // ================================================================
   describe('A. Server instantiation and tool registration', () => {
-    it('1. McpGreenForgeServer can be instantiated with default options', async () => {
-      const { McpGreenForgeServer } = await import(
-        '../src/integration/qwen/McpGreenForgeServer.js'
-      );
-      const server = new McpGreenForgeServer({ projectRoot });
+    // Single shared instance: McpGreenForgeServer construction loads the full
+    // QwenExtensionEntrypoint runtime (~5s wall-clock due to QwenRouter,
+    // PlannerEngine, SQLiteRepository, Orchestrator init). Creating it once
+    // in beforeAll avoids repeated init cost and prevents timeout flakes
+    // when the full suite runs alongside other test files.
+    let server: McpGreenForgeServer | undefined;
+    let creationError: Error | undefined;
 
-      expect(server).toBeDefined();
-      expect(server.mcpServer).toBeDefined();
+    beforeAll(() => {
+      try {
+        server = new McpGreenForgeServer({ projectRoot });
+      } catch (e) {
+        creationError = e instanceof Error ? e : new Error(String(e));
+      }
+    }, 10000);
+
+    it('1. McpGreenForgeServer can be instantiated with default options', () => {
+      expect(creationError).toBeUndefined();
+      if (creationError) throw creationError;
+      expect(server!).toBeDefined();
+      expect(server!.mcpServer).toBeDefined();
     });
 
-    it('2. The server registers exactly 10 tools', async () => {
-      const { McpGreenForgeServer } = await import(
-        '../src/integration/qwen/McpGreenForgeServer.js'
-      );
-      const server = new McpGreenForgeServer({ projectRoot });
-
-      const toolNames = server.getToolNames();
+    it('2. The server registers exactly 10 tools', () => {
+      expect(server!).toBeDefined();
+      const toolNames = server!.getToolNames();
       expect(toolNames).toHaveLength(10);
     });
 
-    it('3. Each tool has the correct greenforge_ prefix and input schema', async () => {
-      const { McpGreenForgeServer } = await import(
-        '../src/integration/qwen/McpGreenForgeServer.js'
-      );
-      const server = new McpGreenForgeServer({ projectRoot });
+    it('3. Each tool has the correct greenforge_ prefix and input schema', () => {
+      expect(server!).toBeDefined();
+      const serverRef = server!;
 
       const expectedTools = [
         'greenforge_start',
@@ -66,14 +74,14 @@ describe('Fase 19 — McpGreenForgeServer', () => {
         'greenforge_review_status',
       ];
 
-      const toolNames = server.getToolNames();
+      const toolNames = serverRef.getToolNames();
       for (const expected of expectedTools) {
         expect(toolNames).toContain(expected);
       }
 
       // Each tool must have an inputSchema with Zod
       for (const name of expectedTools) {
-        const tool = server.getTool(name);
+        const tool = serverRef.getTool(name);
         expect(tool).toBeDefined();
         expect(tool!.inputSchema).toBeDefined();
         expect(typeof tool!.inputSchema).toBe('object');
@@ -81,12 +89,8 @@ describe('Fase 19 — McpGreenForgeServer', () => {
     });
 
     it('4. greenforge_start delegates to QwenCommandHandler.handle("start", ...)', async () => {
-      const { McpGreenForgeServer } = await import(
-        '../src/integration/qwen/McpGreenForgeServer.js'
-      );
-      const server = new McpGreenForgeServer({ projectRoot });
-
-      const startTool = server.getTool('greenforge_start');
+      expect(server!).toBeDefined();
+      const startTool = server!.getTool('greenforge_start');
       expect(startTool).toBeDefined();
       expect(startTool!.handler).toBeDefined();
       expect(typeof startTool!.handler).toBe('function');
@@ -102,12 +106,8 @@ describe('Fase 19 — McpGreenForgeServer', () => {
     });
 
     it('5. greenforge_status delegates to QwenCommandHandler.handle("status", ...)', async () => {
-      const { McpGreenForgeServer } = await import(
-        '../src/integration/qwen/McpGreenForgeServer.js'
-      );
-      const server = new McpGreenForgeServer({ projectRoot });
-
-      const statusTool = server.getTool('greenforge_status');
+      expect(server!).toBeDefined();
+      const statusTool = server!.getTool('greenforge_status');
       expect(statusTool).toBeDefined();
       expect(typeof statusTool!.handler).toBe('function');
 
@@ -117,12 +117,8 @@ describe('Fase 19 — McpGreenForgeServer', () => {
     });
 
     it('6. greenforge_approve delegates to QwenCommandHandler.handle("approve", ...)', async () => {
-      const { McpGreenForgeServer } = await import(
-        '../src/integration/qwen/McpGreenForgeServer.js'
-      );
-      const server = new McpGreenForgeServer({ projectRoot });
-
-      const approveTool = server.getTool('greenforge_approve');
+      expect(server!).toBeDefined();
+      const approveTool = server!.getTool('greenforge_approve');
       expect(approveTool).toBeDefined();
       expect(typeof approveTool!.handler).toBe('function');
 
@@ -139,7 +135,6 @@ describe('Fase 19 — McpGreenForgeServer', () => {
   describe('B. Entrypoint (src/index.ts) MCP mode', () => {
     it('7. Mode "mcp" creates McpGreenForgeServer and starts transport', async () => {
       // Stub out StdioServerTransport so we don't actually connect to stdio.
-      const connectSpy = vi.fn().mockResolvedValue(undefined);
       const transportMock = { start: vi.fn().mockResolvedValue(undefined) };
 
       vi.mock('@modelcontextprotocol/sdk/server/stdio.js', () => ({

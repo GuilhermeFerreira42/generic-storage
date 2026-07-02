@@ -141,3 +141,14 @@ F21 | MOD | QwenSettingsDispatcher | getDeclaredHookRoutes + legacy compat + emp
 F21 | DOC | Full docs sync | Fase 21 entry in .humano, CURRENT_STATE (Fase 21 / 468 tests), BACKLOG, DECISION_LOG, .ai-context | `.humano`, `docs/*.md`, `.ai-context`
 F21 | CFG | cwd support | Proven via Qwen extension docs (mcpServers + command hooks both accept `cwd: "${extensionPath}"`) | (docs + .qwen/settings.json)
 F21 | TEST | 468/468 passing | All legacy + new tests updated; full suite green | `npm test`
+### Fase 22 — Teste Real com o Qwen CLI
+F22 | VAL | Qwen CLI real link | Extensão GreenForge linkada: `qwen extensions link` → `qwen extensions list` confirma | Qwen CLI (ambiente usuário)
+F22 | VAL | MCP Server descoberto | `qwen -p -y "Liste tools..."` respondeu com 10 tools `greenforge_*` | Qwen CLI real
+F22 | VAL | Sessão real externa | `qwen -p ... -y` executado de `$env:TEMP\greenforge-qwen-real-test` (fora do repo) | Qwen CLI real
+F22 | MOD | manifestSchemas.ts | 5 schemas `.strict()` → `.passthrough()`: HookAction, HookBinding, QwenSettings, McpServer, QwenExtensionManifest | `src/integration/qwen/manifestSchemas.ts`
+F22 | BUG | Campo $version extra | Qwen CLI injeta `$version: "1.0"` em objects de hooks que não está nos schemas Zod — `.strict()` rejeitava | `manifestSchemas.ts`
+F22 | DEC | passthrough vs strict | `.passthrough()` é seguro: campos extras são silenciosamente ignorados, mas campos requeridos continuam validados | `manifestSchemas.ts`
+F22 | DEC | cwd="${extensionPath}" | Confirmado como necessário: o Qwen CLI seta CWD para extensionPath ao executar command hooks; sem isso, hooks falham fora do repo | `.qwen/settings.json`
+F22 | TECH | Passthrough nos 5 schemas | HookActionSchema, HookBindingSchema, QwenSettingsSchema, McpServerSchema, QwenExtensionManifestSchema alterados | `manifestSchemas.ts`
+F22 | DOC | Full docs sync | Fase 22 entries in .ai-context, .humano, CURRENT_STATE, BACKLOG, DECISION_LOG, phase_22_resumo.md | `.ai-context`, `.humano`, `docs/*.md`
+F22 | TEST | 468/468 passing | Suíte completa verde após alteração passthrough; lint 0/0; build limpo | `npm test`, `npm run lint`, `npm run build`

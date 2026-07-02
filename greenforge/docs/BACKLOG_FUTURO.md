@@ -1,5 +1,22 @@
 # BACKLOG_FUTURO — GreenForge
 
+## Fase 22 — Teste Real com o Qwen CLI
+- **Status:** ✅ CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA (2026-07-01)
+- **Entregáveis:**
+    - Extensão GreenForge linkada no Qwen CLI real (`qwen extensions list` confirma)
+    - MCP server configurado e descoberto: 10 tools `greenforge_*` listadas
+    - Sessão real do Qwen CLI executada dentro e fora do repo
+    - 7/7 hooks diretos funcionando via `node dist/index.js hook <HookName>`
+    - Schemas Zod alterados: `.strict()` → `.passthrough()` em 5 schemas (HookAction, HookBinding, QwenSettings, McpServer, QwenExtensionManifest)
+    - cwd="${extensionPath}" validado como necessário e funcional
+    - Documentação viva atualizada (.ai-context, .humano, CURRENT_STATE, BACKLOG, DECISION_LOG, phase_22_resumo.md)
+    - 468/468 testes passando, build limpo, lint 0/0
+- **Arquivo modificado:** `src/integration/qwen/manifestSchemas.ts`
+- **Sem novos testes** (fase de validação externa, não funcionalidade nova)
+
+## Fase 23 — Pendente (Próxima após aprovação Fase 22)
+- **Status:** 🔒 AGUARDANDO APROVAÇÃO DA FASE 22
+
 ## Fase 14 — Qwen CLI Extension (Real)
 - **Status:** ✅ CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA (2026-06-24)
 - **Entregáveis:**

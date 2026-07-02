@@ -1,0 +1,98 @@
+```text
+# Correção final — Fase 22 antes da aprovação PO
+
+A Fase 22 está tecnicamente validada: Qwen CLI real carregou a extensão, MCP apareceu conectado, os testes passaram 468/468, build e lint passaram.
+
+Antes da aprovação final, faça apenas os ajustes/documentações abaixo. Não iniciar Fase 23.
+
+## Ajustes obrigatórios
+
+1. Corrigir `greenforge/docs/phase_22_resumo.md`
+
+A saída real vista pelo PO foi:
+
+qwen --version
+0.19.1
+
+Então o resumo não deve dizer `qwen-code/1.0.1 win32-x64 node-v22.16.0`, a menos que essa saída tenha sido realmente coletada em outro momento e esteja explicitamente explicada. Para evitar contradição, padronize para a evidência real atual:
+
+`qwen --version` → `0.19.1`
+
+2. Padronizar status documental
+
+Em todos os arquivos vivos da Fase 22, usar exatamente:
+
+CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA
+
+Verificar especialmente:
+
+- `greenforge/.ai-context`
+- `greenforge/.humano`
+- `greenforge/docs/CURRENT_STATE.md`
+- `greenforge/docs/BACKLOG_FUTURO.md`
+- `greenforge/docs/DECISION_LOG.md`
+- `greenforge/docs/phase_22_resumo.md`
+
+Evitar variações como:
+
+- CONCLUÍDA AGUARDANDO APROVAÇÃO
+- APROVADA
+- VALIDADA
+- CONCLUÍDA E VALIDADA
+
+antes da aprovação do PO.
+
+3. Verificar `manifestSchemas.ts`
+
+A mudança para `.passthrough()` está aceita para tolerar campos extras do Qwen CLI, como `$version`.
+
+Mas confirme que as validações de contrato continuam existindo:
+
+- hook `type: "command"` precisa declarar `command`;
+- hook `type: "http"` precisa declarar `url`;
+- `shell` continua proibido;
+- paths markdown como `[SKILL.md](http://SKILL.md)` continuam rejeitados.
+
+Se alguma dessas validações tiver sido removida, restaurar.
+
+4. Não mexer na arquitetura
+
+Não reverter command hooks.
+Não remover `cwd: "${extensionPath}"`.
+Não alterar core aprovado.
+Não iniciar Fase 23.
+
+## Validação final obrigatória
+
+Depois dos ajustes, executar:
+
+```powershell
+cd "C:\Users\Usuario\Desktop\xgeneric-storage\greenforge"
+
+npm test
+npm run build
+npm run lint
+```
+
+Depois enviar ao usuário:
+
+```powershell
+cd "C:\Users\Usuario\Desktop\xgeneric-storage"
+
+git status --short
+git diff --name-only
+git ls-files --others --exclude-standard
+```
+
+## Resultado esperado
+
+- `npm test`: 468/468 passando
+- `npm run build`: sem erros
+- `npm run lint`: 0 erros, 0 warnings
+- Git status contendo somente arquivos intencionais da Fase 22 e tarefas operacionais versionadas
+- Fase 22 permanecendo como `CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA`
+
+Pare após isso e aguarde aprovação do PO.
+```
+
+Depois que ele responder, você me manda só o status, diff name-only, untracked, e os três resultados de teste/build/lint. Aí eu consigo aprovar sem pedir coisa gigante.

@@ -1,5 +1,5 @@
 # CURRENT_STATE — GreenForge
-> Última atualização: Fase 21 | 2026-06-30
+> Última atualização: Fase 22 | 2026-07-01
 
 ## Arquitetura Ativa
 - **Arquitetura Hexagonal:** Desacoplamento total via portas e adaptadores.
@@ -86,7 +86,7 @@
 ## Testes Obrigatórios
 | Suite | Arquivo | Cobertura Aproximada | Comando |
 |-------|---------|----------------------|---------|
-| Total Suíte | `tests/*.test.ts` | 445 testes ativos | `npm test` |
+| Total Suíte | `tests/*.test.ts` | 468 testes ativos | `npm test` |
 | Qwen Integration (Static) | `tests/qwen-integration.test.ts` | 24 testes (Estáticos) | `npm test` |
 | Qwen Integration (E2E) | `tests/qwen-e2e.test.ts` | 22 testes (E2E Controlado) | `npm test` |
 | Qwen Real Extension | `tests/qwen-real-extension.test.ts` | 46 testes (Runtime Real) | `npm test` |
@@ -101,4 +101,5 @@
 | Pacote | Versão | Motivo |
 |--------|--------|--------|
 | `zod` | ^3.23.0 | Validação de contratos e auditorias. |
-| `better-sqlite3` | ^11.0.0 | Persistência. |- **Modo Hook Real (Fase 20):** `HookCommandAdapter` implementado. Permite que `node dist/index.js hook <HookName>` leia payload do stdin, delegue para `QwenHookHandler`, e retorne JSON no formato exato esperado pelo Qwen CLI (decision para blocking hooks, simples para non-blocking). Suporte a 7 hooks + fallbacks seguros para payload malformado. `src/index.ts` atualizado para rotear o modo hook corretamente (stdout só JSON). 15 novos testes. **Status: CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA.**
+| `better-sqlite3` | ^11.0.0 | Persistência. |- **Modo Hook Real (Fase 20):** `HookCommandAdapter` implementado. Permite que `node dist/index.js hook <HookName>` leia payload do stdin, delegue para `QwenHookHandler`, e retorne JSON no formato exato esperado pelo Qwen CLI (decision para blocking hooks, simples para non-blocking). Suporte a 7 hooks + fallbacks seguros para payload malformado. `src/index.ts` atualizado para rotear o modo hook corretamente (stdout só JSON). 15 novos testes. **Status: CONCLUÍDA E VALIDADA.**
+- **Teste Real com o Qwen CLI (Fase 22):** Validação real com Qwen CLI carregando a extensão GreenForge. Extensão linkada via `qwen extensions link`. MCP server descoberto e 10 tools `greenforge_*` listadas pelo Qwen CLI real em sessão YOLO. Sessão testada dentro e fora do repo. Schemas Zod alterados de `.strict()` para `.passthrough()` para tolerar campos extras injetados pelo Qwen CLI (ex: `$version`). Hook `cwd: "${extensionPath}"` validado como necessário e funcional. **Status: CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA.**

@@ -26,20 +26,20 @@ const HookActionSchema = z
     matcher: z.string().optional(),
     shell: z.never().optional(),
   })
-  .strict();
+  .passthrough();
 
 const HookBindingSchema = z
   .object({
     matcher: z.string().min(1).optional(),
     hooks: z.array(HookActionSchema).min(1),
   })
-  .strict();
+  .passthrough();
 
 export const QwenSettingsSchema = z
   .object({
     hooks: z.record(z.string().min(1), z.array(HookBindingSchema).min(1)),
   })
-  .strict()
+  .passthrough()
   .superRefine((settings, ctx) => {
     for (const hookName of REQUIRED_SETTINGS_HOOKS) {
       if (!settings.hooks[hookName]) {
@@ -56,7 +56,7 @@ export const McpServerSchema = z
     args: z.array(z.string()).default([]),
     cwd: z.string().optional(),
   })
-  .strict();
+  .passthrough();
 
 export const QwenExtensionManifestSchema = z
   .object({
@@ -68,7 +68,7 @@ export const QwenExtensionManifestSchema = z
     contextFileName: LocalPathSchema.optional(),
     hooks: LocalPathSchema.optional(),
   })
-  .strict();
+  .passthrough();
 
 export type QwenExtensionManifest = z.infer<typeof QwenExtensionManifestSchema>;
 
