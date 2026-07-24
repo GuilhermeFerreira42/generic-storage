@@ -1,0 +1,310 @@
+{
+  "meta": {
+    "id": "CP-2026-07-24-2200",
+    "created_at": "2026-07-24T22:00:00-03:00",
+    "source": "GreenForge Fase 24-25 — validação real, testes com Qwen CLI e planejamento pós-v1.0",
+    "domain": "software",
+    "summary": "Fase 24 concluída. Teste real com Qwen CLI revelou 4 gaps: Git necessário, hook não força tool MCP, portas não conectadas ao runtime, router rígido."
+  },
+  "objective": {
+    "goal": "Validar o GreenForge em ambiente real com Qwen CLI + litellm, corrigir os gaps encontrados no teste e expandir o roteador de intenções para suportar tarefas não-código (escrita, planejamento conceitual, pesquisa).",
+    "non_goals": [
+      "Reescrever a arquitetura hexagonal",
+      "Publicar no registry de extensões Qwen antes da validação completa",
+      "Adicionar interface gráfica ou sair do terminal"
+    ],
+    "success_criteria": [
+      "Qwen CLI em qualquer pasta chama a tool greenforge_start e executa o fluxo completo",
+      "Git init automático quando não houver repositório",
+      "Roteador de intenções classifica e despacha tarefas de código E não-código",
+      "Usuário configura portas e modelos via arquivo de config, não via código"
+    ]
+  },
+  "decisions": [
+    {
+      "id": "D-001",
+      "what": "Fase 24 concluída com README.md, GUIA_DE_USO.md, CHANGELOG.md e .humano atualizados; NORMAL_CHAT ampliado para 28 padrões pt/en",
+      "why": "Documentação estava 3 meses atrasada, ainda refletindo Fase 18 com 437 testes",
+      "alternatives_rejected": ["Deixar documentação desatualizada e corrigir só no deploy"],
+      "reversible": false,
+      "confidence": "high"
+    },
+    {
+      "id": "D-002",
+      "what": "Qwen CLI pode continuar usando porta 4000 como cérebro; GreenForge usa as mesmas portas para chamadas internas independentes",
+      "why": "São requisições HTTP separadas — o cérebro do Qwen CLI pensa e o LiteLLMProvider do GreenForge faz chamadas próprias quando necessário",
+      "alternatives_rejected": ["Forçar o Qwen CLI a usar porta diferente da 4000"],
+      "reversible": true,
+      "confidence": "high"
+    },
+    {
+      "id": "D-003",
+      "what": "Implementar git init automático no QwenCommandHandler.handleStart() quando o diretório atual não for repositório Git",
+      "why": "WorktreeManager depende de git worktree add, que exige repositório Git; sem isso o usuário é forçado a estar na pasta do GreenForge",
+      "alternatives_rejected": ["Exigir que o usuário sempre rode na pasta do GreenForge", "Criar worktree sem Git"],
+      "reversible": false,
+      "confidence": "high"
+    },
+    {
+      "id": "D-004",
+      "what": "Hook UserPromptSubmit deve instruir o Qwen CLI a chamar a tool greenforge_start quando classificar DEVELOPMENT_TASK, em vez de deixar o modelo decidir",
+      "why": "Nos testes o Qwen CLI preferiu resolver sozinho com write_file nativo, ignorando as tools MCP disponíveis",
+      "alternatives_rejected": ["Aceitar que o Qwen CLI escolha se usa ou não o GreenForge"],
+      "reversible": true,
+      "confidence": "medium"
+    },
+    {
+      "id": "D-005",
+      "what": "Conectar LiteLLMProvider real no QwenExtensionRuntime em vez de InternalMockLLMProvider para chamadas de classificação e planejamento",
+      "why": "O código está pronto e testado via smoke, mas o runtime nunca injeta o provider real — usa mock interno",
+      "alternatives_rejected": ["Manter mock e deixar só o Qwen CLI pensar"],
+      "reversible": true,
+      "confidence": "high"
+    },
+    {
+      "id": "D-006",
+      "what": "Expandir QwenRouter com novas intenções: WRITING_TASK, PLANNING_TASK, RESEARCH_TASK além de NORMAL_CHAT e DEVELOPMENT_TASK",
+      "why": "O GreenForge hoje força qualquer prompt não-casual para o funil de código, impossibilitando tarefas como escrever um livro ou planejar um negócio",
+      "alternatives_rejected": ["Criar um sistema separado para cada tipo de tarefa"],
+      "reversible": false,
+      "confidence": "high"
+    },
+    {
+      "id": "D-007",
+      "what": "Criar dispatcher de intenções no QwenHookHandler que roteia para fluxos diferentes: código (worktree+DiffLens), escrita (sem worktree), planejamento conceitual (texto direto)",
+      "why": "Cada tipo de tarefa exige um pipeline diferente; escrita não precisa de worktree nem auditoria de código",
+      "alternatives_rejected": ["Forçar todos os fluxos pelo mesmo pipeline de código"],
+      "reversible": false,
+      "confidence": "high"
+    },
+    {
+      "id": "D-008",
+      "what": "Criar arquivo de configuração (.greenforge.json) para portas, modelos e chaves, com detecção interativa na primeira execução",
+      "why": "Usuário comum não vai editar variáveis de ambiente manualmente; precisa de um ponto único de config",
+      "alternatives_rejected": ["Manter apenas variáveis de ambiente", "Hardcodar defaults"],
+      "reversible": false,
+      "confidence": "high"
+    }
+  ],
+  "facts": [
+    {
+      "id": "F-001",
+      "statement": "Fase 23 validada em produção real: npm run llm:smoke retornou ok: true com porta 4000 (LARGE_OK, 6413ms) e porta 4001 (Saudação, 1113ms < 1,2s RNF-01)",
+      "source": "Teste no Windows 11 do usuário em 2026-07-24",
+      "verified": true
+    },
+    {
+      "id": "F-002",
+      "statement": "486/486 testes passando após Fase 24; 2 falhas SQLITE_CONSTRAINT_UNIQUE pré-existentes no qwen-real-extension.test.ts",
+      "source": "npm test no workspace e no desktop",
+      "verified": true
+    },
+    {
+      "id": "F-003",
+      "statement": "Qwen CLI v0.21.0 está configurado com modelo meu-pool via litellm na porta 4000 como cérebro principal",
+      "source": "Sessão Qwen CLI registrada em JSONL",
+      "verified": true
+    },
+    {
+      "id": "F-004",
+      "statement": "MCP server greenforge está ativo e as 10 tools greenforge_* são listadas pelo Qwen CLI",
+      "source": "Comando 'Liste todas as tools MCP disponíveis' na sessão real",
+      "verified": true
+    },
+    {
+      "id": "F-005",
+      "statement": "Qwen CLI NÃO chama espontaneamente as tools greenforge_*; prefere usar write_file e agent nativos mesmo com as tools MCP disponíveis",
+      "source": "JSONL da sessão: prompt 'criar página HTML' resultou em write_file nativo, não greenforge_start",
+      "verified": true
+    },
+    {
+      "id": "F-006",
+      "statement": "Quando forçado a chamar greenforge_start, o Qwen CLI chamou a tool nativa 'agent' em vez da MCP, lançando um agente general-purpose em background que leu a documentação do GreenForge mas não executou o fluxo",
+      "source": "JSONL: functionCall name='agent', não 'mcp__greenforge__greenforge_start'",
+      "verified": true
+    },
+    {
+      "id": "F-007",
+      "statement": "QwenExtensionRuntime instancia QwenRouter e PlannerEngine com InternalMockLLMProvider, não com LiteLLMProvider real",
+      "source": "Código-fonte: src/integration/qwen/QwenExtensionRuntime.ts linha 100",
+      "verified": true
+    },
+    {
+      "id": "F-008",
+      "statement": "LiteLLMProvider e FetchLLMTransport estão implementados, testados e funcionais (provado via npm run llm:smoke)",
+      "source": "Código em src/infrastructure/llm/providers/LiteLLMProvider.ts e FetchLLMTransport.ts",
+      "verified": true
+    },
+    {
+      "id": "F-009",
+      "statement": "QwenRouter atual só classifica NORMAL_CHAT vs DEVELOPMENT_TASK; não tem intenções para escrita, planejamento conceitual ou pesquisa",
+      "source": "Código: src/infrastructure/llm/QwenRouter.ts e tipos Intent",
+      "verified": true
+    },
+    {
+      "id": "F-010",
+      "statement": "O agente general-purpose do Qwen CLI leu CURRENT_STATE.md, CHANGELOG.md e phase_23_blueprint.md do disco e montou um resumo do projeto sem executar código do GreenForge",
+      "source": "JSONL da sessão: read_file em ..\\xgeneric-storage\\greenforge\\docs\\",
+      "verified": true
+    }
+  ],
+  "constraints": [
+    {
+      "id": "C-001",
+      "rule": "Arquitetura hexagonal NÃO pode ser violada; LLMProvider continua sendo a porta única do core",
+      "reason": "Fases 0-23 blindaram esse contrato; qualquer mudança no core quebra 486 testes",
+      "negotiable": false
+    },
+    {
+      "id": "C-002",
+      "rule": "Testes automatizados NUNCA podem chamar rede real (hard block TEST_HARD_BLOCK na Factory)",
+      "reason": "Vazamento gera custo financeiro e quebra determinismo dos testes",
+      "negotiable": false
+    },
+    {
+      "id": "C-003",
+      "rule": "Qwen CLI continua sendo o host; GreenForge é extensão, não substituto",
+      "reason": "Decisão de arquitetura da Fase 23; permite integração nativa com hooks e MCP",
+      "negotiable": false
+    },
+    {
+      "id": "C-004",
+      "rule": "Qualquer expansão do roteador de intenções deve manter compatibilidade com DEVELOPMENT_TASK e NORMAL_CHAT existentes",
+      "reason": "486 testes dependem dessas duas intenções; quebrar isso quebra tudo",
+      "negotiable": false
+    }
+  ],
+  "open_items": [
+    {
+      "id": "O-001",
+      "question": "Como forçar o Qwen CLI a chamar greenforge_start em vez de resolver tarefas de código sozinho?",
+      "context": "O modelo do Qwen CLI prefere tools nativas (write_file, agent) mesmo com MCP disponível. O hook UserPromptSubmit pode instruir, mas não obrigar.",
+      "blocking": true,
+      "suggested_next_step": "Modificar o hook UserPromptSubmit para retornar uma resposta que direcione explicitamente o Qwen CLI a usar mcp__greenforge__greenforge_start, ou investigar se o Qwen CLI suporta 'suggested_tools' na resposta do hook"
+    },
+    {
+      "id": "O-002",
+      "question": "Qual o contrato exato das novas intenções (WRITING_TASK, PLANNING_TASK, RESEARCH_TASK) e seus pipelines?",
+      "context": "Cada tipo de tarefa precisa de um fluxo diferente: escrita não usa worktree, planejamento conceitual não gera código, etc.",
+      "blocking": false,
+      "suggested_next_step": "Definir o schema de output de cada pipeline, os critérios de aceite e o contrato de dispatch antes de codificar"
+    },
+    {
+      "id": "O-003",
+      "question": "Como fica a experiência do usuário quando o GreenForge estiver executando? O progresso aparece no terminal?",
+      "context": "O Gemini confirmou que os hooks e MCP preservam a UX nativa do Qwen CLI, mas o teste real não chegou a mostrar o fluxo completo.",
+      "blocking": false,
+      "suggested_next_step": "Após corrigir O-001 e O-002, fazer um teste de ponta a ponta e documentar exatamente o que o usuário vê no terminal"
+    },
+    {
+      "id": "O-004",
+      "question": "O GreenForge deve ser um orquestrador multi-IA (coordenando várias IAs executoras) ou um pipeline determinístico de agentes especialistas?",
+      "context": "O usuário quer que o sistema automatize o processo que ele faz manualmente: conversar com múltiplas IAs, validar, planejar. Isso é mais ambicioso que o escopo atual.",
+      "blocking": false,
+      "suggested_next_step": "Definir se isso é uma Fase 26+ pós-v1.0 ou se deve ser incorporado antes do deploy"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "A-001",
+      "name": "greenforge_fase24_codigo_completo.txt",
+      "type": "código",
+      "status": "final",
+      "location": "workspace do Arena.ai (última compactação)",
+      "summary": "Código-fonte completo pós-Fase 24 com CHANGELOG, README e GUIA_DE_USO atualizados, 486 testes"
+    },
+    {
+      "id": "A-002",
+      "name": "CHANGELOG.md",
+      "type": "documento",
+      "status": "final",
+      "location": "greenforge/CHANGELOG.md",
+      "summary": "Histórico completo das Fases 0-24 no formato Keep a Changelog"
+    },
+    {
+      "id": "A-003",
+      "name": "Fase-25-A-Prova-de-Fogo.md",
+      "type": "documento",
+      "status": "final",
+      "location": "uploads/Fase-25-A-Prova-de-Fogo.md",
+      "summary": "Conversa com Gemini sobre Fase 25, comparação com Verdent AI e limitações do roteador de intenções"
+    },
+    {
+      "id": "A-004",
+      "name": "Sessão Qwen CLI (JSONL)",
+      "type": "documento",
+      "status": "final",
+      "location": "uploads/c--users-usuario-desktop-nova-pasta.txt",
+      "summary": "Registro completo da sessão de teste real com Qwen CLI: ferramentas nativas vs MCP, agente background, erros de rate limit"
+    }
+  ],
+  "current_state": {
+    "where_we_stopped": "Fase 24 concluída e documentada. Teste real com Qwen CLI revelou que as 10 tools MCP aparecem mas o modelo prefere tools nativas. O hook UserPromptSubmit não força o uso do GreenForge. O LiteLLMProvider real não está conectado ao runtime. O roteador de intenções só suporta código. Próximo passo: implementar git init automático e hook mais assertivo para destravar o teste real.",
+    "next_actions": [
+      "Implementar git init automático no QwenCommandHandler.handleStart()",
+      "Modificar hook UserPromptSubmit para direcionar o Qwen CLI a usar greenforge_start",
+      "Conectar LiteLLMProvider real no QwenExtensionRuntime (substituir InternalMockLLMProvider)",
+      "Testar fluxo completo em qualquer pasta com git init automático",
+      "Após validação: expandir QwenRouter com WRITING_TASK, PLANNING_TASK, RESEARCH_TASK",
+      "Criar arquivo de configuração .greenforge.json amigável ao usuário"
+    ],
+    "blockers": [
+      "Qwen CLI não chama tools MCP espontaneamente — o hook precisa ser mais diretivo",
+      "QwenExtensionRuntime usa InternalMockLLMProvider — provider real precisa ser injetado"
+    ]
+  },
+  "glossary": [
+    {
+      "term": "GreenForge",
+      "meaning": "Extensão de orquestração para Qwen CLI com arquitetura hexagonal, agentes especialistas em worktrees isolados e pipeline de verificação (DiffLens + Verifier)"
+    },
+    {
+      "term": "litellm",
+      "meaning": "Proxy OpenAI-compatível que traduz e roteia chamadas para múltiplos modelos; usado como CANO de transporte (não como cérebro)"
+    },
+    {
+      "term": "QwenRouter",
+      "meaning": "Classificador de intenção do GreenForge; atualmente só distingue NORMAL_CHAT de DEVELOPMENT_TASK; será expandido com WRITING_TASK, PLANNING_TASK, RESEARCH_TASK"
+    },
+    {
+      "term": "Roteamento assimétrico",
+      "meaning": "Duas instâncias litellm: porta 4000 (pool grande para agentes) e porta 4001 (pool FAST para classificação <1,2s)"
+    },
+    {
+      "term": "MCP",
+      "meaning": "Model Context Protocol — protocolo via stdio que expõe tools do GreenForge (greenforge_start, greenforge_status, etc.) para o Qwen CLI"
+    },
+    {
+      "term": "Worktree",
+      "meaning": "Branch isolada do Git onde os agentes do GreenForge executam código; impede que alterações sujem o repositório principal"
+    },
+    {
+      "term": "DiffLens",
+      "meaning": "Motor de auditoria que analisa artefatos e gera relatório GREENFORGE_AUDIT.md com análise de risco"
+    },
+    {
+      "term": "TEST_HARD_BLOCK",
+      "meaning": "Trava na LLMProviderFactory que impede qualquer chamada de rede real quando NODE_ENV === 'test'"
+    },
+    {
+      "term": "NORMAL_CHAT",
+      "meaning": "Intenção classificada como conversa casual; o GreenForge não age, o Qwen CLI responde normalmente"
+    },
+    {
+      "term": "DEVELOPMENT_TASK",
+      "meaning": "Intenção classificada como tarefa de código; aciona o fluxo completo: worktree → plano → agentes → DiffLens → Verifier"
+    }
+  ],
+  "people_and_roles": [
+    {
+      "name": "Usuário (Guilherme)",
+      "role": "Product Owner / Arquiteto do GreenForge",
+      "preferences": "Linguagem simples e direta, sem jargão. Quer que o sistema automatize o fluxo que ele faz manualmente (conversar com múltiplas IAs, validar, planejar). Usa Windows 11, PowerShell, litellm com NVIDIA NIM e DeepSeek. Não quer publicar no registry do Qwen ainda."
+    },
+    {
+      "name": "Agente Arena (parceiro de raciocínio)",
+      "role": "Revisor técnico e planejador",
+      "preferences": "Atua como revisor sênior seguindo a skill greenforge_reviewer_skill.md. Valida documentação, encontra gargalos, planeja próximas fases. Não executa código de produção diretamente — sugere e o usuário dispara em outro agente."
+    }
+  ]
+}
