@@ -59,19 +59,20 @@ export class MockLLMProvider implements LLMProvider {
   }
 
   async generate(prompt: string): Promise<string> {
-    // Classification prompts
     if (prompt.includes('Classifique a intenção') || prompt.includes('classify')) {
-      // Fase 24: detecção ampliada de conversa casual para evitar falsos positivos.
-      const inputLower = prompt.toLowerCase();
+      // Extract user input from classification prompt if formatted like Input: "..."
+      const matchInput = prompt.match(/Input:\s*"([^"]+)"/i);
+      const userPrompt = matchInput ? matchInput[1].toLowerCase() : prompt.toLowerCase();
+
       const chatPatterns = [
-        'how are you', 'como vai', 'como estás', 'tudo bem', 'tudo bom',
-        'hello', 'hi ', 'hey', 'olá', 'oi', 'e aí', 'e ai', 'bom dia',
-        'boa tarde', 'boa noite', 'obrigado', 'obrigada', 'valeu', 'thanks',
-        'thank you', 'qual é o seu nome', "what's your name", 'quem é você',
-        'who are you', 'o que você faz', 'what do you do', 'como funciona',
-        'me fale sobre', 'tell me about',
+        /\bhow are you\b/i, /\bcomo vai\b/i, /\bcomo estás\b/i, /\btudo bem\b/i, /\btudo bom\b/i,
+        /\bhello\b/i, /\bhi\b/i, /\bhey\b/i, /\bolá\b/i, /\boi\b/i, /\be aí\b/i, /\be ai\b/i, /\bbom dia\b/i,
+        /\bboa tarde\b/i, /\bboa noite\b/i, /\bobrigado\b/i, /\bobrigada\b/i, /\bvaleu\b/i, /\bthanks\b/i,
+        /\bthank you\b/i, /\bqual é o seu nome\b/i, /\bwhat's your name\b/i, /\bquem é você\b/i,
+        /\bwho are you\b/i, /\bo que você faz\b/i, /\bwhat do you do\b/i, /\bcomo funciona\b/i,
+        /\bme fale sobre\b/i, /\btell me about\b/i,
       ];
-      if (chatPatterns.some(p => inputLower.includes(p))) {
+      if (chatPatterns.some(pattern => pattern.test(userPrompt))) {
         return JSON.stringify({ intention: 'NORMAL_CHAT', confidence: 0.95 });
       }
       return JSON.stringify({ intention: 'DEVELOPMENT_TASK', confidence: 0.95 });
