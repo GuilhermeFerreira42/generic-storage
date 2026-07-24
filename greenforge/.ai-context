@@ -54,3 +54,12 @@
 - Sessão real do Qwen CLI testada a partir de diretório externo ao GreenForge
 - cwd="${extensionPath}" validado como necessário e funcional
 - 468/468 testes passando, build limpo, lint 0/0
+
+## Fase 23 — Transporte Real de LLM (litellm) [DECIDIDA / BLUEPRINT]
+- Decisão tomada em 2026-07-22; Blueprint escrito (docs/phase_23_blueprint.md)
+- litellm = CANO de transporte OpenAI-compatível; Qwen CLI continua host
+- Adaptador interno LiteLLMProvider com validação Zod (anti drop_params); warning DROP DETECTED no SQLite
+- Roteamento assimétrico: porta 4000 (pool grande: DeepSeek V4 Pro, Nemotron) p/ agentes; porta 4001 (pool pequeno/FAST) p/ QwenRouter (<1,2s)
+- Hard block na LLMProviderFactory: NODE_ENV==='test' + transporte real → erro (468 testes não vazam pra rede)
+- Arquitetura hexagonal NÃO muda o núcleo
+- Docs vivas atualizadas: GREENFORGE_DESIGN.md (§10), CURRENT_STATE.md, DECISION_LOG.md

@@ -85,7 +85,7 @@ HISTÓRICO DE APROVAÇÕES
 - Status: CONCLUÍDA E VALIDADA (468/468 testes).
 
 ### [2026-07-01] Fase 22 — Teste Real com o Qwen CLI
-- Status: CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA (468/468 testes).
+- Status: CONCLUÍDA E VALIDADA (468/468 testes).
 - Destaque: 
   - Extensão GreenForge linkada no Qwen CLI real (`qwen extensions list` confirma)
   - MCP server greenforge configurado em stdio
@@ -97,6 +97,18 @@ HISTÓRICO DE APROVAÇÕES
   - Build, lint (0/0), 468/468 testes passando
   - Arquivo modificado: `src/integration/qwen/manifestSchemas.ts` (5 schemas strict→passthrough)
 - Evidências reais: Qwen CLI output, qwen extensions list, qwen -p -y listando tools, hooks stdout
+
+### [2026-07-22] Fase 23 — Transporte Real de LLM (Proxy litellm)
+- Status: DECIDIDA / BLUEPRINT — AGUARDANDO IMPLEMENTAÇÃO.
+- Destaque:
+  - Decisão de arquitetura tomada: litellm como CANO de transporte OpenAI-compatível (não cérebro). Qwen CLI continua host.
+  - Adaptador interno LiteLLMProvider com validação Zod (anti drop_params); warning DROP DETECTED no SQLite.
+  - Roteamento assimétrico: porta 4000 (pool grande) para agentes; porta 4001 (pool FAST) para QwenRouter (<1,2s).
+  - Hard block na LLMProviderFactory: NODE_ENV==='test' + transporte real → erro. 468 testes blindados.
+  - Arquitetura hexagonal mantida; core intocado (LLMProvider.ts sem mudança).
+  - Blueprint escrito: docs/phase_23_blueprint.md. Docs vivas atualizadas: GREENFORGE_DESIGN.md §10, CURRENT_STATE.md, DECISION_LOG.md.
+  - Contexto de handoff arquivado em CONTEXTO_TRANSFER_FASE23.json e CONTEXTUALIZACAO_FASE_23.md.
+- Próximo passo: implementar LiteLLMProvider, configurar litellm nas portas 4000/4001, executar testes.
 
 ───────────────────────────────────────────────────────
 GUIA RÁPIDO PARA O USUÁRIO

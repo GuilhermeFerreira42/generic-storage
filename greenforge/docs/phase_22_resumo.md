@@ -173,7 +173,7 @@ echo {} | node dist/index.js hook SubagentStop      → {"ok":true,"action":"ALL
 
 ## Próxima Fase Recomendada
 
-Fase 23 — Transporte Real de LLM (a definir no backlog)
+Fase 23 — Transporte Real de LLM (Blueprint decidido: ver docs/phase_23_blueprint.md)
 
 ---
 

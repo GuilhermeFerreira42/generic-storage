@@ -1,7 +1,7 @@
 # BACKLOG_FUTURO — GreenForge
 
 ## Fase 22 — Teste Real com o Qwen CLI
-- **Status:** ✅ CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA (2026-07-01)
+- **Status:** ✅ CONCLUÍDA E VALIDADA (2026-07-01)
 - **Entregáveis:**
     - Extensão GreenForge linkada no Qwen CLI real (`qwen extensions list` confirma)
     - MCP server configurado e descoberto: 10 tools `greenforge_*` listadas
@@ -14,11 +14,21 @@
 - **Arquivo modificado:** `src/integration/qwen/manifestSchemas.ts`
 - **Sem novos testes** (fase de validação externa, não funcionalidade nova)
 
-## Fase 23 — Pendente (Próxima após aprovação Fase 22)
-- **Status:** 🔒 AGUARDANDO APROVAÇÃO DA FASE 22
+## Fase 23 — Transporte Real de LLM (Proxy litellm)
+- **Status:** 🟢 DECIDIDA / BLUEPRINT — AGUARDANDO IMPLEMENTAÇÃO (2026-07-22)
+- **Decisão de arquitetura:** litellm atua como **CANO** de transporte OpenAI-compatível (não como cérebro). Qwen CLI continua host. GreenForge mantém controle de formatação/validação via **adaptador interno** (`LiteLLMProvider`) com **Zod**. Arquitetura hexagonal **não exige mudança de núcleo**.
+- **Entregáveis planejados:**
+    - `LiteLLMProvider.ts` — adaptador que implementa `LLMProvider.generate()` usando `LLMTransport.post()` para endpoint litellm (`base_url + '/chat/completions'`). Config: `provider: 'litellm'`, `baseUrl`, `model`, `apiKeyEnv` **opcional** (self-host local não exige chave), `timeout`, `mockMode`. Segue padrão safe-stub da Fase 17 mas executa transporte REAL.
+    - Enum `LLMProviderNameSchema` ganha `'litellm'`; `LLMProviderRegistry` registra `'litellm'` como built-in.
+    - **Blindagem Zod:** schema `LiteLLMRequestSchema` valida/forma o payload antes de enviar ao proxy. NÃO confia no `drop_params` do litellm. Se parâmetro for descartado, grava warning `DROP DETECTED` no SQLite (nova tabela de auditoria).
+    - **Roteamento assimétrico:** duas instâncias litellm — porta **4000** (pool grande: DeepSeek V4 Pro, Nemotron) para agentes (Planner/Coder/Reviewer/Tester); porta **4001** (pool small/FAST) para `QwenRouter` classificar intenção em <1,2s. Perfis via header HTTP (`x-greenforge-profile: small|large`).
+    - **Hard block de testes:** `LLMProviderFactory.create()` lança `LLMProviderError('TEST_HARD_BLOCK')` se `NODE_ENV==='test'` + transporte real → 468 testes não vazam para rede.
+    - **Core intocado:** `src/core/ports/LLMProvider.ts` sem mudança. Complexidade de rede fica na infraestrutura + config do proxy.
+- **Arquivos previstos:** `LiteLLMProvider.ts` (novo), `LLMProviderConfig.ts` (mod), `LLMProviderRegistry.ts` (mod), `LLMProviderFactory.ts` (mod), `SQLiteRepository.ts` (mod), `tests/llm-providers.test.ts` (mod).
+- **Blueprint:** `docs/phase_23_blueprint.md` | **Design:** `GREENFORGE_DESIGN.md` §10
 
 ## Fase 14 — Qwen CLI Extension (Real)
-- **Status:** ✅ CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA (2026-06-24)
+- **Status:** ✅ CONCLUÍDA E VALIDADA (2026-06-24)
 - **Entregáveis:**
     - `QwenExtensionRuntime.ts` — Runtime real que carrega/valida manifest, settings, SKILL.md e provê acesso a QwenRouter, PlannerEngine, SQLiteRepository, Orchestrator.
     - `QwenHookHandler.ts` — Handlers reais para todos os 5 hooks (SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, SessionEnd) delegando a componentes core.
@@ -55,7 +65,7 @@
     - build, lint e 359/359 testes passando.
 
 ## Fase 17 — Suporte a Múltiplos LLMs
-- **Status:** ✅ CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA (2026-06-26)
+- **Status:** ✅ CONCLUÍDA E VALIDADA (2026-06-26)
 - **Entregáveis:**
     - `LLMProviderConfig.ts` — Schemas Zod: `LLMProviderNameSchema` (enum: mock, qwen, openai, claude, gemini), `LLMProviderConfigSchema` (provider, model, apiKeyEnv, baseUrl, timeout, mockMode), `LLMProviderFactoryOptionsSchema` (config, fallbackProvider, fallbackOnUnknown). `LLMTransport` interface para desacoplar HTTP. `LLMProviderError` classe de erro estruturada (code, provider, retryable).
     - `LLMProviderRegistry.ts` — Registry que mapeia nomes de providers para factories. Built-in: mock, qwen, openai, claude, gemini. Métodos: `has(name)`, `create(config, transport?)`, `register(name, factory)`, `getRegisteredNames()`.
@@ -74,7 +84,7 @@
 - **Segurança:** Providers reais são safe stubs. Não usam fetch diretamente. Não chamam rede em testes. Não armazenam secrets. Não logam secrets. Não adicionam SDKs externos.
 
 ## Fase 18 — Validação em Campo e Empacotamento Final
-- **Status:** ✅ CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA (2026-06-28)
+- **Status:** ✅ CONCLUÍDA E VALIDADA (2026-06-28)
 - **Entregáveis:**
     - Validação operacional controlada do runtime real via QwenExtensionEntrypoint, não validação com Qwen CLI real carregando a extensão.
     - Teste E2E real cobrindo 5 hooks e 5 comandos.
@@ -84,7 +94,7 @@
 
 
 ## Fase 19 — Servidor MCP Real
-- **Status:** ✅ CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA (2026-06-28)
+- **Status:** ✅ CONCLUÍDA E VALIDADA (2026-06-28)
 - **Entregáveis:**
     - `McpGreenForgeServer.ts` — Servidor MCP via stdio usando @modelcontextprotocol/sdk. Registra 10 tools com prefixo `greenforge_` (start, status, list, approve, abort, review, feedback, reject, needs_changes, review_status). Cada tool usa inputSchema com Zod para validação. Delega para QwenCommandHandler e PlanReviewHandler existentes sem modificá-los.
     - `src/index.ts` atualizado — Argumento "mcp" cria McpGreenForgeServer e conecta via StdioServerTransport. Sem argumentos: ajuda breve. "hook": placeholder para Fase 20. Logs vão exclusivamente para stderr no modo MCP.
@@ -102,41 +112,30 @@
     - build, lint e 460/460 testes passando.
 
 ## Fase 21 — Configuração e Fiação
-- **Status:** ✅ CONCLUÍDA AGUARDANDO APROVAÇÃO HUMANA (2026-06-30)
+- **Status:** ✅ CONCLUÍDA E VALIDADA (2026-06-30)
 - **Entregáveis:**
     - `.qwen/settings.json` reconfigurado para usar `type: "command"` com `node dist/index.js hook <HookName>` e `cwd: "${extensionPath}"`.
     - `src/integration/qwen/manifestSchemas.ts` atualizado com suporte a `cwd` no schema `HookActionSchema`.
     - `tests/hook-wiring.test.ts` — 8 testes validando integridade do `settings.json`, schemas e mapeamento de hooks locais sem rede.
     - build, lint e 468/468 testes passando.
 
-## Fase 22 — Teste Real com o Qwen CLI
-- **Objetivo:** Primeiro teste externo com o Qwen CLI real.
+## Fase 24 — Prontidão de Produção e Documentação Honesta
+- **Objetivo:** Consolidar documentação, corrigir classificação NORMAL_CHAT no InternalMockLLMProvider, e preparar o repositório para escrutínio público antes do deploy final.
 - **Requisitos:**
-    - Carregar extensão via `qwen extensions link`.
-    - Executar comandos via `/greenforge start`, `/greenforge status`, etc.
-    - Verificar hooks SessionStart, UserPromptSubmit, PreToolUse.
-    - Documentar resultados e limitações.
-
-## Fase 23 — Transporte Real de LLM
-- **Objetivo:** Implementar HTTP transport real para pelo menos um provedor.
-- **Requisitos:**
-    - Implementar `LLMTransport` com fetch real.
-    - Conectar QwenLLMProvider ao transport real.
-    - Validar classificação de intenção com LLM real.
-    - Garantir que testes continuam isolados sem rede.
-
-## Fase 24 — Prontidão para Produção
-- **Objetivo:** Correções finais, NORMAL_CHAT, documentação honesta.
-- **Requisitos:**
-    - Corrigir classificação NORMAL_CHAT no InternalMockLLMProvider.
-    - Revisar documentação para precisão factual.
+    - Corrigir classificação base NORMAL_CHAT no InternalMockLLMProvider para evitar falsos positivos.
+    - Atualizar README.md e GUIA_DE_USO.md para explicitar a necessidade das duas portas litellm (4000/4001).
+    - Documentar que a lógica de retry/fallback fica a cargo do litellm (não do GreenForge).
+    - Auditoria documental rigorosa: verificar se a documentação reflete a arquitetura assimétrica e as exigências do litellm.
     - Remover placeholders e TODOs restantes.
     - Auditoria final de segurança.
 
-## Fase 25 — Validação Final e Deploy
-- **Objetivo:** Teste de ponta a ponta com LLM real, tag v1.0.0.
+## Fase 25 — Validação Final de Produção e Deploy
+- **Objetivo:** Sessão completa real guiada organicamente pelo Qwen CLI, passando por todos os hooks e tools MCP, com DiffLens gerando auditoria final. Tag v1.0.0.
 - **Requisitos:**
-    - E2E real com Qwen CLI + LLM real.
+    - E2E real com Qwen CLI + litellm + LLM real (sem redes de segurança, sem mocks).
+    - Validar fluxo completo: classificação de intenção → planejamento → execução por agentes → JoinGate → DiffLens → Verifier.
+    - DiffLens gera auditoria GREENFORGE_AUDIT.md com sucesso.
+    - Validar isolamento via Git Worktrees.
     - Tag v1.0.0 e changelog.
     - Empacotar e publicar no registry de extensões Qwen.
 

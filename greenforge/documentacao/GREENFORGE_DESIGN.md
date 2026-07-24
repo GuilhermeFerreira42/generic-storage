@@ -1,6 +1,6 @@
 # 🌌 GREENFORGE_DESIGN.md — Architectural Source of Truth v1.4.0
 
-> **Status:** ✅ FINAL | **Versão:** 1.4.0 | **Data:** 2026-06-08
+> **Status:** ✅ FINAL (adendo Fase 23) | **Versão:** 1.4.0 | **Data:** 2026-06-08 | **Adendo Fase 23:** 2026-07-22
 > **Projeto:** GreenForge (The Orchestrator's Anvil)
 > **Descrição:** Extensão de orquestração avançada para Qwen CLI baseada nos princípios do Verdant AI.
 
@@ -382,4 +382,40 @@ Em caso de detecção de corrupção ou lock persistente:
 | RNF-05 | Concorrência | Sistema suporta 5 subtarefas paralelas em 16GB RAM sem OOM. | `stress.test.ts` |
 
 ---
+## 10. FASE 23 — TRANSPORTE REAL DE LLM (Proxy litellm) [DECIDIDA / BLUEPRINT]
+
+> Decisão de arquitetura consolidada em 2026-07-22. Blueprint: `docs/phase_23_blueprint.md`. A arquitetura hexagonal NÃO exige mudança de núcleo.
+
+### 10.1 Decisão de Arquitetura
+O **litellm** atua apenas como **CANO de transporte** OpenAI-compatível. O GreenForge mantém o controle da formatação e da validação dos dados num **adaptador interno** (`LiteLLMProvider`) que usa **Zod**. O Qwen CLI continua sendo o host; o litellm é só o transporte das duas portas. Trocar a IA = trocar a lâmpada, não a casa (porta `LLMProvider` estável).
+
+### 10.2 Adaptador LiteLLMProvider (Fase 23)
+- `src/infrastructure/llm/providers/LiteLLMProvider.ts` — implementa `LLMProvider.generate(prompt): Promise<string>`.
+- Segue o padrão **safe-stub** das Fases 17, porém executa transporte real via `LLMTransport.post(base_url + '/chat/completions', headers, body)`.
+- Config: `provider: 'litellm'`, `baseUrl` (endpoint, ex.: `http://localhost:4000`), `model` (nome do pool/modelo), `apiKeyEnv` **opcional** (self-host local não exige chave), `timeout`, `mockMode`.
+- Enum `LLMProviderNameSchema` ganha `'litellm'`; registrado no `LLMProviderRegistry`.
+
+### 10.3 Blindagem Anti-Perda-de-Contexto (Zod no Adaptador)
+- Antes de montar o body, o adaptador **valida/forma o payload com schema Zod** (`LiteLLMRequestSchema`) — garante que campos críticos (system, messages, instruções, temperature, etc.) estão presentes e bem tipados.
+- O adaptador **NÃO confia no `drop_params` do litellm**: parâmetros suportados pelo GreenForge que o backend não aceitar são mapeados rigidamente, não silenciados.
+- Se o litellm indicar/descartar algo → gravar warning **`DROP DETECTED`** no SQLite (tabela de auditoria), tornando a perda visível e debugável.
+
+### 10.4 Roteamento Assimétrico (Duas Portas / Dois Pools)
+- **Pool grande** (DeepSeek V4 Pro, Nemotron, GLM 5.2) → instância litellm na **porta 4000**. Usado pelos agentes (Planner/Coder/Reviewer/Tester) para trabalho braçal.
+- **Pool pequeno/rápido** (modelo smaller/FAST capaz de classificar intent) → instância litellm na **porta 4001**. Usado pelo **QwenRouter** para classificação de intenção (<1,2s, RNF-01).
+- GreenForge instancia **DUAS configs** apontando para as duas portas; o `QwenRouter` recebe a da porta 4001, os agentes a da porta 4000.
+- **Perfis explícitos no header HTTP** (`x-greenforge-profile: small|large`) tornam o roteamento assimétrico explícito e debugável, respeitando o limite de 1,2s do classificador.
+
+### 10.5 Trava Física de Testes (Hard Block na Factory)
+- Em `LLMProviderFactory.create(...)`: se `process.env.NODE_ENV === 'test'` (ou flag de teste) **E** o provider usa transporte real (não `mock`, não `mockMode`) → **LANÇAR** `LLMProviderError('TEST_HARD_BLOCK', ...)` **antes de qualquer chamada de rede**.
+- Garante que nenhum dos **468 testes** bata no litellm real (porta 4000 ou 4001) por acidente.
+- Testes continuam com `MockLLMProvider` / `InternalMockLLMProvider` como padrão.
+
+### 10.6 Por que a Hexagonal Sai Fortalecida
+- **Core limpo**, fala com 1 provider (porta `LLMProvider`).
+- Complexidade de rede (litellm, pools, retries 429/500, fallback) fica na **camada de infraestrutura + config do proxy**.
+- GreenForge continua determinístico e testável; a inteligência do que é enviado fica sob nosso controle (adaptador interno).
+
+---
+
 **Este documento é a Fonte Única da Verdade. Proibido implementar qualquer funcionalidade que divirja destes contratos.**

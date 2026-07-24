@@ -152,3 +152,16 @@ F22 | DEC | cwd="${extensionPath}" | Confirmado como necessário: o Qwen CLI set
 F22 | TECH | Passthrough nos 5 schemas | HookActionSchema, HookBindingSchema, QwenSettingsSchema, McpServerSchema, QwenExtensionManifestSchema alterados | `manifestSchemas.ts`
 F22 | DOC | Full docs sync | Fase 22 entries in .ai-context, .humano, CURRENT_STATE, BACKLOG, DECISION_LOG, phase_22_resumo.md | `.ai-context`, `.humano`, `docs/*.md`
 F22 | TEST | 468/468 passing | Suíte completa verde após alteração passthrough; lint 0/0; build limpo | `npm test`, `npm run lint`, `npm run build`
+
+### Fase 23 — Transporte Real de LLM (litellm)
+F23 | DEC | litellm como CANO de transporte (não cérebro) | Hexagonal não exige mudança de núcleo; provedor entra na porta LLMProvider | `src/infrastructure/llm/*`
+F23 | ADD | LiteLLMProvider (adapter real) | Segue safe-stub F17 mas executa transporte real via LLMTransport; base_url+model; chave opcional self-host | `src/infrastructure/llm/providers/LiteLLMProvider.ts`
+F23 | MOD | LLMProviderNameSchema + LLMProviderConfig | Adiciona 'litellm' ao enum e aceita base_url/model/apiKeyEnv opcional | `src/infrastructure/llm/LLMProviderConfig.ts`
+F23 | MOD | LLMProviderRegistry | Registra provider 'litellm' como built-in | `src/infrastructure/llm/LLMProviderRegistry.ts`
+F23 | RULE | Adaptador valida/forma payload com Zod (anti drop_params) | Evita perda silenciosa de contexto em instruções críticas | `LiteLLMProvider.ts`
+F23 | RULE | Warning DROP DETECTED no SQLite | Torna visível e debugável qualquer perda de parâmetro | `SQLiteRepository.ts`
+F23 | CFG | Roteamento assimétrico duas portas | Pool grande :4000 (DeepSeek V4 etc.) p/ agentes; pool pequeno :4001 p/ QwenRouter (<1,2s) | `LLMProviderConfig.ts`, `QwenRouter.ts`
+F23 | RULE | Hard block de testes na Factory | NODE_ENV==='test' + transporte real → erro; 468 testes não vazam pra rede | `LLMProviderFactory.ts`
+F23 | DEC | Qwen CLI continua host | litellm é só transporte das duas portas; camada Qwen-CLI não repensada | `src/integration/qwen/*`
+F23 | TECH | Perfis no header HTTP (small/large) | Roteamento assimétrico explícito e debugável | `LiteLLMProvider.ts`, `QwenRouter.ts`
+F23 | DOC | Blueprint Fase 23 + sync docs vivas | Registra decisão no design, CURRENT_STATE, DECISION_LOG | `GREENFORGE_DESIGN.md`, `CURRENT_STATE.md`, `phase_23_blueprint.md`
