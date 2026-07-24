@@ -23,7 +23,18 @@ import { Orchestrator } from '../../core/Orchestrator.js';
 class InternalMockLLMProvider implements LLMProvider {
   async generate(prompt: string): Promise<string> {
     if (prompt.includes('Classifique a intenção') || prompt.includes('classify')) {
-      if (prompt.includes('How are you') || prompt.includes('como vai') || prompt.includes('hello') || prompt.includes('hi ')) {
+      // Fase 24: detecção ampliada de conversa casual para evitar falsos positivos DEVELOPMENT_TASK.
+      // O mock agora identifica saudações, agradecimentos e perguntas de conversa em pt/en.
+      const inputLower = prompt.toLowerCase();
+      const chatPatterns = [
+        'how are you', 'como vai', 'como estás', 'tudo bem', 'tudo bom',
+        'hello', 'hi ', 'hey', 'olá', 'oi', 'e aí', 'e ai', 'bom dia',
+        'boa tarde', 'boa noite', 'obrigado', 'obrigada', 'valeu', 'thanks',
+        'thank you', 'qual é o seu nome', "what's your name", 'quem é você',
+        'who are you', 'o que você faz', 'what do you do', 'como funciona',
+        'me fale sobre', 'tell me about',
+      ];
+      if (chatPatterns.some(p => inputLower.includes(p))) {
         return JSON.stringify({ intention: 'NORMAL_CHAT', confidence: 0.95 });
       }
       return JSON.stringify({ intention: 'DEVELOPMENT_TASK', confidence: 0.95 });

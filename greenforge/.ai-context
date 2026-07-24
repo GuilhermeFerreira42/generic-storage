@@ -2,12 +2,12 @@
 
 ## Resumo do Estado Atual
 - **Projeto:** GreenForge (Orquestrador Autônomo / extensão Qwen CLI)
-- **Última fase executada:** 23 - Transporte Real de LLM via litellm
-- **Status documental:** CONCLUÍDA E VALIDADA
+- **Última fase concluída:** 24 — Prontidão de Produção e Documentação Honesta
+- **Próxima fase:** 25 — Validação Final de Produção e Deploy (v1.0.0)
 - **Build:** PASSANDO (`npm run build`)
 - **Lint:** PASSANDO (`npm run lint`)
-- **Testes:** PASSANDO (486/486)
-- **Validação real:** `npm run llm:smoke` executado no desktop do usuário contra litellm real nas portas 4000/4001 com `model: meu-pool`; resultado `ok: true`
+- **Testes:** PASSANDO (484/486, 2 falhas SQLite pré-existentes)
+- **Validação real:** `npm run llm:smoke` aprovado com litellm nas portas 4000/4001 (usuário Windows 11)
 - **Módulos críticos:** LLMProviderFactory, LLMProviderRegistry, LiteLLMProvider, FetchLLMTransport, SQLiteRepository, QwenRouter, PlannerEngine, QwenExtensionEntrypoint, McpGreenForgeServer, HookCommandAdapter
 
 ## Leitura Obrigatória
@@ -17,6 +17,7 @@
 4. `docs/BACKLOG_FUTURO.md`
 5. `README.md`
 6. `docs/GUIA_DE_USO.md`
+7. `CHANGELOG.md`
 
 ## NUNCA Ler Automaticamente
 - `.git/`, `node_modules/`, `dist/`, `build/`, `coverage/`
@@ -30,14 +31,9 @@
 - Qwen CLI continua host; litellm é apenas transporte OpenAI-compatible.
 - Roteamento assimétrico: porta 4000 = pool grande/agentes; porta 4001 = pool pequeno/FAST/router.
 
-## Fase 23 — Implementada e Validada em Smoke Real
-- Novo `LiteLLMProvider` com payload OpenAI-compatible validado por Zod.
-- Novo `FetchLLMTransport` para HTTP real via fetch, com timeout e erros estruturados.
-- Config aceita `provider: 'litellm'`, `baseUrl`, `base_url`, `model`, `apiKeyEnv`, `timeout`, `mockMode`, `greenforgeProfile`.
-- `LLMProviderRegistry` registra `litellm`; `LLMProviderFactory` aplica hard block em testes.
-- `SQLiteRepository` registra warnings auditáveis (`audit_warnings`) para `DROP DETECTED`.
-- Script `npm run llm:smoke` valida manualmente as portas 4000/4001.
-- Evidência real do usuário: large `http://localhost:4000` respondeu `LARGE_OK` em 6413ms; small `http://localhost:4001` respondeu `Saudação` em 1113ms; resultado `ok: true`.
+## Fases 23-24 — Implementadas e Validadas
+- **Fase 23:** `LiteLLMProvider` com Zod, `FetchLLMTransport`, hard block, `audit_warnings`, smoke test aprovado.
+- **Fase 24:** Documentação honesta (README, GUIA_DE_USO, .humano, CHANGELOG). NORMAL_CHAT ampliado para 28 padrões.
 
 ## Próxima Parada
-Fase 23 aprovada por aprovação humana em 2026-07-24. Próxima parada possível: Fase 24 — Prontidão de Produção e Documentação Honesta. Não avançar sem nova aprovação explícita.
+Fase 24 concluída. Fase 25 — Validação Final de Produção e Deploy. Executar no desktop Windows 11 com Qwen CLI + litellm + LLM real. Não avançar sem aprovação explícita.

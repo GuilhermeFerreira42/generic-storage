@@ -1,21 +1,23 @@
 # Guia de Uso — GreenForge v1.0
 
-> Guia pratico de uso do GreenForge como extensao do Qwen CLI.
+> Guia prático de uso do GreenForge como extensão do Qwen CLI.
+> Atualizado em 2026-07-24 (pós-Fase 23 — litellm integrado e validado).
 
 ---
 
 ## Requisitos
 
-| Requisito | Versao Minima |
+| Requisito | Versão Mínima |
 |-----------|---------------|
 | Node.js | >= 22.0.0 |
 | Qwen CLI | >= 0.19.0 |
 | Git | >= 2.30.0 |
 | npm | >= 10.0.0 |
+| litellm | (proxy, necessário para LLM real) |
 
 ---
 
-## Instalacao
+## Instalação
 
 ### 1. Instalar o Qwen CLI
 
@@ -40,27 +42,46 @@ cd greenforge
 npm install
 npm run build
 
-# Vincule como extensao do Qwen (modo desenvolvimento)
+# Vincule como extensão do Qwen (modo desenvolvimento)
 qwen extensions link .
 ```
 
-### 3. Configurar API Key
+### 3. Configurar litellm (obrigatório para LLM real)
+
+Suba duas instâncias litellm:
 
 ```bash
-# Obrigatorio para uso com LLM real em producao
-export QWEN_API_KEY="sua-api-key-aqui"
+# Terminal 1 — pool grande para agentes (porta 4000)
+litellm --port 4000 --config config.large.yaml
 
-# Opcional: provedores alternativos
-export OPENAI_API_KEY="sua-openai-key"
-export ANTHROPIC_API_KEY="sua-claude-key"
-export GEMINI_API_KEY="sua-gemini-key"
+# Terminal 2 — pool rápido para classificação (porta 4001)
+litellm --port 4001 --config config.small.yaml
+```
+
+Configure as variáveis de ambiente:
+
+```bash
+export GREENFORGE_LITELLM_LARGE_URL="http://localhost:4000"
+export GREENFORGE_LITELLM_SMALL_URL="http://localhost:4001"
+export GREENFORGE_LITELLM_LARGE_MODEL="meu-pool"
+export GREENFORGE_LITELLM_SMALL_MODEL="meu-pool"
+```
+
+### 4. Validar a instalação
+
+```bash
+# Teste automatizado (sem rede)
+npm test
+
+# Teste de smoke com litellm (requer instâncias nas portas 4000/4001)
+npm run llm:smoke
 ```
 
 ---
 
-## Estrutura de Configuracao
+## Estrutura de Configuração
 
-O GreenForge usa tres arquivos de configuracao:
+O GreenForge usa três arquivos de configuração:
 
 ### qwen-extension.json (Manifesto)
 
@@ -68,7 +89,7 @@ O GreenForge usa tres arquivos de configuracao:
 {
   "name": "greenforge",
   "version": "1.0.0",
-  "description": "GreenForge orquestracao para Qwen CLI",
+  "description": "GreenForge orquestração para Qwen CLI",
   "mcpServers": {
     "greenforge": {
       "command": "node",
@@ -86,61 +107,61 @@ O GreenForge usa tres arquivos de configuracao:
 
 Declara quais hooks o Qwen CLI deve chamar:
 
-- **SessionStart**: Inicializacao do repositorio e validacao de artefatos
-- **UserPromptSubmit**: Classificacao deintencao (DEVELOPMENT_TASK ou NORMAL_CHAT)
-- **PreToolUse**: Gate de seguranca para operacoes de escrita
+- **SessionStart**: Inicialização do repositório e validação de artefatos
+- **UserPromptSubmit**: Classificação de intenção (DEVELOPMENT_TASK ou NORMAL_CHAT)
+- **PreToolUse**: Gate de segurança para operações de escrita
 - **PostToolUse**: Registro de checkpoints
 - **SessionEnd**: Cleanup de recursos
 
 ### .qwen/skills/greenforge/SKILL.md
 
-Declara os comandos disponiveis: `start`, `status`, `list`, `approve`, `abort`.
+Declara os comandos disponíveis: `start`, `status`, `list`, `approve`, `abort`.
 
 ---
 
-## Fluxo de Uso Tipico
+## Fluxo de Uso Típico
 
-### Cenario 1: Criar e executar uma tarefa de desenvolvimento
+### Cenário 1: Criar e executar uma tarefa de desenvolvimento
 
 ```
-Usuario: Preciso criar uma tela de login com JWT
+Usuário: Preciso criar uma tela de login com JWT
 Qwen: [UserPromptSubmit hook] → Classificado como DEVELOPMENT_TASK
-      [QwenRouter] → Roteia para GreenForge
+      [QwenRouter → porta 4001, pool FAST] → <1,2s
       [start command] → Cria tarefa e worktree isolado
-      [PlannerEngine] → Gera plano auditavel
+      [PlannerEngine → porta 4000, pool grande] → Gera plano auditável
 
-Exibicao do plano:
-  - Titulo, prompt original
-  - Perguntas de clarificacao (5 perguntas)
-  - Subtarefas com dependencias e agentes designados
-  - Criterios de aceitacao
+Exibição do plano:
+  - Título, prompt original
+  - Perguntas de clarificação (5 perguntas)
+  - Subtarefas com dependências e agentes designados
+  - Critérios de aceitação
   - Riscos identificados
 
-Usuario: /greenforge approve task-1234567890
+Usuário: /greenforge approve task-1234567890
 Qwen: [approve command] → Aprova plano, inicia BUILDING
-      [Orchestrator] → Coordena execucao dos agentes
-      [CoderAgent] → Implementa codigo
-      [TesterAgent] → Escreve e executa testes
-      [ReviewerAgent] → Revisa codigo
-      [JoinGate] → Valida convergencia dos artefatos
-      [Verifier] → Verificacao final
-      [DiffLens] → Gera relatorio de auditoria
+      [Orchestrator] → Coordena execução dos agentes
+      [CoderAgent → porta 4000] → Implementa código
+      [TesterAgent → porta 4000] → Escreve e executa testes
+      [ReviewerAgent → porta 4000] → Revisa código
+      [JoinGate] → Valida convergência dos artefatos
+      [Verifier] → Verificação final
+      [DiffLens] → Gera relatório de auditoria
 
-Resultado: Aprovado com relatorio de auditoria
+Resultado: Aprovado com relatório de auditoria
 ```
 
-### Cenario 2: Chat normal (nao-desenvolvimento)
+### Cenário 2: Chat normal (não-desenvolvimento)
 
 ```
-Usuario: Bom dia, como vai?
-Qwen: [UserPromptSubmit hook] → Classificado como NORMAL_CHAT
-      → Nenhuma acao do GreenForge, conversa normalmente
+Usuário: Bom dia, como vai?
+Qwen: [UserPromptSubmit hook → porta 4001] → Classificado como NORMAL_CHAT
+      → Nenhuma ação do GreenForge, conversa normalmente
 ```
 
-### Cenario 3: Abortar uma tarefa
+### Cenário 3: Abortar uma tarefa
 
 ```
-Usuario: /greenforge abort task-1234567890
+Usuário: /greenforge abort task-1234567890
 Qwen: [abort command] → Marca tarefa como FAILED
       → Orienta rollback e limpeza
 ```
@@ -151,66 +172,30 @@ Qwen: [abort command] → Marca tarefa como FAILED
 
 ### `start <task-name>`
 
-Inicia uma nova tarefa com planejamento auditavel.
+Inicia uma nova tarefa com planejamento auditável.
 
 - Cria worktree isolado em `GF_WORKTREE_ROOT`
 - Registra tarefa no SQLite
 - Transiciona: PENDING → CLARIFYING → PLANNING
-- Gera plano via PlannerEngine com MockLLMProvider
-- Retorna: taskId, titulo, status e plano markdown
+- Gera plano via PlannerEngine (usa litellm porta 4000 em produção)
 
 **Exemplo:**
 ```
-/greenforge start "Adicionar validacao de CPF no formulario"
-```
-
-**Resposta:**
-```json
-{
-  "ok": true,
-  "command": "start",
-  "result": "Task task-1782614453657 created and planned",
-  "data": {
-    "taskId": "task-1782614453657",
-    "title": "Adicionar validacao de CPF no formulario",
-    "status": "PLANNING"
-  }
-}
+/greenforge start "Adicionar validação de CPF no formulário"
 ```
 
 ### `status`
 
 Exibe o estado atual do runtime e tarefas ativas.
 
-**Exemplo:**
 ```
 /greenforge status
 ```
 
-**Resposta:**
-```json
-{
-  "ok": true,
-  "command": "status",
-  "result": "Runtime status",
-  "data": {
-    "tempDir": "/tmp/greenforge-phase18-e2e-xxx",
-    "initialized": true,
-    "manifestLoaded": true,
-    "settingsLoaded": true
-  }
-}
-```
-
 ### `list [--status active|completed|all]`
 
-Lista tarefas conhecidas. Filtros disponiveis:
+Lista tarefas conhecidas.
 
-- `--status=active` — Tarefas em andamento
-- `--status=completed` — Tarefas concluidas
-- `--status=all` — Todas (padrao)
-
-**Exemplo:**
 ```
 /greenforge list
 /greenforge list --status=active
@@ -218,13 +203,8 @@ Lista tarefas conhecidas. Filtros disponiveis:
 
 ### `approve <plan-id>`
 
-Aprova um plano gerado e inicia a execucao controlada.
+Aprova um plano gerado e inicia a execução controlada.
 
-- Transiciona: PLANNING → BUILDING
-- Gera subtareas via PlannerEngine
-- Coordena execucao via Orchestrator
-
-**Exemplo:**
 ```
 /greenforge approve task-1782614453657
 ```
@@ -233,77 +213,87 @@ Aprova um plano gerado e inicia a execucao controlada.
 
 Aborta uma tarefa em andamento.
 
-- Transiciona para FAILED
-- Orienta rollback e limpeza
-- Remove worktree associado
-
-**Exemplo:**
 ```
 /greenforge abort task-1782614453657
 ```
 
 ---
 
-## Seguranca
+## Segurança
 
 ### PreToolUse Gate
 
-O hook PreToolUse atua como gate de seguranca para operacoes sensiveis:
-
-- **Ferramentas sensiveis**: Write, WriteFile, Edit, MultiEdit, Bash
-- **Validacao**: Verifica se o caminho-alvo esta dentro de `allowedRoot`
-- **Metodo**: `path.resolve` + `path.relative` (nao usa validacao textual)
+- **Ferramentas sensíveis**: Write, WriteFile, Edit, MultiEdit, Bash
+- **Validação**: Verifica se o caminho-alvo está dentro de `allowedRoot`
+- **Método**: `path.resolve` + `path.relative` (não usa validação textual)
 - **Resultado**: ALLOW (dentro do worktree) ou BLOCK (fora)
 
 ### SafeResolve
 
 Todo acesso ao filesystem passa por `SafeResolve.safeResolve` e `SafeResolve.safeResolveForWrite`:
-- Prevencao contra Path Traversal
-- Validacao de caminhos absolutos/relativos
+- Prevenção contra Path Traversal
+- Validação de caminhos absolutos/relativos
 
 ### No-Shell Policy
 
-Uso de `execa` sem shell em todas as operacoes de processo.
+Uso de `execa` sem shell em todas as operações de processo.
 
 ---
 
-## Multiplos Provedores LLM
+## Múltiplos Provedores LLM
 
-O GreenForge suporta multiplos provedores via `LLMProviderFactory`:
+O GreenForge suporta múltiplos provedores via `LLMProviderFactory`:
 
 | Provider | Tipo | Comportamento |
 |----------|------|---------------|
-| `mock` | Mock | Deterministico, zero rede |
+| `mock` | Mock | Determinístico, zero rede |
 | `qwen` | Safe Stub | Sem transport: erro. Com mockMode: delega para mock |
-| `openai` | Safe Stub | Mesmo padrao |
-| `claude` | Safe Stub | Mesmo padrao |
-| `gemini` | Safe Stub | Mesmo padrao |
+| `openai` | Safe Stub | Mesmo padrão |
+| `claude` | Safe Stub | Mesmo padrão |
+| `gemini` | Safe Stub | Mesmo padrão |
+| `litellm` | **Real** | Transporte OpenAI-compatível via HTTP nas portas 4000/4001. Usa `FetchLLMTransport`. Payload validado por Zod. DROP DETECTED registrado no SQLite. |
 
-**Configuracao via variavel de ambiente:**
+**Configuração via variável de ambiente:**
 ```bash
-export GF_LLM_PROVIDER=qwen    # Provedor padrao
-export GF_LLM_MODEL=qwen2.5    # Modelo (opcional)
-export QWEN_API_KEY=xxx          # API key
+export GF_LLM_PROVIDER=litellm   # Provedor padrão
+export GREENFORGE_LITELLM_LARGE_URL=http://localhost:4000
+export GREENFORGE_LITELLM_SMALL_URL=http://localhost:4001
+export GREENFORGE_LITELLM_LARGE_MODEL=meu-pool
+export GREENFORGE_LITELLM_SMALL_MODEL=meu-pool
 ```
 
-**Fallback seguro:** Provider desconhecido cai automaticamente para `mock`.
+**Fallback seguro:** Provider desconhecido cai automaticamente para `mock`. Hard block impede vazamento de rede em testes.
+
+---
+
+## Roteamento Assimétrico (litellm)
+
+O GreenForge usa **duas instâncias litellm** simultâneas desde a Fase 23:
+
+| Porta | Perfil | Quem usa | Latência esperada |
+|-------|--------|----------|-------------------|
+| 4001 | `small` | QwenRouter (classificação) | <1,2s (RNF-01) |
+| 4000 | `large` | PlannerEngine, CoderAgent, TesterAgent, ReviewerAgent | variável |
+
+O header HTTP `x-greenforge-profile: small|large` identifica o perfil e torna o roteamento explícito e debugável.
 
 ---
 
 ## Troubleshooting
 
-### Extensao nao carrega
+### Extensão não carrega
 
 ```bash
 qwen --debug
 # Verificar logs de carregamento
 ```
 
-### MCP Server nao responde
+### MCP Server não responde
 
 ```bash
-curl  (MCP stdio mode - no HTTP port) /health
-# Se falhar: qwen extensions restart greenforge
+# O MCP é stdio, não HTTP. Verifique com:
+node dist/index.js mcp
+# Deve iniciar sem erros em stderr
 ```
 
 ### SQLite corrompido
@@ -313,7 +303,7 @@ rm ~/.greenforge/greenforge.db
 # Recria automaticamente via SessionStart hook
 ```
 
-### Worktree nao e criado
+### Worktree não é criado
 
 ```bash
 git --version  # Deve ser >= 2.30.0
@@ -326,23 +316,39 @@ Certifique-se de configurar a API key:
 export QWEN_API_KEY="sua-key"
 ```
 
+### litellm não responde nas portas 4000/4001
+
+```bash
+# Teste as portas
+curl http://localhost:4000/models
+curl http://localhost:4001/models
+
+# Rode o smoke test
+npm run llm:smoke
+```
+
 ---
 
-## Variaveis de Ambiente
+## Variáveis de Ambiente
 
-| Variavel | Obrigatoria | Default | Descricao |
+| Variável | Obrigatória | Default | Descrição |
 |----------|-------------|---------|-----------|
-| `QWEN_API_KEY` | Sim (prod) | - | Chave API Qwen |
-| `GF_WORKTREE_ROOT` | Nao | `.git/greenforge-worktrees` | Raiz dos worktrees |
-| `GF_MAX_PARALLEL` | Nao | `3` | Maximo de tarefas paralelas |
-| `GF_DB_PATH` | Nao | `~/.greenforge/greenforge.db` | Caminho do SQLite |
-| `GF_MCP_PORT` | Nao | `7777` | Porta do MCP Server |
-| `GF_LLM_PROVIDER` | Nao | `mock` | Provedor LLM padrao |
-| `GF_LLM_MODEL` | Nao | - | Modelo LLM especifico |
-| `OPENAI_API_KEY` | Nao | - | API key OpenAI |
-| `ANTHROPIC_API_KEY` | Nao | - | API key Claude |
-| `GEMINI_API_KEY` | Nao | - | API key Gemini |
+| `QWEN_API_KEY` | Não | - | Chave API Qwen (legacy) |
+| `GF_WORKTREE_ROOT` | Não | `.git/greenforge-worktrees` | Raiz dos worktrees |
+| `GF_MAX_PARALLEL` | Não | `3` | Máximo de tarefas paralelas |
+| `GF_DB_PATH` | Não | `~/.greenforge/greenforge.db` | Caminho do SQLite |
+| `GF_LLM_PROVIDER` | Não | `mock` | Provedor LLM padrão |
+| `GF_LLM_MODEL` | Não | - | Modelo LLM específico |
+| `GREENFORGE_LITELLM_LARGE_URL` | Sim (prod) | `http://localhost:4000` | URL do pool grande |
+| `GREENFORGE_LITELLM_SMALL_URL` | Sim (prod) | `http://localhost:4001` | URL do pool rápido |
+| `GREENFORGE_LITELLM_LARGE_MODEL` | Sim (prod) | `greenforge-large` | Modelo do pool grande |
+| `GREENFORGE_LITELLM_SMALL_MODEL` | Sim (prod) | `greenforge-small-fast` | Modelo do pool rápido |
+| `GREENFORGE_LITELLM_API_KEY_ENV` | Não | - | Nome da env var com a chave |
+| `GREENFORGE_LITELLM_TIMEOUT_MS` | Não | `30000` | Timeout HTTP (ms) |
+| `OPENAI_API_KEY` | Não | - | API key OpenAI |
+| `ANTHROPIC_API_KEY` | Não | - | API key Claude |
+| `GEMINI_API_KEY` | Não | - | API key Gemini |
 
 ---
 
-*Guia gerado como parte da Fase 18 — Validacao em Campo e Empacotamento Final.*
+*Guia atualizado como parte da Fase 24 — Prontidão de Produção e Documentação Honesta (2026-07-24).*
