@@ -1,65 +1,43 @@
 # CONTEXTO PARA IA - GreenForge
 
 ## Resumo do Estado Atual
-- **Projeto:** GreenForge (Orquestrador Autonomo)
-- **Ultima fase concluida:** 22 - Teste Real com o Qwen CLI
-- **Status do build:** PASSANDO
-- **Status dos testes:** PASSANDO (468/468 testes)
-- **Status do lint:** PASSANDO (0 erros, 0 warnings)
-- **Modulos Criticos:** Orchestrator, JoinGate, QwenExtensionEntrypoint, LLMProviderFactory, McpGreenForgeServer, HookCommandAdapter
+- **Projeto:** GreenForge (Orquestrador Autônomo / extensão Qwen CLI)
+- **Última fase executada:** 23 - Transporte Real de LLM via litellm
+- **Status documental:** CONCLUÍDA E VALIDADA
+- **Build:** PASSANDO (`npm run build`)
+- **Lint:** PASSANDO (`npm run lint`)
+- **Testes:** PASSANDO (486/486)
+- **Validação real:** `npm run llm:smoke` executado no desktop do usuário contra litellm real nas portas 4000/4001 com `model: meu-pool`; resultado `ok: true`
+- **Módulos críticos:** LLMProviderFactory, LLMProviderRegistry, LiteLLMProvider, FetchLLMTransport, SQLiteRepository, QwenRouter, PlannerEngine, QwenExtensionEntrypoint, McpGreenForgeServer, HookCommandAdapter
 
-## Leitura Obrigatoria
-1. docs/CURRENT_STATE.md - estado atual completo do sistema
-2. README.md - guia de instalacao, comandos e exemplos
-3. docs/GUIA_DE_USO.md - guia de uso detalhado
-
-## Leitura no Inicio de Onda
-4. docs/BACKLOG_FUTURO.md - roadmap e fases futuras
-5. docs/DECISION_LOG.md - registro de decisoes tecnicas
+## Leitura Obrigatória
+1. `docs/CURRENT_STATE.md`
+2. `docs/phase_23_blueprint.md`
+3. `docs/DECISION_LOG.md`
+4. `docs/BACKLOG_FUTURO.md`
+5. `README.md`
+6. `docs/GUIA_DE_USO.md`
 
 ## NUNCA Ler Automaticamente
-- .git/, node_modules/, dist/, build/
-- docs/archive/*
+- `.git/`, `node_modules/`, `dist/`, `build/`, `coverage/`
+- `docs/archive/*`, salvo se o usuário pedir arquivamento ou auditoria histórica
 
-## Regra de Contrato
-- Use JoinGate para validar a conclusao de tarefas paralelas.
-- Garanta que todos os artefatos de agentes sejam consolidados antes da revisao final.
-- LLMProviderFactory para criar providers com fallback seguro para mock.
-- PreToolUse gate valida seguranca com path.resolve + path.relative.
+## Regras de Contrato
+- Arquitetura hexagonal: core fala com `LLMProvider`; infraestrutura implementa detalhes reais.
+- Use `LLMProviderFactory` para criar providers com fallback seguro.
+- Em `NODE_ENV === 'test'`, provider real + transporte real deve lançar `TEST_HARD_BLOCK`.
+- Testes automatizados não podem chamar Qwen real, MCP real externo, LLM real, rede, merge ou push.
+- Qwen CLI continua host; litellm é apenas transporte OpenAI-compatible.
+- Roteamento assimétrico: porta 4000 = pool grande/agentes; porta 4001 = pool pequeno/FAST/router.
 
-## Fase 20 — HookCommandAdapter (Concluída)
-- HookCommandAdapter.ts implementado e testado
-- src/index.ts agora suporta `greenforge hook <HookName>` com saída JSON pura
-- 15 testes novos (hook-command-adapter.test.ts)
-- Mapeamento completo de 7 hooks + formatos de decisão Qwen
-- Fallbacks seguros para payload malformado
-- 460 testes totais, build e lint limpos
+## Fase 23 — Implementada e Validada em Smoke Real
+- Novo `LiteLLMProvider` com payload OpenAI-compatible validado por Zod.
+- Novo `FetchLLMTransport` para HTTP real via fetch, com timeout e erros estruturados.
+- Config aceita `provider: 'litellm'`, `baseUrl`, `base_url`, `model`, `apiKeyEnv`, `timeout`, `mockMode`, `greenforgeProfile`.
+- `LLMProviderRegistry` registra `litellm`; `LLMProviderFactory` aplica hard block em testes.
+- `SQLiteRepository` registra warnings auditáveis (`audit_warnings`) para `DROP DETECTED`.
+- Script `npm run llm:smoke` valida manualmente as portas 4000/4001.
+- Evidência real do usuário: large `http://localhost:4000` respondeu `LARGE_OK` em 6413ms; small `http://localhost:4001` respondeu `Saudação` em 1113ms; resultado `ok: true`.
 
-## Fase 21 — Configuração e Fiação de Hooks (Concluída)
-- .qwen/settings.json atualizado para usar comandos reais: "node dist/index.js hook <HookName>"
-- Todos os 7 hooks agora são do tipo "command" com cwd: "${extensionPath}"
-- Removidas todas as referências a http://localhost:7777
-- Schema atualizado para aceitar "cwd" em hooks
-- Novo teste: tests/hook-wiring.test.ts (8 testes)
-- Build e lint limpos
-- 8/8 testes específicos passando
-
-## Fase 22 — Teste Real com o Qwen CLI (CONCLUÍDA AGUARDANDO APROVAÇÃO)
-- Qwen CLI real carregou a extensão GreenForge com sucesso
-- Extensão linkada: `qwen extensions link` confirmado no `qwen extensions list`
-- MCP server configurado e descoberto pelo Qwen CLI
-- 10 tools MCP `greenforge_*` listadas pelo Qwen CLI real em sessão YOLO
-- 7/7 hooks diretos funcionando via `node dist/index.js hook <HookName>`
-- Schemas de validação alterados de `.strict()` para `.passthrough()` para tolerar campos extras do Qwen CLI
-- Sessão real do Qwen CLI testada a partir de diretório externo ao GreenForge
-- cwd="${extensionPath}" validado como necessário e funcional
-- 468/468 testes passando, build limpo, lint 0/0
-
-## Fase 23 — Transporte Real de LLM (litellm) [DECIDIDA / BLUEPRINT]
-- Decisão tomada em 2026-07-22; Blueprint escrito (docs/phase_23_blueprint.md)
-- litellm = CANO de transporte OpenAI-compatível; Qwen CLI continua host
-- Adaptador interno LiteLLMProvider com validação Zod (anti drop_params); warning DROP DETECTED no SQLite
-- Roteamento assimétrico: porta 4000 (pool grande: DeepSeek V4 Pro, Nemotron) p/ agentes; porta 4001 (pool pequeno/FAST) p/ QwenRouter (<1,2s)
-- Hard block na LLMProviderFactory: NODE_ENV==='test' + transporte real → erro (468 testes não vazam pra rede)
-- Arquitetura hexagonal NÃO muda o núcleo
-- Docs vivas atualizadas: GREENFORGE_DESIGN.md (§10), CURRENT_STATE.md, DECISION_LOG.md
+## Próxima Parada
+Fase 23 aprovada por aprovação humana em 2026-07-24. Próxima parada possível: Fase 24 — Prontidão de Produção e Documentação Honesta. Não avançar sem nova aprovação explícita.

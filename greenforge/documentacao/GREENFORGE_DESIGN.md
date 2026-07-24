@@ -1,6 +1,6 @@
 # 🌌 GREENFORGE_DESIGN.md — Architectural Source of Truth v1.4.0
 
-> **Status:** ✅ FINAL (adendo Fase 23) | **Versão:** 1.4.0 | **Data:** 2026-06-08 | **Adendo Fase 23:** 2026-07-22
+> **Status:** ✅ FINAL (Fase 23 implementada) | **Versão:** 1.4.1 | **Data:** 2026-06-08 | **Adendo Fase 23:** 2026-07-24
 > **Projeto:** GreenForge (The Orchestrator's Anvil)
 > **Descrição:** Extensão de orquestração avançada para Qwen CLI baseada nos princípios do Verdant AI.
 
@@ -382,7 +382,7 @@ Em caso de detecção de corrupção ou lock persistente:
 | RNF-05 | Concorrência | Sistema suporta 5 subtarefas paralelas em 16GB RAM sem OOM. | `stress.test.ts` |
 
 ---
-## 10. FASE 23 — TRANSPORTE REAL DE LLM (Proxy litellm) [DECIDIDA / BLUEPRINT]
+## 10. FASE 23 — TRANSPORTE REAL DE LLM (Proxy litellm) [CONCLUÍDA E VALIDADA]
 
 > Decisão de arquitetura consolidada em 2026-07-22. Blueprint: `docs/phase_23_blueprint.md`. A arquitetura hexagonal NÃO exige mudança de núcleo.
 
@@ -408,7 +408,7 @@ O **litellm** atua apenas como **CANO de transporte** OpenAI-compatível. O Gree
 
 ### 10.5 Trava Física de Testes (Hard Block na Factory)
 - Em `LLMProviderFactory.create(...)`: se `process.env.NODE_ENV === 'test'` (ou flag de teste) **E** o provider usa transporte real (não `mock`, não `mockMode`) → **LANÇAR** `LLMProviderError('TEST_HARD_BLOCK', ...)` **antes de qualquer chamada de rede**.
-- Garante que nenhum dos **468 testes** bata no litellm real (porta 4000 ou 4001) por acidente.
+- Garante que nenhum dos **486 testes** bata no litellm real (porta 4000 ou 4001) por acidente.
 - Testes continuam com `MockLLMProvider` / `InternalMockLLMProvider` como padrão.
 
 ### 10.6 Por que a Hexagonal Sai Fortalecida
@@ -419,3 +419,7 @@ O **litellm** atua apenas como **CANO de transporte** OpenAI-compatível. O Gree
 ---
 
 **Este documento é a Fonte Única da Verdade. Proibido implementar qualquer funcionalidade que divirja destes contratos.**
+
+
+### 10.7 Evidência Real (2026-07-24)
+Smoke manual `npm run llm:smoke` executado no desktop do usuário com litellm real: porta 4000 (`large`, modelo `meu-pool`) respondeu `LARGE_OK` em 6413ms; porta 4001 (`small`, modelo `meu-pool`) respondeu `Saudação` em 1113ms; resultado `ok: true`. A porta 4001 ficou dentro do RNF-01 (<1,2s).

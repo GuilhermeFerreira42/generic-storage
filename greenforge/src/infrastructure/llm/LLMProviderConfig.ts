@@ -9,6 +9,7 @@ export const LLMProviderNameSchema = z.enum([
   'openai',
   'claude',
   'gemini',
+  'litellm',
 ]);
 
 export type LLMProviderName = z.infer<typeof LLMProviderNameSchema>;
@@ -25,6 +26,10 @@ export const LLMProviderConfigSchema = z.object({
   apiKeyEnv: z.string().optional(),
   /** Optional base URL for the provider API */
   baseUrl: z.string().url().optional().or(z.literal('')),
+  /** Optional snake_case base URL alias for OpenAI-compatible proxy configs */
+  base_url: z.string().url().optional().or(z.literal('')),
+  /** Optional routing profile for GreenForge asymmetric litellm pools */
+  greenforgeProfile: z.enum(['small', 'large']).optional(),
   /** Optional timeout in milliseconds (must be positive) */
   timeout: z.number().positive().optional(),
   /** Optional mock/test mode flag — forces mock behavior even for real providers */
@@ -42,6 +47,8 @@ const LLMProviderConfigLooseSchema = z.object({
   model: z.string().optional(),
   apiKeyEnv: z.string().optional(),
   baseUrl: z.string().url().optional().or(z.literal('')),
+  base_url: z.string().url().optional().or(z.literal('')),
+  greenforgeProfile: z.enum(['small', 'large']).optional(),
   timeout: z.number().positive().optional(),
   mockMode: z.boolean().optional(),
 });

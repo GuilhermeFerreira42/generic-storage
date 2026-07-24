@@ -15,17 +15,20 @@
 - **Sem novos testes** (fase de validação externa, não funcionalidade nova)
 
 ## Fase 23 — Transporte Real de LLM (Proxy litellm)
-- **Status:** 🟢 DECIDIDA / BLUEPRINT — AGUARDANDO IMPLEMENTAÇÃO (2026-07-22)
-- **Decisão de arquitetura:** litellm atua como **CANO** de transporte OpenAI-compatível (não como cérebro). Qwen CLI continua host. GreenForge mantém controle de formatação/validação via **adaptador interno** (`LiteLLMProvider`) com **Zod**. Arquitetura hexagonal **não exige mudança de núcleo**.
-- **Entregáveis planejados:**
-    - `LiteLLMProvider.ts` — adaptador que implementa `LLMProvider.generate()` usando `LLMTransport.post()` para endpoint litellm (`base_url + '/chat/completions'`). Config: `provider: 'litellm'`, `baseUrl`, `model`, `apiKeyEnv` **opcional** (self-host local não exige chave), `timeout`, `mockMode`. Segue padrão safe-stub da Fase 17 mas executa transporte REAL.
-    - Enum `LLMProviderNameSchema` ganha `'litellm'`; `LLMProviderRegistry` registra `'litellm'` como built-in.
-    - **Blindagem Zod:** schema `LiteLLMRequestSchema` valida/forma o payload antes de enviar ao proxy. NÃO confia no `drop_params` do litellm. Se parâmetro for descartado, grava warning `DROP DETECTED` no SQLite (nova tabela de auditoria).
-    - **Roteamento assimétrico:** duas instâncias litellm — porta **4000** (pool grande: DeepSeek V4 Pro, Nemotron) para agentes (Planner/Coder/Reviewer/Tester); porta **4001** (pool small/FAST) para `QwenRouter` classificar intenção em <1,2s. Perfis via header HTTP (`x-greenforge-profile: small|large`).
-    - **Hard block de testes:** `LLMProviderFactory.create()` lança `LLMProviderError('TEST_HARD_BLOCK')` se `NODE_ENV==='test'` + transporte real → 468 testes não vazam para rede.
-    - **Core intocado:** `src/core/ports/LLMProvider.ts` sem mudança. Complexidade de rede fica na infraestrutura + config do proxy.
-- **Arquivos previstos:** `LiteLLMProvider.ts` (novo), `LLMProviderConfig.ts` (mod), `LLMProviderRegistry.ts` (mod), `LLMProviderFactory.ts` (mod), `SQLiteRepository.ts` (mod), `tests/llm-providers.test.ts` (mod).
-- **Blueprint:** `docs/phase_23_blueprint.md` | **Design:** `GREENFORGE_DESIGN.md` §10
+- **Status:** ✅ CONCLUÍDA E VALIDADA (2026-07-24)
+- **Decisão de arquitetura:** litellm atua como **CANO** de transporte OpenAI-compatible (não como cérebro). Qwen CLI continua host. GreenForge mantém controle de formatação e validação via `LiteLLMProvider` com Zod. Arquitetura hexagonal mantida; `LLMProvider.ts` não mudou.
+- **Entregáveis realizados:**
+    - `src/infrastructure/llm/providers/LiteLLMProvider.ts` — adapter real via `LLMTransport.post(baseUrl + '/chat/completions')`, payload OpenAI-compatible validado por Zod, `mockMode`, chave opcional via `apiKeyEnv`, headers de perfil `x-greenforge-profile: small|large`, tratamento estruturado de erros e `DROP DETECTED`.
+    - `src/infrastructure/llm/FetchLLMTransport.ts` — transporte HTTP real via `fetch`, timeout e erros estruturados (`TRANSPORT_ERROR`, `TRANSPORT_TIMEOUT`).
+    - `LLMProviderConfig.ts` — enum `litellm`, suporte a `base_url` e `greenforgeProfile`.
+    - `LLMProviderRegistry.ts` — registro built-in de `litellm`.
+    - `LLMProviderFactory.ts` — hard block `TEST_HARD_BLOCK` quando `NODE_ENV==='test'` + provider real + transporte real.
+    - `SQLiteRepository.ts` — tabela `audit_warnings`, `recordAuditWarning()` e `getAuditWarnings()`.
+    - `scripts/litellm-smoke.mjs` + `npm run llm:smoke` — smoke real manual para portas 4000/4001.
+    - Testes novos/alterados: `tests/litellm-provider.test.ts`, `tests/litellm-transport.test.ts`, `tests/persistence.test.ts`, `tests/llm-providers.test.ts`.
+- **Validação automatizada:** build limpo, lint limpo, 486/486 testes passando.
+- **Validação real externa:** usuário executou `npm run llm:smoke` no Windows 11 com `GREENFORGE_LITELLM_LARGE_MODEL=meu-pool` e `GREENFORGE_LITELLM_SMALL_MODEL=meu-pool`; porta 4000 respondeu `LARGE_OK` em 6413ms; porta 4001 respondeu `Saudação` em 1113ms; resultado `ok: true`.
+- **Blueprint:** `docs/phase_23_blueprint.md` | **Resumo:** `docs/phase_23_resumo.md` | **Arquivo resolvido:** `docs/archive/phase_23_transporte_real_llm_litellm.resolved`
 
 ## Fase 14 — Qwen CLI Extension (Real)
 - **Status:** ✅ CONCLUÍDA E VALIDADA (2026-06-24)

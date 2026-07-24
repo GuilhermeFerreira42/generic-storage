@@ -6,6 +6,7 @@ import {
   LLMProviderFactoryOptions,
   LLMProviderFactoryOptionsSchema,
   LLMTransport,
+  LLMProviderError,
 } from './LLMProviderConfig.js';
 import { LLMProviderRegistry } from './LLMProviderRegistry.js';
 
@@ -46,8 +47,9 @@ export class LLMProviderFactory {
         const fallback = fallbackProvider ?? 'mock';
         const fallbackConfig: LLMProviderConfig = { ...config, provider: fallback };
         // Validate the fallback config
-        LLMProviderConfigSchema.parse(fallbackConfig);
-        return this.registry.create(fallbackConfig, transport);
+        const validatedFallbackConfig = LLMProviderConfigSchema.parse(fallbackConfig);
+        this.assertNotRealTransportDuringTests(validatedFallbackConfig, transport);
+        return this.registry.create(validatedFallbackConfig, transport);
       }
       throw new Error(
         `LLMProviderFactory: Unknown provider "${providerName}" and fallback is disabled. ` +
@@ -57,6 +59,7 @@ export class LLMProviderFactory {
 
     // Validate the full config for known providers
     const validatedConfig = LLMProviderConfigSchema.parse(config);
+    this.assertNotRealTransportDuringTests(validatedConfig, transport);
     return this.registry.create(validatedConfig, transport);
   }
 
@@ -66,6 +69,25 @@ export class LLMProviderFactory {
    */
   createFromConfig(config: LLMProviderConfig, transport?: LLMTransport): LLMProvider {
     return this.create({ config, fallbackOnUnknown: true }, transport);
+  }
+
+  /**
+   * Prevent accidental real network transport usage from the factory while tests run.
+   */
+  private assertNotRealTransportDuringTests(config: LLMProviderConfig, transport?: LLMTransport): void {
+    if (
+      process.env.NODE_ENV === 'test' &&
+      config.provider !== 'mock' &&
+      config.mockMode !== true &&
+      Boolean(transport)
+    ) {
+      throw new LLMProviderError(
+        'TEST_HARD_BLOCK',
+        `LLMProviderFactory: real transport for provider "${config.provider}" is blocked when NODE_ENV is test. Use mockMode or MockLLMProvider.`,
+        config.provider,
+        false,
+      );
+    }
   }
 
   /**

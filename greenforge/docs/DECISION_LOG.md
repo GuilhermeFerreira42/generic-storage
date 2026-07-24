@@ -165,3 +165,13 @@ F23 | RULE | Hard block de testes na Factory | NODE_ENV==='test' + transporte re
 F23 | DEC | Qwen CLI continua host | litellm é só transporte das duas portas; camada Qwen-CLI não repensada | `src/integration/qwen/*`
 F23 | TECH | Perfis no header HTTP (small/large) | Roteamento assimétrico explícito e debugável | `LiteLLMProvider.ts`, `QwenRouter.ts`
 F23 | DOC | Blueprint Fase 23 + sync docs vivas | Registra decisão no design, CURRENT_STATE, DECISION_LOG | `GREENFORGE_DESIGN.md`, `CURRENT_STATE.md`, `phase_23_blueprint.md`
+
+### Fase 23 — Implementação e Validação Real do Transporte litellm
+F23 | ADD | LiteLLMProvider implementado | Adapter OpenAI-compatible para litellm com Zod, headers de perfil, mockMode, chave opcional e erro estruturado | `src/infrastructure/llm/providers/LiteLLMProvider.ts`
+F23 | ADD | FetchLLMTransport implementado | Transporte HTTP real via fetch para smoke/produção, mantendo testes com fetch injetado e sem rede real | `src/infrastructure/llm/FetchLLMTransport.ts`
+F23 | MOD | Config/Registry/Factory | `litellm` entrou no enum e no registry; factory bloqueia transporte real em `NODE_ENV==='test'` com `TEST_HARD_BLOCK` | `LLMProviderConfig.ts`, `LLMProviderRegistry.ts`, `LLMProviderFactory.ts`
+F23 | ADD | Auditoria DROP DETECTED | `audit_warnings` no SQLite torna perdas reportadas pelo proxy visíveis e recuperáveis | `src/infrastructure/db/SQLiteRepository.ts`
+F23 | ADD | Smoke real manual | `npm run llm:smoke` testa portas 4000/4001 fora da suíte automatizada | `scripts/litellm-smoke.mjs`, `package.json`
+F23 | VAL | Validação real externa | Usuário executou smoke no Windows 11: 4000/modelo meu-pool respondeu `LARGE_OK` em 6413ms; 4001/modelo meu-pool respondeu `Saudação` em 1113ms; `ok: true` | Evidência do usuário em 2026-07-24
+F23 | TEST | 486/486 passing | Build, lint e suíte automatizada passando após implementação e arquivamento | `npm run build`, `npm run lint`, `npm test`
+F23 | VAL | Aprovação humana registrada | Usuário autorizou marcar a Fase 23 como aprovada após smoke real 4000/4001 e suíte 486/486 | Documentação viva

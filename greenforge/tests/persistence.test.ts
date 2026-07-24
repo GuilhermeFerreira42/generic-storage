@@ -102,6 +102,28 @@ describe('SQLiteRepository', () => {
       .toThrow(); // SQLite constraint violation
   });
 
+  it('should record and retrieve audit warnings for visible LLM transport drops', () => {
+    repository.recordAuditWarning('LiteLLMProvider', 'DROP DETECTED: temperature', {
+      droppedParams: ['temperature'],
+    });
+
+    const warnings = repository.getAuditWarnings('LiteLLMProvider');
+
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0].source).toBe('LiteLLMProvider');
+    expect(warnings[0].message).toContain('DROP DETECTED');
+    expect(warnings[0].metadata).toEqual({ droppedParams: ['temperature'] });
+  });
+
+  it('should list all audit warnings when no source filter is provided', () => {
+    repository.recordAuditWarning('LiteLLMProvider', 'DROP DETECTED: temperature', null);
+    repository.recordAuditWarning('Verifier', 'Risk warning', { risk: 'HIGH' });
+
+    const warnings = repository.getAuditWarnings();
+
+    expect(warnings.map(warning => warning.source)).toEqual(['LiteLLMProvider', 'Verifier']);
+  });
+
   describe('Transactions', () => {
     it('should commit changes on success', () => {
       const taskId = 'task-tx-success';

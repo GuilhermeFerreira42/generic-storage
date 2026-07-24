@@ -5,6 +5,7 @@ import { QwenLLMProvider } from './providers/QwenLLMProvider.js';
 import { OpenAILLMProvider } from './providers/OpenAILLMProvider.js';
 import { ClaudeLLMProvider } from './providers/ClaudeLLMProvider.js';
 import { GeminiLLMProvider } from './providers/GeminiLLMProvider.js';
+import { LiteLLMProvider } from './providers/LiteLLMProvider.js';
 
 /**
  * Registry of LLM provider constructors.
@@ -25,6 +26,7 @@ export class LLMProviderRegistry {
     this.constructors.set('openai', (config, transport) => new OpenAILLMProvider(config, transport));
     this.constructors.set('claude', (config, transport) => new ClaudeLLMProvider(config, transport));
     this.constructors.set('gemini', (config, transport) => new GeminiLLMProvider(config, transport));
+    this.constructors.set('litellm', (config, transport) => new LiteLLMProvider(config, transport));
   }
 
   /**

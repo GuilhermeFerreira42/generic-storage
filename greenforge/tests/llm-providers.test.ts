@@ -7,6 +7,7 @@ import { QwenLLMProvider } from '../src/infrastructure/llm/providers/QwenLLMProv
 import { OpenAILLMProvider } from '../src/infrastructure/llm/providers/OpenAILLMProvider.js';
 import { ClaudeLLMProvider } from '../src/infrastructure/llm/providers/ClaudeLLMProvider.js';
 import { GeminiLLMProvider } from '../src/infrastructure/llm/providers/GeminiLLMProvider.js';
+import { LiteLLMProvider } from '../src/infrastructure/llm/providers/LiteLLMProvider.js';
 import { LLMProviderRegistry } from '../src/infrastructure/llm/LLMProviderRegistry.js';
 import { LLMProviderFactory } from '../src/infrastructure/llm/LLMProviderFactory.js';
 import {
@@ -182,12 +183,13 @@ describe('C. LLMProviderRegistry', () => {
     expect(registry.has('openai')).toBe(true);
     expect(registry.has('claude')).toBe(true);
     expect(registry.has('gemini')).toBe(true);
+    expect(registry.has('litellm')).toBe(true);
   });
 
-  it('22. getRegisteredNames returns all 5 providers', () => {
+  it('22. getRegisteredNames returns all 6 providers', () => {
     const names = registry.getRegisteredNames();
-    expect(names).toHaveLength(5);
-    expect(names).toEqual(expect.arrayContaining(['mock', 'qwen', 'openai', 'claude', 'gemini']));
+    expect(names).toHaveLength(6);
+    expect(names).toEqual(expect.arrayContaining(['mock', 'qwen', 'openai', 'claude', 'gemini', 'litellm']));
   });
 
   it('23. create("mock") returns MockLLMProvider', () => {

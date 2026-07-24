@@ -23,6 +23,22 @@ interface RawCheckpointRow {
   created_at: string;
 }
 
+interface RawAuditWarningRow {
+  id: number;
+  source: string;
+  message: string;
+  metadata: string | null;
+  created_at: string;
+}
+
+export interface AuditWarningRecord {
+  id: number;
+  source: string;
+  message: string;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+}
+
 /**
  * Repositório SQLite para persistência de tarefas e checkpoints.
  */
@@ -62,6 +78,14 @@ export class SQLiteRepository {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
         phase TEXT NOT NULL,
+        metadata TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS audit_warnings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        source TEXT NOT NULL,
+        message TEXT NOT NULL,
         metadata TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       );
@@ -192,6 +216,32 @@ export class SQLiteRepository {
       id: row.id,
       taskId: row.task_id,
       phase: row.phase,
+      metadata: row.metadata ? JSON.parse(row.metadata) : null,
+      createdAt: row.created_at
+    }));
+  }
+
+  /**
+   * Registra warning auditável sem vínculo obrigatório com task.
+   */
+  recordAuditWarning(source: string, message: string, metadata: Record<string, unknown> | null): void {
+    const stmt = this.db.prepare('INSERT INTO audit_warnings (source, message, metadata) VALUES (?, ?, ?)');
+    stmt.run(source, message, metadata ? JSON.stringify(metadata) : null);
+  }
+
+  /**
+   * Recupera warnings auditáveis, opcionalmente filtrados por origem.
+   */
+  getAuditWarnings(source?: string): AuditWarningRecord[] {
+    const stmt = source
+      ? this.db.prepare('SELECT * FROM audit_warnings WHERE source = ? ORDER BY id ASC')
+      : this.db.prepare('SELECT * FROM audit_warnings ORDER BY id ASC');
+    const rows = (source ? stmt.all(source) : stmt.all()) as RawAuditWarningRow[];
+
+    return rows.map(row => ({
+      id: row.id,
+      source: row.source,
+      message: row.message,
       metadata: row.metadata ? JSON.parse(row.metadata) : null,
       createdAt: row.created_at
     }));

@@ -129,3 +129,11 @@ GUIA RÁPIDO PARA O USUÁRIO
   - 15 novos testes TDD (hook-command-adapter.test.ts)
   - Build limpo, lint 0 erros, 460/460 testes passando.
 - Isolamento total: zero chamadas reais.
+
+### [2026-07-24] Fase 23 — Transporte Real de LLM via litellm
+- Status: CONCLUÍDA E VALIDADA por aprovação humana.
+- Implementado `LiteLLMProvider`, `FetchLLMTransport`, registro `litellm`, hard block `TEST_HARD_BLOCK`, auditoria `DROP DETECTED` no SQLite e smoke manual `npm run llm:smoke`.
+- Validação automatizada no workspace: `npm run build` passou, `npm run lint` passou, `npm test` passou com 486/486 testes.
+- Validação real no desktop do usuário: porta 4000 (`large`) com modelo `meu-pool` respondeu `LARGE_OK` em 6413ms; porta 4001 (`small`) com modelo `meu-pool` respondeu `Saudação` em 1113ms; resultado `ok: true`.
+- Próxima fase recomendada: Fase 24 — Prontidão de Produção e Documentação Honesta. Não avançar sem aprovação explícita.
+- Aprovação humana registrada em 2026-07-24: usuário autorizou marcar a Fase 23 como aprovada/validada.
