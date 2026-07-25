@@ -7,12 +7,15 @@
 - **Fase em andamento:** Fase 25 — Validação Final de Produção e Deploy.
 - **Build:** PASSANDO (`npm run build`).
 - **Lint:** PASSANDO (`npm run lint`, 0 erros reportados).
-- **Testes:** PASSANDO (`npm test`, 484/486).
-- **Validação real (Fase 23):** Smoke test aprovado com litellm nas portas 4000/4001.
+- **Testes:** PASSANDO (`npm test`, 491/491).
+- **Smoke real (Fase 23):** Aprovado com LiteLLM nas portas 4000/4001.
+- **Validação real com Qwen CLI:** Parcialmente comprovada. O servidor MCP e os hooks foram descobertos, mas o teste externo mostrou que o modelo frequentemente preferiu tools nativas (`write_file`, `agent`) em vez de iniciar o fluxo GreenForge via `greenforge_start`. Não foi observado o caminho completo de Git init/worktree/plano/aprovação no teste real.
 
 ## Fase 25 — Validação Final de Produção e Deploy (EM ANDAMENTO)
 - **Preparação (concluída no workspace):** CHANGELOG.md criado, .ai-context e CURRENT_STATE atualizados, phase_24_resumo.md gerado.
-- **Pendente (desktop Windows 11 do usuário):** Sessão real completa com Qwen CLI + litellm + LLM real, DiffLens, tag v1.0.0, publish.
+- **Status verificado localmente:** build, lint, smoke e suíte completa passaram; a suíte final ficou em 491/491 testes.
+- **Gap real observado no teste externo:** o fluxo Qwen→GreenForge ainda não é determinístico. O Qwen CLI reconheceu a extensão/MCP, mas o comportamento final não garantiu o handoff para a orquestração GreenForge, então o caminho Git/worktree/plano/aprovação não foi exercido de forma confiável.
+- **Pendente (desktop Windows 11 do usuário):** Sessão real completa com Qwen CLI + LiteLLM + LLM real, DiffLens, tag v1.0.0, publish, e hardening do handoff para garantir que o prompt sempre siga o caminho do GreenForge.
 
 
 ## Correções Preparatórias Pós-Teste Real Qwen CLI
@@ -36,13 +39,13 @@ Status: implementado localmente e aguardando validação real no desktop.
 - [x] CHANGELOG.md criado com todas as fases 0-24
 - [x] .ai-context atualizado para Fase 25
 - [x] phase_24_resumo.md gerado
-- [x] Build, lint e testes verificados (484/486)
+- [x] Build, lint e testes verificados (491/491)
 
 ### ⬜ Checklist B — Validação real (executar no Windows 11)
-- [ ] `npm install && npm run build && npm test`
-- [ ] Subir litellm nas portas 4000 (large) e 4001 (small)
-- [ ] `npm run llm:smoke` — confirmar ok: true
-- [ ] `qwen extensions link .` (recarregar extensão)
+- [x] `npm install && npm run build && npm test` (verificado localmente)
+- [x] Subir LiteLLM nas portas 4000 (large) e 4001 (small) (smoke real aprovado)
+- [x] `npm run llm:smoke` — confirmado com `ok: true`
+- [x] `qwen extensions link .` (link concluído no ambiente real)
 - [ ] Sessão Qwen CLI real: prompt de desenvolvimento → hook UserPromptSubmit → chamada MCP `mcp__greenforge__greenforge_start` → plano → aprovação → execução por agentes
 - [ ] DiffLens gerar `GREENFORGE_AUDIT.md` com sucesso
 - [ ] Verifier emitir APPROVED
