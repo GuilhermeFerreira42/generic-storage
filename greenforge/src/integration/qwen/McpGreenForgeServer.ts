@@ -121,11 +121,13 @@ export class McpGreenForgeServer {
   /**
    * Handles start command: delegates to QwenCommandHandler via entrypoint.
    */
-  private async handleStart(args: { prompt: string }): Promise<{
+  private async handleStart(args: { prompt: string; workspaceRoot?: string }): Promise<{
     content: Array<{ type: 'text'; text: string }>;
   }> {
     this.log(`Starting new task with prompt: ${args.prompt.slice(0, 80)}...`);
-    const result = await this.entrypoint.handleCommand('start', [args.prompt]);
+    const cmdArgs = [args.prompt];
+    if (args.workspaceRoot) cmdArgs.push(`--workspaceRoot=${args.workspaceRoot}`);
+    const result = await this.entrypoint.handleCommand('start', cmdArgs);
     return this.toMcpResult(result);
   }
 
@@ -251,8 +253,9 @@ export class McpGreenForgeServer {
       'Start a new GreenForge task with a given prompt.',
       {
         prompt: z.string().describe('The task description/prompt'),
+        workspaceRoot: z.string().optional().describe('Optional user workspace root; GreenForge initializes git here when missing'),
       },
-      async ({ prompt }) => this.handleStart({ prompt }),
+      async ({ prompt, workspaceRoot }) => this.handleStart({ prompt, workspaceRoot }),
     );
     this.toolNames.push('greenforge_start');
 

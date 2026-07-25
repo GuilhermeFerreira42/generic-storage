@@ -35,5 +35,15 @@
 - **Fase 23:** `LiteLLMProvider` com Zod, `FetchLLMTransport`, hard block, `audit_warnings`, smoke test aprovado.
 - **Fase 24:** Documentação honesta (README, GUIA_DE_USO, .humano, CHANGELOG). NORMAL_CHAT ampliado para 28 padrões.
 
+## Preparação Pós-Fase 24 / Fase 25 — Correções dos Gaps do Teste Real
+- Implementado pacote de correções para os gaps vistos no Qwen CLI real:
+  - `QwenRouter` agora aceita `WRITING_TASK`, `PLANNING_TASK` e `RESEARCH_TASK`, mantendo `NORMAL_CHAT` e `DEVELOPMENT_TASK`.
+  - `UserPromptSubmit` agora direciona explicitamente tarefas de desenvolvimento para a tool MCP `mcp__greenforge__greenforge_start` e propaga `workspaceRoot` quando o payload traz `cwd`/workspace.
+  - `greenforge_start` aceita `workspaceRoot` opcional e inicializa Git automaticamente no workspace se `.git` não existir.
+  - `QwenExtensionRuntime` pode optar por LiteLLM real com `GREENFORGE_USE_REAL_LITELLM=true`, usando porta 4001 para router e 4000 para planner; em teste continua mockado.
+  - `McpGreenForgeServer` expõe `workspaceRoot` opcional no schema da tool `greenforge_start`.
+- Novo teste: `tests/phase25-gap-fixes.test.ts`.
+- Validação local: `npm run build`, `npm run lint` e `npm test` passaram com 491/491.
+
 ## Próxima Parada
-Fase 24 concluída. Fase 25 — Validação Final de Produção e Deploy. Executar no desktop Windows 11 com Qwen CLI + litellm + LLM real. Não avançar sem aprovação explícita.
+Testar no desktop Windows 11 com Qwen CLI + litellm + LLM real se o hook realmente induz o uso de `mcp__greenforge__greenforge_start`, se o Git init automático funciona em pasta nova e se o runtime usa LiteLLM real quando habilitado. Não marcar Fase 25 como concluída sem essa validação real.

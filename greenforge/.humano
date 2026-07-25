@@ -112,3 +112,11 @@ No seu Windows 11, na pasta do GreenForge:
 5. Sessão Qwen CLI real completa: prompt → classificação → plano → aprovação → agentes → DiffLens → Verifier APPROVED
 6. git tag v1.0.0 && git push origin v1.0.0
 7. Publicar no registry de extensões Qwen
+
+### [2026-07-25] Fase 25 — Correções preparatórias após teste real Qwen CLI
+- Status: IMPLEMENTADO LOCALMENTE, AGUARDANDO VALIDAÇÃO REAL NO DESKTOP.
+- Corrigidos gaps observados no teste real: hook mais diretivo para `mcp__greenforge__greenforge_start`, `workspaceRoot` opcional na tool, `git init` automático, runtime com LiteLLM real opt-in, e router multi-intenção (`WRITING_TASK`, `PLANNING_TASK`, `RESEARCH_TASK`).
+- Novo teste: `tests/phase25-gap-fixes.test.ts`.
+- Validação local: `npm run build`, `npm run lint`, `npm test` passaram com 491/491.
+- Próximo passo humano: testar no Windows 11 com Qwen CLI real se o hook induz a chamada MCP e se o fluxo avança a partir de uma pasta sem Git.
+

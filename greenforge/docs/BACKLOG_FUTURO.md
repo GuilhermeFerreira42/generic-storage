@@ -142,6 +142,15 @@
     - Tag v1.0.0 e changelog.
     - Empacotar e publicar no registry de extensões Qwen.
 
+- **Preparação já implementada após teste real inicial:**
+    - Router expandido para intenções `WRITING_TASK`, `PLANNING_TASK`, `RESEARCH_TASK`.
+    - Hook `UserPromptSubmit` agora direciona explicitamente `DEVELOPMENT_TASK` para `mcp__greenforge__greenforge_start`.
+    - Tool `greenforge_start` aceita `workspaceRoot` opcional.
+    - `QwenCommandHandler.start` faz `git init` automático no workspace informado quando necessário.
+    - `QwenExtensionRuntime` pode usar LiteLLM real com `GREENFORGE_USE_REAL_LITELLM=true`, preservando mocks em testes.
+    - Validação local: build/lint/test passando com 491/491.
+- **Pendente:** validação real no desktop confirmando que o Qwen CLI chama a tool MCP em vez das tools nativas e que o fluxo completo avança.
+
 ---
 
 ## Backlog Pós-v1.0 (Fases Futuras)

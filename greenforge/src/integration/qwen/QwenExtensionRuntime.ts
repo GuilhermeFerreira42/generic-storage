@@ -15,6 +15,8 @@ import { QwenRouter } from '../../infrastructure/llm/QwenRouter.js';
 import { PlannerEngine } from '../../core/PlannerEngine.js';
 import { SQLiteRepository } from '../../infrastructure/db/SQLiteRepository.js';
 import { Orchestrator } from '../../core/Orchestrator.js';
+import { LLMProviderFactory } from '../../infrastructure/llm/LLMProviderFactory.js';
+import { FetchLLMTransport } from '../../infrastructure/llm/FetchLLMTransport.js';
 
 /**
  * Mock LLM Provider used internally by the runtime so that
@@ -37,6 +39,16 @@ class InternalMockLLMProvider implements LLMProvider {
       ];
       if (chatPatterns.some(pattern => pattern.test(userPrompt))) {
         return JSON.stringify({ intention: 'NORMAL_CHAT', confidence: 0.95 });
+      }
+
+      if (/\b(escreva|escrever|redija|redigir|texto|artigo|livro|cap[ií]tulo|roteiro|copy|writing)\b/i.test(userPrompt)) {
+        return JSON.stringify({ intention: 'WRITING_TASK', confidence: 0.95 });
+      }
+      if (/\b(planeje|planejar|plano|roadmap|estrat[eé]gia|neg[oó]cio|arquitetura conceitual)\b/i.test(userPrompt)) {
+        return JSON.stringify({ intention: 'PLANNING_TASK', confidence: 0.95 });
+      }
+      if (/\b(pesquise|pesquisar|pesquisa|compare|comparar|levante|levantamento|refer[eê]ncias)\b/i.test(userPrompt)) {
+        return JSON.stringify({ intention: 'RESEARCH_TASK', confidence: 0.95 });
       }
       return JSON.stringify({ intention: 'DEVELOPMENT_TASK', confidence: 0.95 });
     }
@@ -82,9 +94,10 @@ export class QwenExtensionRuntime {
   private skill: SkillManifest | null = null;
   private options: RuntimeOptions;
 
-  private llm: InternalMockLLMProvider;
+  private llm: LLMProvider;
   private router: QwenRouter;
   private planner: PlannerEngine;
+  private realLLMEnabled = false;
   private repository: SQLiteRepository | null = null;
   private orchestrator: Orchestrator | null = null;
 
@@ -109,9 +122,50 @@ export class QwenExtensionRuntime {
     mkdirSync(this.tempDir, { recursive: true });
     this.dbPath = join(this.tempDir, 'runtime.db');
 
-    this.llm = new InternalMockLLMProvider();
-    this.router = new QwenRouter(this.llm);
-    this.planner = new PlannerEngine(this.llm);
+    const providers = this.createRuntimeProviders();
+    this.llm = providers.planner;
+    this.router = new QwenRouter(providers.router);
+    this.planner = new PlannerEngine(providers.planner);
+  }
+
+  private createRuntimeProviders(): { router: LLMProvider; planner: LLMProvider } {
+    const useRealLiteLLM = process.env.GREENFORGE_USE_REAL_LITELLM === 'true' && process.env.NODE_ENV !== 'test';
+    if (!useRealLiteLLM) {
+      const mock = new InternalMockLLMProvider();
+      return { router: mock, planner: mock };
+    }
+
+    const timeoutMs = Number(process.env.GREENFORGE_LITELLM_TIMEOUT_MS ?? '30000');
+    const factory = new LLMProviderFactory();
+    const transport = new FetchLLMTransport({ timeoutMs });
+    const apiKeyEnv = process.env.GREENFORGE_LITELLM_API_KEY_ENV || undefined;
+
+    const router = factory.createFromConfig(
+      {
+        provider: 'litellm',
+        baseUrl: process.env.GREENFORGE_LITELLM_SMALL_URL ?? 'http://localhost:4001',
+        model: process.env.GREENFORGE_LITELLM_SMALL_MODEL ?? 'greenforge-small-fast',
+        greenforgeProfile: 'small',
+        apiKeyEnv,
+        timeout: timeoutMs,
+      },
+      transport,
+    );
+
+    const planner = factory.createFromConfig(
+      {
+        provider: 'litellm',
+        baseUrl: process.env.GREENFORGE_LITELLM_LARGE_URL ?? 'http://localhost:4000',
+        model: process.env.GREENFORGE_LITELLM_LARGE_MODEL ?? 'greenforge-large',
+        greenforgeProfile: 'large',
+        apiKeyEnv,
+        timeout: timeoutMs,
+      },
+      transport,
+    );
+
+    this.realLLMEnabled = true;
+    return { router, planner };
   }
 
   // ─── Initialization ───
@@ -209,12 +263,11 @@ export class QwenExtensionRuntime {
   }
 
   usesRealLLM(): boolean {
-    // InternalMockLLMProvider is a mock
-    return false;
+    return this.realLLMEnabled;
   }
 
   makesNetworkCalls(): boolean {
-    return false;
+    return this.realLLMEnabled;
   }
 
   canDoDestructiveGitOps(): boolean {

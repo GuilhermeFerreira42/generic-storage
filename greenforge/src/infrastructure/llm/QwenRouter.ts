@@ -6,7 +6,13 @@ import { Intent } from '../../core/types/Intent.js';
  * Schema de validação para a resposta do LLM.
  */
 const IntentResponseSchema = z.object({
-  intention: z.enum(['NORMAL_CHAT', 'DEVELOPMENT_TASK']),
+  intention: z.enum([
+    'NORMAL_CHAT',
+    'DEVELOPMENT_TASK',
+    'WRITING_TASK',
+    'PLANNING_TASK',
+    'RESEARCH_TASK',
+  ]),
   confidence: z.number().min(0).max(1),
 });
 
@@ -25,11 +31,16 @@ export class QwenRouter {
    */
   async classify(input: string): Promise<Intent> {
     const prompt = `
-      Classifique a intenção do usuário no contexto de engenharia de software:
+      Classifique a intenção do usuário no contexto do GreenForge:
+      - NORMAL_CHAT: conversa casual ou pergunta simples sem ação.
+      - DEVELOPMENT_TASK: implementação, correção, refatoração, testes ou análise de código.
+      - WRITING_TASK: escrita, revisão ou estruturação de texto longo.
+      - PLANNING_TASK: planejamento conceitual, estratégia, negócio, roadmap ou arquitetura sem execução imediata de código.
+      - RESEARCH_TASK: pesquisa, comparação, levantamento ou síntese de informações.
       Input: "${input}"
       
       Responda apenas em JSON: 
-      { "intention": "NORMAL_CHAT" | "DEVELOPMENT_TASK", "confidence": 0.0-1.0 }
+      { "intention": "NORMAL_CHAT" | "DEVELOPMENT_TASK" | "WRITING_TASK" | "PLANNING_TASK" | "RESEARCH_TASK", "confidence": 0.0-1.0 }
     `;
 
     try {

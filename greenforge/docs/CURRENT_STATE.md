@@ -1,5 +1,5 @@
 # CURRENT_STATE — GreenForge
-> Última atualização: Fase 25 em andamento (preparação) | 2026-07-24
+> Última atualização: Fase 25 em preparação com correções de gaps reais | 2026-07-25
 
 ## Estado Atual
 - **Projeto:** GreenForge — extensão/orquestrador para Qwen CLI com arquitetura hexagonal.
@@ -14,6 +14,22 @@
 - **Preparação (concluída no workspace):** CHANGELOG.md criado, .ai-context e CURRENT_STATE atualizados, phase_24_resumo.md gerado.
 - **Pendente (desktop Windows 11 do usuário):** Sessão real completa com Qwen CLI + litellm + LLM real, DiffLens, tag v1.0.0, publish.
 
+
+## Correções Preparatórias Pós-Teste Real Qwen CLI
+O teste real com Qwen CLI mostrou que as tools MCP aparecem, mas o modelo tende a resolver sozinho com tools nativas (`write_file`, `agent`) em vez de chamar `greenforge_start`. Também mostrou que o runtime ainda precisava de opt-in para LiteLLM real e que o roteador era rígido demais para tarefas não-código.
+
+Correções aplicadas:
+- `Intent` expandido para `NORMAL_CHAT`, `DEVELOPMENT_TASK`, `WRITING_TASK`, `PLANNING_TASK`, `RESEARCH_TASK`.
+- `QwenRouter` atualizado para aceitar e validar essas novas intenções sem quebrar fallback seguro para `NORMAL_CHAT`.
+- `QwenHookHandler.handleUserPromptSubmit()` agora retorna uma instrução explícita para o Qwen CLI chamar `mcp__greenforge__greenforge_start` em tarefas `DEVELOPMENT_TASK`, incluindo `workspaceRoot` quando disponível.
+- `HookCommandAdapter` preserva essa instrução no `decision.message` do hook blocking `UserPromptSubmit`.
+- `QwenCommandHandler.handleStart()` aceita `--workspaceRoot=...` e faz `git init` automático se o workspace ainda não for um repositório Git.
+- `McpGreenForgeServer` adicionou `workspaceRoot` opcional ao schema da tool `greenforge_start`.
+- `QwenExtensionRuntime` continua mockado por padrão, mas pode usar LiteLLM real com `GREENFORGE_USE_REAL_LITELLM=true` fora de `NODE_ENV=test`; router usa porta 4001 e planner usa porta 4000.
+- Novo teste `tests/phase25-gap-fixes.test.ts`; suíte local final: 491/491.
+
+Status: implementado localmente e aguardando validação real no desktop.
+
 ## Checklists Fase 25
 
 ### ✅ Checklist A — Preparação (concluída)
@@ -27,7 +43,7 @@
 - [ ] Subir litellm nas portas 4000 (large) e 4001 (small)
 - [ ] `npm run llm:smoke` — confirmar ok: true
 - [ ] `qwen extensions link .` (recarregar extensão)
-- [ ] Sessão Qwen CLI real: prompt de desenvolvimento → classificação → plano → aprovação → execução por agentes
+- [ ] Sessão Qwen CLI real: prompt de desenvolvimento → hook UserPromptSubmit → chamada MCP `mcp__greenforge__greenforge_start` → plano → aprovação → execução por agentes
 - [ ] DiffLens gerar `GREENFORGE_AUDIT.md` com sucesso
 - [ ] Verifier emitir APPROVED
 - [ ] Validar isolamento via Git Worktrees

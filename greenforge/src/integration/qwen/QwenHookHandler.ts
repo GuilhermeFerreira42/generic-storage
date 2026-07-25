@@ -70,9 +70,27 @@ export class QwenHookHandler {
   }
 
   /**
-   * UserPromptSubmit: uses real QwenRouter with MockLLM to classify intent.
+   * Extracts a workspace root from Qwen payload variants observed in real CLI sessions.
+   */
+  private extractWorkspaceRoot(payload: Record<string, unknown>): string | undefined {
+    const direct = payload.cwd ?? payload.workspaceRoot ?? payload.workspace_root;
+    if (typeof direct === 'string' && direct.trim()) return direct;
+
+    const session = payload.session;
+    if (session && typeof session === 'object') {
+      const sessionRecord = session as Record<string, unknown>;
+      const sessionCwd = sessionRecord.cwd ?? sessionRecord.workspaceRoot;
+      if (typeof sessionCwd === 'string' && sessionCwd.trim()) return sessionCwd;
+    }
+
+    return undefined;
+  }
+
+  /**
+   * UserPromptSubmit: uses QwenRouter to classify intent.
    * - NORMAL_CHAT returns NOOP
-   * - DEVELOPMENT_TASK routes to GreenForge flow
+   * - DEVELOPMENT_TASK creates GreenForge task context and strongly directs Qwen CLI to call the MCP tool
+   * - Non-code intents are classified without forcing the code/worktree pipeline
    */
   async handleUserPromptSubmit(payload: unknown): Promise<HookHandlerResult> {
     const parsed = UserPromptSubmitPayloadSchema.safeParse(payload);
@@ -81,6 +99,8 @@ export class QwenHookHandler {
     }
 
     const { prompt } = parsed.data;
+    const payloadRecord = parsed.data as Record<string, unknown>;
+    const workspaceRoot = this.extractWorkspaceRoot(payloadRecord);
     const router = this.runtime.getRouter();
 
     // Call real QwenRouter (with MockLLM in test context)
@@ -91,6 +111,15 @@ export class QwenHookHandler {
         ok: true,
         action: 'NOOP',
         reason: 'NORMAL_CHAT',
+      });
+    }
+
+    if (intent !== 'DEVELOPMENT_TASK') {
+      return this.valid({
+        ok: true,
+        action: 'ALLOW',
+        reason: `${intent}: classified as non-code task. GreenForge code pipeline was not started; answer using the appropriate non-code workflow.`,
+        metadata: { intent, workspaceRoot }
       });
     }
 
@@ -117,11 +146,20 @@ export class QwenHookHandler {
 
     await orch.trigger(taskId, 'ROUTE_TASK');
 
+    const workspaceInstruction = workspaceRoot
+      ? ` Use workspaceRoot: ${workspaceRoot}.`
+      : ' If the Qwen payload has a current workspace/cwd, pass it as workspaceRoot.';
+
     return this.valid({
       ok: true,
       action: 'ALLOW',
-      reason: 'DEVELOPMENT_TASK',
-      metadata: { intent: 'DEVELOPMENT_TASK', taskId }
+      reason: `DEVELOPMENT_TASK: call MCP tool mcp__greenforge__greenforge_start with the original prompt.${workspaceInstruction} Do not solve with native write_file before GreenForge starts.`,
+      metadata: {
+        intent: 'DEVELOPMENT_TASK',
+        taskId,
+        suggestedTool: 'mcp__greenforge__greenforge_start',
+        workspaceRoot,
+      }
     });
   }
 

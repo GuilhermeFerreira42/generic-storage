@@ -1,4 +1,9 @@
-export type Intent = 'NORMAL_CHAT' | 'DEVELOPMENT_TASK';
+export type Intent =
+  | 'NORMAL_CHAT'
+  | 'DEVELOPMENT_TASK'
+  | 'WRITING_TASK'
+  | 'PLANNING_TASK'
+  | 'RESEARCH_TASK';
 
 export interface IntentResult {
   intention: Intent;

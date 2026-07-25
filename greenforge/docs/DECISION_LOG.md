@@ -175,3 +175,11 @@ F23 | ADD | Smoke real manual | `npm run llm:smoke` testa portas 4000/4001 fora 
 F23 | VAL | Validação real externa | Usuário executou smoke no Windows 11: 4000/modelo meu-pool respondeu `LARGE_OK` em 6413ms; 4001/modelo meu-pool respondeu `Saudação` em 1113ms; `ok: true` | Evidência do usuário em 2026-07-24
 F23 | TEST | 486/486 passing | Build, lint e suíte automatizada passando após implementação e arquivamento | `npm run build`, `npm run lint`, `npm test`
 F23 | VAL | Aprovação humana registrada | Usuário autorizou marcar a Fase 23 como aprovada após smoke real 4000/4001 e suíte 486/486 | Documentação viva
+
+### Fase 25 — Correções Preparatórias dos Gaps do Teste Real
+F25 | FIX | Hook UserPromptSubmit mais diretivo | Teste real mostrou Qwen CLI usando tools nativas; hook agora instrui `mcp__greenforge__greenforge_start` e propaga workspaceRoot | `src/integration/qwen/QwenHookHandler.ts`, `src/integration/qwen/HookCommandAdapter.ts`
+F25 | ADD | Git init automático no start | `greenforge_start` pode receber `workspaceRoot` e inicializa repositório Git quando ausente | `src/integration/qwen/QwenCommandHandler.ts`, `src/integration/qwen/McpGreenForgeServer.ts`
+F25 | ADD | Runtime com LiteLLM real opt-in | `GREENFORGE_USE_REAL_LITELLM=true` ativa LiteLLM real fora de testes; router usa 4001 e planner usa 4000 | `src/integration/qwen/QwenExtensionRuntime.ts`
+F25 | ADD | Router multi-intenção | Suporte a `WRITING_TASK`, `PLANNING_TASK`, `RESEARCH_TASK` sem quebrar `NORMAL_CHAT`/`DEVELOPMENT_TASK` | `src/core/types/Intent.ts`, `src/infrastructure/llm/QwenRouter.ts`
+F25 | TEST | Gaps cobertos por teste local | Novo teste cobre runtime real opt-in, router expandido, diretiva MCP e git init automático; suíte final 491/491 | `tests/phase25-gap-fixes.test.ts`
+

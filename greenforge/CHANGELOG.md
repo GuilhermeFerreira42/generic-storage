@@ -1,5 +1,22 @@
 # Changelog — GreenForge
 
+
+## [Unreleased] — Preparação Fase 25
+
+### Adicionado
+- Router multi-intenção com `WRITING_TASK`, `PLANNING_TASK` e `RESEARCH_TASK`.
+- Opt-in de LiteLLM real no runtime via `GREENFORGE_USE_REAL_LITELLM=true`.
+- `workspaceRoot` opcional na tool MCP `greenforge_start`.
+- Git init automático no comando `start` quando `workspaceRoot` não é repositório Git.
+- Testes `phase25-gap-fixes.test.ts` cobrindo os gaps do teste real com Qwen CLI.
+
+### Alterado
+- `UserPromptSubmit` agora instrui explicitamente o Qwen CLI a chamar `mcp__greenforge__greenforge_start` para tarefas de desenvolvimento.
+
+### Validação
+- Build, lint e testes locais passando: 491/491.
+
+
 Todas as mudanças notáveis deste projeto serão documentadas neste arquivo.
 
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
