@@ -1,3 +1,18 @@
+> **⚠️ NOTA IMPORTANTE — 27/07/2026**
+>
+> **Desenvolvimento do Greenforge System interrompido.**
+>
+> **Motivo:** Encontramos um projeto/ecossistema já maduro (**Claude Code + Ruflo + LiteLLM**) que cumpre de forma superior e mais completa o objetivo original do Greenforge.
+>
+> **Objetivo original do Greenforge:**
+> Criar um **modelo autônomo, multimodal e orquestrador** capaz de escrever não apenas código, mas também livros, textos, documentação e qualquer outro tipo de conteúdo solicitado pelo usuário.
+>
+> O objetivo era substituir a iteração humana nas tarefas de **moderador**, **revisor** e **orquestrador**, delegando completamente o planejamento, execução, verificação e consolidação de tarefas complexas para o sistema.
+>
+> Como o stack abaixo (Claude Code + Ruflo + LiteLLM com NVIDIA NIM) já entrega esse nível de autonomia e orquestração de forma robusta e pronta para uso, decidimos não continuar o desenvolvimento do Greenforge.
+
+---
+
 # Guia Definitivo — Claude Code + Ruflo + LiteLLM no Windows 11
 
 > **Última atualização:** 26/07/2026  
